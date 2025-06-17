@@ -1,12 +1,12 @@
 export interface Game {
   id: string;
   title: string;
-  coverImage: string;
+  cover_image: string;
   platform: string;
-  lastPlayed: string;
-  saveCount: number;
+  last_played: string;
+  save_count: number;
   size: string;
   status: "synced" | "syncing" | "added";
   category: string;
-  isFavorite: boolean;
+  is_favorite: boolean;
 }

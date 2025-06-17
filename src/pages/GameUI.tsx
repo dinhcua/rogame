@@ -2,34 +2,35 @@ import { useState, useEffect } from "react";
 import { Game } from "../types/game";
 import AddGameModal from "../components/AddGameModal";
 import DropdownSelect from "../components/DropdownSelect";
+import { invoke } from "@tauri-apps/api/core";
 
 // Sample data
 const sampleGames: Game[] = [
   {
     id: "game1",
     title: "Elden Ring",
-    coverImage:
+    cover_image:
       "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
     platform: "Steam",
-    lastPlayed: "Just added",
-    saveCount: 8,
+    last_played: "Just added",
+    save_count: 8,
     size: "128MB",
     status: "synced",
     category: "Action RPG",
-    isFavorite: false,
+    is_favorite: false,
   },
   {
     id: "game2",
     title: "Lies of P",
-    coverImage:
+    cover_image:
       "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg",
     platform: "Epic Games",
-    lastPlayed: "Just added",
-    saveCount: 3,
+    last_played: "Just added",
+    save_count: 3,
     size: "64MB",
     status: "syncing",
     category: "Action RPG",
-    isFavorite: true,
+    is_favorite: true,
   },
 ];
 
@@ -57,8 +58,8 @@ const platformOptions = [
 // Sort options
 const sortOptions = [
   { value: "name", label: "Sort by Name" },
-  { value: "lastPlayed", label: "Sort by Last Played" },
-  { value: "saveCount", label: "Sort by Save Count" },
+  { value: "last_played", label: "Sort by Last Played" },
+  { value: "save_count", label: "Sort by Save Count" },
   { value: "size", label: "Sort by Size" },
 ];
 
@@ -94,8 +95,8 @@ const GameUI = () => {
       const matchesCategory =
         selectedCategory === "All Games" ||
         (selectedCategory === "Recently Played" &&
-          game.lastPlayed !== "Just added") ||
-        (selectedCategory === "Favorites" && game.isFavorite) ||
+          game.last_played !== "Just added") ||
+        (selectedCategory === "Favorites" && game.is_favorite) ||
         game.category === selectedCategory;
 
       return matchesSearch && matchesPlatform && matchesCategory;
@@ -104,10 +105,10 @@ const GameUI = () => {
       switch (sortBy) {
         case "name":
           return a.title.localeCompare(b.title);
-        case "lastPlayed":
-          return a.lastPlayed.localeCompare(b.lastPlayed);
-        case "saveCount":
-          return b.saveCount - a.saveCount;
+        case "last_played":
+          return a.last_played.localeCompare(b.last_played);
+        case "save_count":
+          return b.save_count - a.save_count;
         case "size":
           return parseInt(b.size) - parseInt(a.size);
         default:
@@ -144,24 +145,36 @@ const GameUI = () => {
     setShowFoundGames(false);
     setScanPercentage(0);
 
-    const interval = setInterval(() => {
-      setScanPercentage((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setShowScanProgress(false);
-            setShowFoundGames(true);
-            setFoundGames(sampleGames);
-          }, 500);
-          return 100;
-        }
+    invoke<Record<string, Game>>("scan_games")
+      .then((result) => {
+        const games = Object.values(result);
+        console.log(games);
 
-        if (prev === 30) setSteamGamesCount(12);
-        if (prev === 60) setEpicGamesCount(5);
-
-        return prev + 5;
+        setFoundGames(games);
+        setScanPercentage(100);
+        setTimeout(() => {
+          setShowScanProgress(false);
+          setShowFoundGames(true);
+        }, 500);
+      })
+      .catch((error) => {
+        console.error("Error scanning games:", error);
+        setShowScanProgress(false);
       });
-    }, 200);
+
+    // const interval = setInterval(() => {
+    //   setScanPercentage((prev) => {
+    //     if (prev >= 100) {
+    //       clearInterval(interval);
+    //       return 100;
+    //     }
+
+    //     if (prev === 30) setSteamGamesCount(12);
+    //     if (prev === 60) setEpicGamesCount(5);
+
+    //     return prev + 5;
+    //   });
+    // }, 200);
   };
 
   const handleGridViewChange = (view: "3x3" | "4x4") => {
@@ -337,7 +350,7 @@ const GameUI = () => {
                     className="bg-black/20 rounded-lg p-4 flex items-center space-x-3"
                   >
                     <img
-                      src={game.coverImage}
+                      src={game.cover_image}
                       alt={game.title}
                       className="w-12 h-12 rounded object-cover"
                     />
@@ -549,7 +562,7 @@ const GameUI = () => {
             >
               <div className="relative">
                 <img
-                  src={game.coverImage}
+                  src={game.cover_image}
                   alt={game.title}
                   className="w-full h-48 object-cover"
                 />
@@ -591,7 +604,7 @@ const GameUI = () => {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="text-sm">{game.lastPlayed}</span>
+                    <span className="text-sm">{game.last_played}</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 mb-3">
@@ -611,7 +624,7 @@ const GameUI = () => {
                     >
                       <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                     </svg>
-                    <span className="text-sm">{game.saveCount} saves</span>
+                    <span className="text-sm">{game.save_count} saves</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <svg
