@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* 'game-dark': '#0a0a0a',
+'game-card': '#1a1a1a',
+'rog-blue': '#00b4d8',
+'sidebar': '#141414', */
+
+@theme {
+  /* Light theme colors */
+  --color-game-dark: #0a0a0a;
+  --color-game-card: #1a1a1a;
+  --color-rog-blue: #00b4d8;
+  --color-sidebar: #141414;
+}
