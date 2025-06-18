@@ -1,32 +1,70 @@
 import React from "react";
+import { formatDistanceToNow } from "date-fns";
 
-interface SaveFileItemProps {
-  // Add props as needed
+interface SaveFile {
+  id: string;
+  game_id: string;
+  file_name: string;
+  created_at: string;
+  modified_at: string;
+  size_bytes: number;
+  tags: string[];
 }
 
-const SaveFileItem: React.FC<SaveFileItemProps> = () => {
+interface SaveFileItemProps {
+  saveFile: SaveFile;
+  onTagsClick?: () => void;
+  onShareClick?: () => void;
+}
+
+const SaveFileItem: React.FC<SaveFileItemProps> = ({
+  saveFile,
+  onTagsClick,
+  onShareClick,
+}) => {
+  const formatFileSize = (bytes: number) => {
+    const units = ["B", "KB", "MB", "GB"];
+    let size = bytes;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
   return (
     <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
-            <h3 className="font-medium">Save File 1</h3>
+            <h3 className="font-medium">{saveFile.file_name}</h3>
             <div className="flex items-center space-x-2">
-              <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs">
-                Boss Fight
-              </span>
-              <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">
-                Achievement
-              </span>
+              {saveFile.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs"
+                >
+                  {tag}
+                </span>
+              ))}
             </div>
           </div>
           <p className="text-sm text-gray-400">
-            Last modified: March 15, 2024 - 14:30
+            Last modified: {formatDistanceToNow(new Date(saveFile.modified_at))}{" "}
+            ago
           </p>
-          <p className="text-sm text-gray-400 mt-1">Size: 1.2 MB</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Size: {formatFileSize(saveFile.size_bytes)}
+          </p>
         </div>
         <div className="flex items-start space-x-2">
-          <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative">
+          <button
+            onClick={onTagsClick}
+            className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative"
+          >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
@@ -38,7 +76,10 @@ const SaveFileItem: React.FC<SaveFileItemProps> = () => {
               Manage Tags
             </span>
           </button>
-          <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative">
+          <button
+            onClick={onShareClick}
+            className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative"
+          >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
             </svg>

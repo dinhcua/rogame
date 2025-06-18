@@ -1,6 +1,16 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod game_scanner;
+mod save_manager;
+
 fn main() {
-    rogame_lib::run()
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            game_scanner::scan_games,
+            save_manager::backup_save,
+            save_manager::list_saves,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

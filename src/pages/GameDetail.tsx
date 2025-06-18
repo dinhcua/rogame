@@ -1,24 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useParams } from "react-router-dom";
 import DropdownSelect from "../components/DropdownSelect";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
 
-interface GameDetailProps {
-  // Add props as needed
+interface SaveFile {
+  id: string;
+  game_id: string;
+  file_name: string;
+  created_at: string;
+  modified_at: string;
+  size_bytes: number;
+  tags: string[];
 }
 
-const GameDetail: React.FC<GameDetailProps> = () => {
+const GameDetail: React.FC = () => {
+  const { id: gameId } = useParams<{ id: string }>();
   const [selectedTag, setSelectedTag] = useState("all");
+  const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const tagOptions = [
     { value: "all", label: "All Files" },
-    { value: "boss_fight", label: "Boss Fight (3)" },
-    { value: "achievement", label: "Achievement (5)" },
-    { value: "story", label: "Story (2)" },
-    { value: "checkpoint", label: "Checkpoint (4)" },
+    { value: "boss_fight", label: "Boss Fight" },
+    { value: "achievement", label: "Achievement" },
+    { value: "story", label: "Story" },
+    { value: "checkpoint", label: "Checkpoint" },
   ];
+
+  const loadSaveFiles = async () => {
+    try {
+      setIsLoading(true);
+      const files = await invoke<SaveFile[]>("list_saves", { gameId });
+      setSaveFiles(files);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load save files"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      setIsLoading(true);
+      const newSave = await invoke<SaveFile>("backup_save", { gameId });
+      setSaveFiles((prev) => [...prev, newSave]);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to backup save file"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSaveFiles();
+  }, [gameId]);
+
+  const filteredSaveFiles =
+    selectedTag === "all"
+      ? saveFiles
+      : saveFiles.filter((file) => file.tags.includes(selectedTag));
 
   return (
     <div>
@@ -43,10 +92,13 @@ const GameDetail: React.FC<GameDetailProps> = () => {
                 <p className="text-xl text-gray-300 mb-6">Save Files Manager</p>
                 <div className="flex items-center space-x-4">
                   <button
-                    onClick={() => {}}
-                    className="bg-green-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-500 transition-colors"
+                    onClick={handleBackup}
+                    disabled={isLoading}
+                    className={`bg-green-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-500 transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
-                    Backup Save
+                    {isLoading ? "Backing up..." : "Backup Save"}
                   </button>
                   <button
                     onClick={() => {}}
@@ -71,16 +123,20 @@ const GameDetail: React.FC<GameDetailProps> = () => {
               <h2 className="text-2xl font-bold mb-4">Save Details</h2>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-gray-400 mb-2">Last Backup</h3>
-                  <p>March 15, 2024 - 14:30</p>
+                  <h3 className="text-gray-400 mb-2">Total Saves</h3>
+                  <p>{saveFiles.length} Save Files</p>
                 </div>
                 <div>
                   <h3 className="text-gray-400 mb-2">Save Location</h3>
-                  <p>C:/Users/AppData/Hollow Knight/Saves</p>
+                  <p>Local App Data</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Total Saves</h3>
-                  <p>3 Save Files</p>
+                  <h3 className="text-gray-400 mb-2">Last Backup</h3>
+                  <p>
+                    {saveFiles[0]?.modified_at
+                      ? new Date(saveFiles[0].modified_at).toLocaleString()
+                      : "No backups yet"}
+                  </p>
                 </div>
                 <div>
                   <h3 className="text-gray-400 mb-2">Auto-Backup</h3>
@@ -155,10 +211,35 @@ const GameDetail: React.FC<GameDetailProps> = () => {
                 />
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/20 text-red-400 p-4 rounded-lg mb-4">
+                  {error}
+                </div>
+              )}
+
               {/* Save Files List */}
               <div className="space-y-4">
-                <SaveFileItem />
-                <SaveFileItem />
+                {isLoading ? (
+                  <div className="text-center py-8 text-gray-400">
+                    Loading save files...
+                  </div>
+                ) : filteredSaveFiles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    {saveFiles.length === 0
+                      ? "No save files yet"
+                      : "No save files match the selected filter"}
+                  </div>
+                ) : (
+                  filteredSaveFiles.map((saveFile) => (
+                    <SaveFileItem
+                      key={saveFile.id}
+                      saveFile={saveFile}
+                      onTagsClick={() => {}}
+                      onShareClick={() => {}}
+                    />
+                  ))
+                )}
               </div>
             </div>
           </div>
