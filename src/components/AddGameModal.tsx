@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DropdownSelect from "./DropdownSelect";
+import { X, Folder } from "lucide-react";
 
 interface AddGameModalProps {
   isOpen: boolean;
@@ -30,13 +31,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -92,17 +87,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
                 placeholder="Path to save files directory"
               />
               <button className="bg-white/10 px-4 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <Folder className="w-5 h-5" />
                 <span>Browse</span>
               </button>
             </div>

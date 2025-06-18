@@ -3,6 +3,25 @@ import { Game } from "../types/game";
 import AddGameModal from "../components/AddGameModal";
 import DropdownSelect from "../components/DropdownSelect";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  Clock,
+  Star,
+  Plus,
+  CheckCircle2,
+  LayoutGrid,
+  Layout,
+  ChevronDown,
+  File,
+  Scale,
+  X,
+  Loader2,
+  FileText,
+  Download,
+  Check,
+} from "lucide-react";
 
 // Sample data
 const sampleGames: Game[] = [
@@ -64,7 +83,6 @@ const sortOptions = [
 ];
 
 const GameUI = () => {
-  const [currentTime, setCurrentTime] = useState<string>("");
   const [showScanProgress, setShowScanProgress] = useState(false);
   const [scanPercentage, setScanPercentage] = useState(0);
   const [steamGamesCount, setSteamGamesCount] = useState(0);
@@ -117,41 +135,49 @@ const GameUI = () => {
     });
 
   useEffect(() => {
-    // Update time
-    const updateTime = () => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      setCurrentTime(timeStr);
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-
     // Load grid view preference
     const savedView = localStorage.getItem("gridView") as "3x3" | "4x4";
     if (savedView) {
       setGridView(savedView);
     }
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleScan = () => {
     setShowScanProgress(true);
     setShowFoundGames(false);
     setScanPercentage(0);
+    setSteamGamesCount(0);
+    setEpicGamesCount(0);
+
+    // Simulate scanning progress
+    const progressInterval = setInterval(() => {
+      setScanPercentage((prev) => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 500);
 
     invoke<Record<string, Game>>("scan_games")
       .then((result) => {
         const games = Object.values(result);
-        console.log(games);
 
+        // Count games by platform
+        const steamGames = games.filter((game) => game.platform === "Steam");
+        const epicGames = games.filter(
+          (game) => game.platform === "Epic Games"
+        );
+
+        setSteamGamesCount(steamGames.length);
+        setEpicGamesCount(epicGames.length);
         setFoundGames(games);
+
+        // Ensure we reach 100%
         setScanPercentage(100);
+        clearInterval(progressInterval);
+
         setTimeout(() => {
           setShowScanProgress(false);
           setShowFoundGames(true);
@@ -159,22 +185,9 @@ const GameUI = () => {
       })
       .catch((error) => {
         console.error("Error scanning games:", error);
+        clearInterval(progressInterval);
         setShowScanProgress(false);
       });
-
-    // const interval = setInterval(() => {
-    //   setScanPercentage((prev) => {
-    //     if (prev >= 100) {
-    //       clearInterval(interval);
-    //       return 100;
-    //     }
-
-    //     if (prev === 30) setSteamGamesCount(12);
-    //     if (prev === 60) setEpicGamesCount(5);
-
-    //     return prev + 5;
-    //   });
-    // }, 200);
   };
 
   const handleGridViewChange = (view: "3x3" | "4x4") => {
@@ -210,17 +223,7 @@ const GameUI = () => {
                 onClick={handleScan}
                 className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <FileText className="w-5 h-5" />
                 <span>Scan for Games</span>
               </button>
             </div>
@@ -243,57 +246,19 @@ const GameUI = () => {
               </div>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center space-x-3 text-green-500">
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm">
                     Steam Library: {steamGamesCount} games found
                   </span>
                 </div>
                 <div className="flex items-center space-x-3 text-green-500">
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm">
                     Epic Games: {epicGamesCount} games found
                   </span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <svg
-                    className="w-5 h-5 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="text-sm">Scanning GOG Galaxy...</span>
                 </div>
               </div>
@@ -312,34 +277,14 @@ const GameUI = () => {
                     }
                     className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <Download className="w-5 h-5" />
                     <span>Import All</span>
                   </button>
                   <button
                     onClick={() => setShowFoundGames(false)}
                     className="text-gray-400 hover:text-white transition-colors"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -368,29 +313,9 @@ const GameUI = () => {
                       } p-2 rounded-lg transition-colors group relative`}
                     >
                       {game.status === "added" ? (
-                        <svg
-                          className="w-5 h-5 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <Check className="w-5 h-5 text-green-500" />
                       ) : (
-                        <svg
-                          className="w-5 h-5 text-rog-blue group-hover:scale-110 transition-transform"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <Plus className="w-5 h-5 text-rog-blue group-hover:scale-110 transition-transform" />
                       )}
                       <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                         {game.status === "added" ? "Added" : "Add to Library"}
@@ -414,53 +339,21 @@ const GameUI = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
               />
-              <svg
-                className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
             </div>
             <DropdownSelect
               options={platformOptions}
               value={selectedPlatform}
               onChange={setSelectedPlatform}
               placeholder="Select Platform"
-              icon={
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              }
+              icon={<ShoppingBag className="w-5 h-5" />}
             />
             <DropdownSelect
               options={sortOptions}
               value={sortBy}
               onChange={setSortBy}
               placeholder="Sort by"
-              icon={
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
-                </svg>
-              }
+              icon={<SlidersHorizontal className="w-5 h-5" />}
             />
           </div>
           <div className="flex items-center space-x-4">
@@ -468,9 +361,7 @@ const GameUI = () => {
               onClick={() => setShowFilters(!showFilters)}
               className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
-              </svg>
+              <SlidersHorizontal className="w-5 h-5" />
               <span>Filters</span>
             </button>
             <div className="flex rounded-lg overflow-hidden">
@@ -480,13 +371,7 @@ const GameUI = () => {
                   gridView === "4x4" ? "bg-white/20" : "bg-white/10"
                 }`}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
+                <LayoutGrid className="w-5 h-5" />
               </button>
               <button
                 onClick={() => handleGridViewChange("3x3")}
@@ -494,13 +379,7 @@ const GameUI = () => {
                   gridView === "3x3" ? "bg-white/20" : "bg-white/10"
                 }`}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5z" />
-                </svg>
+                <Layout className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -529,19 +408,11 @@ const GameUI = () => {
               className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap flex items-center space-x-1"
             >
               <span>{showMoreCategories ? "Less" : "More"}</span>
-              <svg
+              <ChevronDown
                 className={`w-4 h-4 transform transition-transform ${
                   showMoreCategories ? "rotate-180" : ""
                 }`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              />
             </button>
           )}
         </div>
@@ -577,13 +448,7 @@ const GameUI = () => {
                     {game.status === "synced" ? "Synced" : "Syncing..."}
                   </span>
                   <button className="bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors">
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
+                    <Star className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -593,17 +458,7 @@ const GameUI = () => {
                     {game.title}
                   </h3>
                   <div className="flex items-center space-x-1 text-gray-400">
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <Clock className="w-4 h-4" />
                     <span className="text-sm">{game.last_played}</span>
                   </div>
                 </div>
@@ -617,27 +472,11 @@ const GameUI = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                    </svg>
+                    <File className="w-5 h-5 text-gray-400" />
                     <span className="text-sm">{game.save_count} saves</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.616a1 1 0 01.894-1.79l1.599.8L9 4.323V3a1 1 0 011-1zm-5 8.274l-.818 2.552c.25.112.526.174.818.174.292 0 .569-.062.818-.174L5 10.274zm10 0l-.818 2.552c.25.112.526.174.818.174.292 0 .569-.062.818-.174L15 10.274z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <Scale className="w-5 h-5 text-gray-400" />
                     <span className="text-sm">{game.size}</span>
                   </div>
                 </div>
@@ -652,17 +491,7 @@ const GameUI = () => {
           >
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-rog-blue/20 transition-colors">
-                <svg
-                  className="w-8 h-8 text-white/70 group-hover:text-rog-blue transition-colors"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <Plus className="w-8 h-8 text-white/70 group-hover:text-rog-blue transition-colors" />
               </div>
               <h3 className="text-lg font-medium text-white/70 group-hover:text-white transition-colors">
                 Add New Game

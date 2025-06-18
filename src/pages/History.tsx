@@ -1,60 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { formatDistanceToNow } from "date-fns";
 import DropdownSelect from "../components/DropdownSelect";
+import { RefreshCw, MoreVertical } from "lucide-react";
+
+interface Game {
+  id: string;
+  name: string;
+  image: string;
+}
 
 interface BackupItem {
   id: string;
-  game: {
-    name: string;
-    image: string;
-  };
-  saveName: string;
-  createdAt: string;
-  size: string;
-  syncStatus: "synced" | "syncing" | "not_synced";
+  game_id: string;
+  game: Game;
+  file_name: string;
+  created_at: string;
+  size_bytes: number;
+  sync_status: "synced" | "syncing" | "not_synced";
   description: string;
+  tags: string[];
 }
 
-const mockBackups: BackupItem[] = [
-  {
-    id: "1",
-    game: {
-      name: "Hollow Knight",
-      image: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5nng.jpg",
-    },
-    saveName: "Save 3",
-    createdAt: "March 15, 2024 - 14:30",
-    size: "1.2 GB",
-    syncStatus: "synced",
-    description: "Boss fight completed - Before entering City of Tears",
-  },
-  {
-    id: "2",
-    game: {
-      name: "Gears Tactics",
-      image: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tmu.jpg",
-    },
-    saveName: "Save 2",
-    createdAt: "March 14, 2024 - 20:15",
-    size: "800 MB",
-    syncStatus: "syncing",
-    description: "Chapter 2 - Mission 3 completed",
-  },
-  {
-    id: "3",
-    game: {
-      name: "Balatro",
-      image: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4d5v.jpg",
-    },
-    saveName: "Save 1",
-    createdAt: "March 13, 2024 - 15:45",
-    size: "200 MB",
-    syncStatus: "not_synced",
-    description: "First run completed with Joker deck",
-  },
-];
+interface PaginationInfo {
+  current_page: number;
+  total_pages: number;
+  total_items: number;
+  items_per_page: number;
+}
 
-const BackupCard: React.FC<{ backup: BackupItem }> = ({ backup }) => {
-  const getSyncStatusColor = (status: BackupItem["syncStatus"]) => {
+const BackupCard: React.FC<{
+  backup: BackupItem;
+  onRestore: (backup: BackupItem) => void;
+}> = ({ backup, onRestore }) => {
+  const getSyncStatusColor = (status: BackupItem["sync_status"]) => {
     switch (status) {
       case "synced":
         return "text-green-500";
@@ -67,7 +46,7 @@ const BackupCard: React.FC<{ backup: BackupItem }> = ({ backup }) => {
     }
   };
 
-  const getSyncStatusText = (status: BackupItem["syncStatus"]) => {
+  const getSyncStatusText = (status: BackupItem["sync_status"]) => {
     switch (status) {
       case "synced":
         return "Cloud Synced";
@@ -78,6 +57,19 @@ const BackupCard: React.FC<{ backup: BackupItem }> = ({ backup }) => {
       default:
         return "Unknown";
     }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    const units = ["B", "KB", "MB", "GB"];
+    let size = bytes;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
   return (
@@ -91,46 +83,68 @@ const BackupCard: React.FC<{ backup: BackupItem }> = ({ backup }) => {
           />
           <div>
             <h3 className="text-xl font-bold">
-              {backup.game.name} - {backup.saveName}
+              {backup.game.name} - {backup.file_name}
             </h3>
-            <p className="text-gray-400">Created: {backup.createdAt}</p>
+            <p className="text-gray-400">
+              Created: {formatDistanceToNow(new Date(backup.created_at))} ago
+            </p>
             <div className="flex items-center space-x-4 mt-2">
-              <span className="text-sm text-gray-400">Size: {backup.size}</span>
+              <span className="text-sm text-gray-400">
+                Size: {formatFileSize(backup.size_bytes)}
+              </span>
               <span className="text-sm text-gray-400">•</span>
               <span
-                className={`text-sm ${getSyncStatusColor(backup.syncStatus)}`}
+                className={`text-sm ${getSyncStatusColor(backup.sync_status)}`}
               >
-                {getSyncStatusText(backup.syncStatus)}
+                {getSyncStatusText(backup.sync_status)}
               </span>
             </div>
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors">
-            Restore
+          <button
+            onClick={() => onRestore(backup)}
+            className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span>Restore</span>
           </button>
           <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 transition-colors">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
+            <MoreVertical className="w-5 h-5" />
           </button>
         </div>
       </div>
-      <div className="mt-4 text-gray-400">{backup.description}</div>
+      <div className="mt-4 text-gray-400">
+        <div className="flex items-center space-x-2 mb-2">
+          {backup.tags.map((tag, index) => (
+            <span
+              key={index}
+              className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        {backup.description}
+      </div>
     </div>
   );
 };
 
 export default function History() {
+  const [backups, setBackups] = useState<BackupItem[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
-
-  const gameOptions = [
-    { value: "all", label: "All Games" },
-    { value: "hollow_knight", label: "Hollow Knight" },
-    { value: "gears_tactics", label: "Gears Tactics" },
-    { value: "balatro", label: "Balatro" },
-  ];
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    current_page: 1,
+    total_pages: 1,
+    total_items: 0,
+    items_per_page: 10,
+  });
 
   const timeOptions = [
     { value: "all", label: "All Time" },
@@ -139,14 +153,94 @@ export default function History() {
     { value: "month", label: "Last Month" },
   ];
 
+  const loadGames = async () => {
+    try {
+      const fetchedGames = await invoke<Game[]>("list_games");
+      setGames(fetchedGames);
+    } catch (err) {
+      console.error("Failed to load games:", err);
+      setError("Failed to load games");
+    }
+  };
+
+  const loadBackups = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await invoke<{
+        items: BackupItem[];
+        pagination: PaginationInfo;
+      }>("list_backups", {
+        page: pagination.current_page,
+        itemsPerPage: pagination.items_per_page,
+        gameId: selectedGame === "all" ? null : selectedGame,
+        timeRange: selectedTime,
+        searchQuery: searchQuery.trim() || null,
+      });
+
+      setBackups(response.items);
+      setPagination(response.pagination);
+    } catch (err) {
+      console.error("Failed to load backups:", err);
+      setError("Failed to load backups");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async (backup: BackupItem) => {
+    try {
+      setError(null);
+      await invoke("restore_backup", {
+        gameId: backup.game_id,
+        backupId: backup.id,
+      });
+      // Show success message or handle UI feedback
+    } catch (err) {
+      console.error("Failed to restore backup:", err);
+      setError("Failed to restore backup");
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination((prev) => ({ ...prev, current_page: page }));
+  };
+
+  useEffect(() => {
+    loadGames();
+  }, []);
+
+  useEffect(() => {
+    loadBackups();
+  }, [pagination.current_page, selectedGame, selectedTime, searchQuery]);
+
+  const gameOptions = [
+    { value: "all", label: "All Games" },
+    ...games.map((game) => ({
+      value: game.id,
+      label: game.name,
+    })),
+  ];
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="bg-red-500/20 text-red-400 p-4 rounded-lg">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto p-8">
       {/* Filters and Search */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="relative">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search backups..."
               className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
             />
@@ -217,34 +311,101 @@ export default function History() {
 
       {/* Backup List */}
       <div className="space-y-4">
-        {mockBackups.map((backup) => (
-          <BackupCard key={backup.id} backup={backup} />
-        ))}
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rog-blue mx-auto"></div>
+            <p className="mt-4 text-gray-400">Loading backups...</p>
+          </div>
+        ) : backups.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">No backups found</div>
+        ) : (
+          backups.map((backup) => (
+            <BackupCard
+              key={backup.id}
+              backup={backup}
+              onRestore={handleRestore}
+            />
+          ))
+        )}
       </div>
 
       {/* Pagination */}
-      <div className="mt-8 flex items-center justify-between">
-        <div className="text-gray-400">Showing 1-3 of 36 backups</div>
-        <div className="flex items-center space-x-2">
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
-            Previous
-          </button>
-          <button className="bg-rog-blue px-4 py-2 rounded-lg">1</button>
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
-            2
-          </button>
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
-            3
-          </button>
-          <span className="px-2">...</span>
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
-            12
-          </button>
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
-            Next
-          </button>
+      {!loading && backups.length > 0 && (
+        <div className="mt-8 flex items-center justify-between">
+          <div className="text-gray-400">
+            Showing{" "}
+            {(pagination.current_page - 1) * pagination.items_per_page + 1}-
+            {Math.min(
+              pagination.current_page * pagination.items_per_page,
+              pagination.total_items
+            )}{" "}
+            of {pagination.total_items} backups
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(pagination.current_page - 1)}
+              disabled={pagination.current_page === 1}
+              className={`bg-white/10 px-4 py-2 rounded-lg transition-colors ${
+                pagination.current_page === 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-white/20"
+              }`}
+            >
+              Previous
+            </button>
+            {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
+              .filter(
+                (page) =>
+                  page === 1 ||
+                  page === pagination.total_pages ||
+                  Math.abs(page - pagination.current_page) <= 1
+              )
+              .map((page, index, array) => {
+                if (index > 0 && array[index - 1] !== page - 1) {
+                  return (
+                    <React.Fragment key={`ellipsis-${page}`}>
+                      <span className="px-2">...</span>
+                      <button
+                        onClick={() => handlePageChange(page)}
+                        className={`px-4 py-2 rounded-lg ${
+                          pagination.current_page === page
+                            ? "bg-rog-blue"
+                            : "bg-white/10 hover:bg-white/20"
+                        } transition-colors`}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  );
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-4 py-2 rounded-lg ${
+                      pagination.current_page === page
+                        ? "bg-rog-blue"
+                        : "bg-white/10 hover:bg-white/20"
+                    } transition-colors`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            <button
+              onClick={() => handlePageChange(pagination.current_page + 1)}
+              disabled={pagination.current_page === pagination.total_pages}
+              className={`bg-white/10 px-4 py-2 rounded-lg transition-colors ${
+                pagination.current_page === pagination.total_pages
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-white/20"
+              }`}
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
