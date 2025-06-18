@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SaveFile {
     pub id: String,
     pub game_id: String,
@@ -23,7 +23,7 @@ impl SaveFile {
     pub fn new(game_id: String, file_name: String, size_bytes: u64) -> Self {
         let now = Utc::now().to_rfc3339();
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: file_name.clone(),
             game_id,
             file_name,
             created_at: now.clone(),
@@ -32,6 +32,33 @@ impl SaveFile {
             tags: Vec::new(),
         }
     }
+}
+
+#[tauri::command]
+pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, SaveFileError> {
+    println!("Attempting to restore save. Game ID: {}, Save ID: {}", game_id, save_id);
+    
+    let saves_dir = get_saves_directory()?;
+    let game_saves_dir = saves_dir.join(&game_id);
+
+    println!("Game saves directory: {:?}", game_saves_dir);
+
+    let save_path = game_saves_dir.join(&save_id);
+    println!("Save file path: {:?}", save_path);
+
+    if !save_path.exists() {
+        return Err(SaveFileError {
+            message: format!("Save file not found at path: {:?}", save_path),
+        });
+    }
+
+    let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
+        message: format!("Failed to read save file metadata: {}", e),
+    })?;
+
+    println!("Successfully verified save file. Size: {} bytes", metadata.len());
+
+    Ok(SaveFile::new(game_id, save_id, metadata.len()))
 }
 
 #[tauri::command]

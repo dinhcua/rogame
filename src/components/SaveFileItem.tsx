@@ -13,13 +13,13 @@ interface SaveFile {
 
 interface SaveFileItemProps {
   saveFile: SaveFile;
-  onTagsClick?: () => void;
+  onRestore?: (saveFile: SaveFile) => void;
   onShareClick?: () => void;
 }
 
 const SaveFileItem: React.FC<SaveFileItemProps> = ({
   saveFile,
-  onTagsClick,
+  onRestore,
   onShareClick,
 }) => {
   const formatFileSize = (bytes: number) => {
@@ -62,18 +62,25 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
         </div>
         <div className="flex items-start space-x-2">
           <button
-            onClick={onTagsClick}
-            className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative"
+            onClick={() => onRestore?.(saveFile)}
+            className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500 group relative flex items-center space-x-2"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
-                fillRule="evenodd"
-                d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                clipRule="evenodd"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
+            <span>Restore</span>
             <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Manage Tags
+              Restore this save
             </span>
           </button>
           <button

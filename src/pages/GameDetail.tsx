@@ -6,6 +6,7 @@ import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
+import RestoreModal from "../components/RestoreModal";
 
 interface SaveFile {
   id: string;
@@ -23,6 +24,8 @@ const GameDetail: React.FC = () => {
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSaveId, setSelectedSaveId] = useState<string | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
 
   const tagOptions = [
     { value: "all", label: "All Files" },
@@ -33,6 +36,8 @@ const GameDetail: React.FC = () => {
   ];
 
   const loadSaveFiles = async () => {
+    if (!gameId) return;
+
     try {
       setIsLoading(true);
       const files = await invoke<SaveFile[]>("list_saves", { gameId });
@@ -47,13 +52,46 @@ const GameDetail: React.FC = () => {
   };
 
   const handleBackup = async () => {
+    if (!gameId) return;
+
     try {
       setIsLoading(true);
+      setError(null);
       const newSave = await invoke<SaveFile>("backup_save", { gameId });
       setSaveFiles((prev) => [...prev, newSave]);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to backup save file"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestore = async (saveFile: SaveFile) => {
+    if (!gameId) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log("Attempting to restore save:", {
+        gameId,
+        saveId: saveFile.id,
+      });
+
+      const result = await invoke<SaveFile>("restore_save", {
+        gameId,
+        saveId: saveFile.id,
+      });
+
+      console.log("Restore successful:", result);
+      setIsRestoreModalOpen(false);
+      const successMessage = `Successfully restored save file: ${result.file_name}`;
+      setError(successMessage);
+    } catch (err) {
+      console.error("Restore failed:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to restore save file"
       );
     } finally {
       setIsLoading(false);
@@ -101,12 +139,28 @@ const GameDetail: React.FC = () => {
                     {isLoading ? "Backing up..." : "Backup Save"}
                   </button>
                   <button
-                    onClick={() => {}}
-                    className="bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-500 transition-colors"
+                    onClick={() => setIsRestoreModalOpen(true)}
+                    disabled={isLoading || saveFiles.length === 0}
+                    className={`bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-500 transition-colors ${
+                      isLoading || saveFiles.length === 0
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
                   >
                     Restore Save
                   </button>
                 </div>
+                {error && (
+                  <p
+                    className={`mt-2 ${
+                      error.includes("Successfully")
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {error}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -211,13 +265,6 @@ const GameDetail: React.FC = () => {
                 />
               </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-500/20 text-red-400 p-4 rounded-lg mb-4">
-                  {error}
-                </div>
-              )}
-
               {/* Save Files List */}
               <div className="space-y-4">
                 {isLoading ? (
@@ -235,7 +282,7 @@ const GameDetail: React.FC = () => {
                     <SaveFileItem
                       key={saveFile.id}
                       saveFile={saveFile}
-                      onTagsClick={() => {}}
+                      onRestore={handleRestore}
                       onShareClick={() => {}}
                     />
                   ))
@@ -252,6 +299,16 @@ const GameDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Restore Modal */}
+      <RestoreModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        onRestore={handleRestore}
+        saveFiles={saveFiles}
+        selectedSaveId={selectedSaveId}
+        onSelectSave={setSelectedSaveId}
+      />
     </div>
   );
 };

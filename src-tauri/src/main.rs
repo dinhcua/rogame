@@ -10,6 +10,7 @@ fn main() {
             game_scanner::scan_games,
             save_manager::backup_save,
             save_manager::list_saves,
+            save_manager::restore_save,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
