@@ -1,5 +1,7 @@
 import React from "react";
 import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -14,6 +16,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   message,
   type,
 }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   const bgColor = type === "success" ? "bg-green-500/20" : "bg-red-500/20";
@@ -25,10 +29,11 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
       <div className={`${bgColor} rounded-lg p-6 max-w-md w-full mx-4`}>
         <div className="flex items-center space-x-4">
           <Icon className={`w-6 h-6 ${textColor}`} />
-          <p className={`${textColor} flex-1`}>{message}</p>
+          <p className={`${textColor} flex-1`}>{t(message)}</p>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
+            title={t("common.close")}
           >
             <X className="w-5 h-5" />
           </button>

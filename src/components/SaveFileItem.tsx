@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Clock, HardDrive, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface SaveFile {
   id: string;
@@ -24,6 +26,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
   onDelete,
   isDeleting = false,
 }) => {
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
 
   const formatSize = (bytes: number) => {
@@ -54,7 +57,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
               isHovered ? "opacity-100" : "opacity-0"
             } bg-blue-500/20 p-2 rounded hover:bg-blue-500/30 transition-all`}
           >
-            Restore
+            {t("saveFile.actions.restore")}
           </button>
           <button
             onClick={() => onDelete(saveFile)}
@@ -64,6 +67,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
             } bg-red-500/20 p-2 rounded hover:bg-red-500/30 transition-all ${
               isDeleting ? "cursor-not-allowed opacity-50" : ""
             }`}
+            title={t("saveFile.actions.delete")}
           >
             <Trash2 className="w-5 h-5 text-red-500" />
           </button>

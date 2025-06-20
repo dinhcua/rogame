@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import { Settings, Trash2 } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
+import "../i18n/config";
 
 interface SaveFile {
   id: string;
@@ -22,6 +24,7 @@ interface SaveFile {
 }
 
 const GameDetail: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { id: gameId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { deleteGame } = useGameStore();
@@ -34,6 +37,14 @@ const GameDetail: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
   const [isDeletingSave, setIsDeletingSave] = useState(false);
+
+  // Initialize language from localStorage
+  useEffect(() => {
+    const storedLanguage = localStorage.getItem("language");
+    if (storedLanguage && i18n.language !== storedLanguage) {
+      i18n.changeLanguage(storedLanguage);
+    }
+  }, []);
 
   // const tagOptions = [
   //   { value: "all", label: "All Files" },
@@ -223,13 +234,15 @@ const GameDetail: React.FC = () => {
               <img
                 src={gameDetails?.cover_image || ""}
                 alt={`${gameDetails?.title || "Game"} Cover`}
-                className="w-40 h-52 rounded-lg mr-8 shadow-2xl"
+                className="w-40 h-52 rounded-lg mr-8 shadow-2xl object-cover"
               />
               <div>
                 <h1 className="text-5xl font-bold mb-2">
                   {gameDetails?.title || "Loading..."}
                 </h1>
-                <p className="text-xl text-gray-300 mb-6">Save Files Manager</p>
+                <p className="text-xl text-gray-300 mb-6">
+                  {t("gameDetail.title")}
+                </p>
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={handleBackup}
@@ -238,7 +251,9 @@ const GameDetail: React.FC = () => {
                       isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
-                    {isLoading ? "Backing up..." : "Backup Save"}
+                    {isLoading
+                      ? t("gameDetail.actions.backingUp")
+                      : t("gameDetail.actions.backup")}
                   </button>
                   <button
                     onClick={() => setIsRestoreModalOpen(true)}
@@ -249,14 +264,13 @@ const GameDetail: React.FC = () => {
                         : ""
                     }`}
                   >
-                    Restore Save
+                    {t("gameDetail.actions.restore")}
                   </button>
                   <button
                     onClick={() => setShowDeleteModal(true)}
                     className="bg-red-600/20 px-8 py-3 rounded-lg text-lg font-medium hover:bg-red-500/30 transition-colors flex items-center space-x-2"
                   >
-                    <Trash2 className="w-6 h-6" />
-                    <span>Delete Game</span>
+                    <span>{t("gameDetail.actions.deleteGame")}</span>
                   </button>
                 </div>
                 {error && (
@@ -283,23 +297,45 @@ const GameDetail: React.FC = () => {
           <div className="col-span-8 space-y-8">
             {/* Save Details Section */}
             <div className="bg-game-card rounded-lg p-8">
-              <h2 className="text-2xl font-bold mb-4">Save Details</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                {t("gameDetail.saveDetails.title")}
+              </h2>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-gray-400 mb-2">Total Saves</h3>
-                  <p>{gameDetails?.save_count || 0} Save Files</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.totalSaves")}
+                  </h3>
+                  <p>
+                    {gameDetails?.save_count || 0}{" "}
+                    {t("gameDetail.saveDetails.saveFiles")}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Platform</h3>
-                  <p>{gameDetails?.platform || "Unknown"}</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.platform")}
+                  </h3>
+                  <p>
+                    {gameDetails?.platform ||
+                      t("gameDetail.saveDetails.unknown")}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Last Played</h3>
-                  <p>{gameDetails?.last_played || "Never"}</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.lastPlayed")}
+                  </h3>
+                  <p>
+                    {gameDetails?.last_played ||
+                      t("gameDetail.saveDetails.never")}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Category</h3>
-                  <p>{gameDetails?.category || "Unknown"}</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.category")}
+                  </h3>
+                  <p>
+                    {gameDetails?.category ||
+                      t("gameDetail.saveDetails.unknown")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -307,14 +343,16 @@ const GameDetail: React.FC = () => {
             {/* Save Files Section */}
             <div className="bg-game-card rounded-lg p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Save Files</h2>
+                <h2 className="text-2xl font-bold">
+                  {t("gameDetail.saveFiles.title")}
+                </h2>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => {}}
                     className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 transition-colors flex items-center space-x-2"
                   >
                     <Settings className="w-5 h-5" />
-                    <span>Manage All</span>
+                    <span>{t("gameDetail.saveFiles.manageAll")}</span>
                   </button>
                 </div>
               </div>
@@ -323,11 +361,11 @@ const GameDetail: React.FC = () => {
               <div className="space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8 text-gray-400">
-                    Loading save files...
+                    {t("gameDetail.saveFiles.loading")}
                   </div>
                 ) : saveFiles.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
-                    No save files yet
+                    {t("gameDetail.saveFiles.noSaves")}
                   </div>
                 ) : (
                   saveFiles.map((saveFile) => (

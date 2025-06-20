@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface Option {
   value: string;
@@ -25,6 +27,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
   icon,
   isSearchable = false,
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -68,7 +71,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
         <div className="flex items-center space-x-2">
           {icon && <span className="text-gray-400">{icon}</span>}
           <span className={selectedOption ? "text-white" : "text-gray-400"}>
-            {selectedOption ? selectedOption.label : placeholder}
+            {selectedOption ? selectedOption.label : t(placeholder)}
           </span>
         </div>
         <ChevronDown
@@ -86,7 +89,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
+                placeholder={t("dropdown.searchPlaceholder")}
                 className="w-full bg-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rog-blue"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -109,7 +112,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
             ))
           ) : (
             <div className="px-4 py-2 text-gray-400 text-sm">
-              No options found
+              {t("dropdown.noOptions")}
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Game } from "../types/game";
 import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
@@ -25,39 +26,42 @@ import {
   Check,
   Trash2,
 } from "lucide-react";
+import "../i18n/config";
 
 // Categories for filtering
 const gameCategories = [
-  "All Games",
-  "Recently Played",
-  "Favorites",
-  "Action RPG",
-  "RPG",
-  "Strategy",
-  "Action",
-  "Adventure",
-  "JRPG",
-  "Survival Horror",
+  "gameUI.categories.allGames",
+  "gameUI.categories.recentlyPlayed",
+  "gameUI.categories.favorites",
+  "gameUI.categories.actionRPG",
+  "gameUI.categories.rpg",
+  "gameUI.categories.strategy",
+  "gameUI.categories.action",
+  "gameUI.categories.adventure",
+  "gameUI.categories.jrpg",
+  "gameUI.categories.survivalHorror",
 ];
 
 // Platform options
-const platformOptions = [
-  { value: "All Platforms", label: "All Platforms" },
-  { value: "Steam", label: "Steam" },
-  { value: "Epic Games", label: "Epic Games" },
-  { value: "GOG", label: "GOG" },
-  { value: "Origin", label: "Origin" },
+const getPlatformOptions = (t: any) => [
+  { value: "All Platforms", label: t("gameUI.platforms.all") },
+  { value: "Steam", label: t("gameUI.platforms.steam") },
+  { value: "Epic Games", label: t("gameUI.platforms.epic") },
+  { value: "GOG", label: t("gameUI.platforms.gog") },
+  { value: "Origin", label: t("gameUI.platforms.origin") },
 ];
 
 // Sort options
-const sortOptions = [
-  { value: "name", label: "Sort by Name" },
-  { value: "last_played", label: "Sort by Last Played" },
-  { value: "save_count", label: "Sort by Save Count" },
-  { value: "size", label: "Sort by Size" },
+const getSortOptions = (t: any) => [
+  { value: "name", label: t("gameUI.sort.byName") },
+  { value: "last_played", label: t("gameUI.sort.byLastPlayed") },
+  { value: "save_count", label: t("gameUI.sort.bySaveCount") },
+  { value: "size", label: t("gameUI.sort.bySize") },
 ];
 
 const GameUI = () => {
+  const { t } = useTranslation();
+
   const {
     games,
     foundGames,
@@ -86,6 +90,9 @@ const GameUI = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Games");
   const [sortBy, setSortBy] = useState("name");
   const [showMoreCategories, setShowMoreCategories] = useState(false);
+
+  const platformOptions = getPlatformOptions(t);
+  const sortOptions = getSortOptions(t);
 
   // Apply filters and sort to games
   const filteredGames = games
@@ -212,10 +219,10 @@ const GameUI = () => {
         <div className="bg-game-card rounded-lg p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-medium mb-2">Game Scanner</h2>
-              <p className="text-gray-400">
-                Automatically detect and import games from your system
-              </p>
+              <h2 className="text-xl font-medium mb-2">
+                {t("gameUI.scanner.title")}
+              </h2>
+              <p className="text-gray-400">{t("gameUI.scanner.description")}</p>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -223,7 +230,7 @@ const GameUI = () => {
                 className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
               >
                 <FileText className="w-5 h-5" />
-                <span>Scan for Games</span>
+                <span>{t("gameUI.scanner.scanButton")}</span>
               </button>
             </div>
           </div>
@@ -233,7 +240,7 @@ const GameUI = () => {
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-400">
-                  Scanning game directories...
+                  {t("gameUI.scanner.scanning")}
                 </span>
                 <span className="text-sm text-gray-400">{scanPercentage}%</span>
               </div>
@@ -247,18 +254,20 @@ const GameUI = () => {
                 <div className="flex items-center space-x-3 text-green-500">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm">
-                    Steam Library: {steamGamesCount} games found
+                    {t("gameUI.scanner.steamFound", { count: steamGamesCount })}
                   </span>
                 </div>
                 <div className="flex items-center space-x-3 text-green-500">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm">
-                    Epic Games: {epicGamesCount} games found
+                    {t("gameUI.scanner.epicFound", { count: epicGamesCount })}
                   </span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">Scanning GOG Galaxy...</span>
+                  <span className="text-sm">
+                    {t("gameUI.scanner.scanningGog")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -268,7 +277,9 @@ const GameUI = () => {
           {showFoundGames && foundGames.length > 0 && (
             <div className="mt-6 border-t border-white/10 pt-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">Recently Found Games</h3>
+                <h3 className="text-lg font-medium">
+                  {t("gameUI.foundGames.title")}
+                </h3>
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() =>
@@ -277,7 +288,7 @@ const GameUI = () => {
                     className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-5 h-5" />
-                    <span>Import All</span>
+                    <span>{t("gameUI.foundGames.importAll")}</span>
                   </button>
                   <button
                     onClick={() => setShowFoundGames(false)}
@@ -317,7 +328,9 @@ const GameUI = () => {
                         <Plus className="w-5 h-5 text-rog-blue group-hover:scale-110 transition-transform" />
                       )}
                       <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {game.status === "added" ? "Added" : "Add to Library"}
+                        {game.status === "added"
+                          ? t("gameUI.foundGames.added")
+                          : t("gameUI.foundGames.addToLibrary")}
                       </span>
                     </button>
                   </div>
@@ -333,7 +346,7 @@ const GameUI = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search games..."
+                placeholder={t("gameUI.filters.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
@@ -344,14 +357,14 @@ const GameUI = () => {
               options={platformOptions}
               value={selectedPlatform}
               onChange={setSelectedPlatform}
-              placeholder="Select Platform"
+              placeholder={t("gameUI.filters.platform")}
               icon={<ShoppingBag className="w-5 h-5" />}
             />
             <DropdownSelect
               options={sortOptions}
               value={sortBy}
               onChange={setSortBy}
-              placeholder="Sort by"
+              placeholder={t("gameUI.filters.sortBy")}
               icon={<SlidersHorizontal className="w-5 h-5" />}
             />
           </div>
@@ -371,7 +384,7 @@ const GameUI = () => {
                     : "bg-white/10 hover:bg-white/20"
                 } px-4 py-2 rounded-lg transition-colors whitespace-nowrap`}
               >
-                {category}
+                {t(category)}
               </button>
             ))}
           {gameCategories.length > 6 && (
@@ -379,7 +392,11 @@ const GameUI = () => {
               onClick={() => setShowMoreCategories(!showMoreCategories)}
               className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap flex items-center space-x-1"
             >
-              <span>{showMoreCategories ? "Less" : "More"}</span>
+              <span>
+                {showMoreCategories
+                  ? t("gameUI.categories.less")
+                  : t("gameUI.categories.more")}
+              </span>
               <ChevronDown
                 className={`w-4 h-4 transform transition-transform ${
                   showMoreCategories ? "rotate-180" : ""
@@ -424,7 +441,9 @@ const GameUI = () => {
                           : "bg-yellow-500/90"
                       } text-white px-2 py-1 rounded text-sm`}
                     >
-                      {game.status === "synced" ? "Synced" : "Syncing..."}
+                      {game.status === "synced"
+                        ? t("gameUI.status.synced")
+                        : t("gameUI.status.syncing")}
                     </span>
                     <button
                       onClick={(e) => {
@@ -461,7 +480,9 @@ const GameUI = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <File className="w-5 h-5 text-gray-400" />
-                      <span className="text-sm">{game.save_count} saves</span>
+                      <span className="text-sm">
+                        {t("gameUI.saveCount", { count: game.save_count })}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Scale className="w-5 h-5 text-gray-400" />
@@ -483,10 +504,10 @@ const GameUI = () => {
                 <Plus className="w-8 h-8 text-white/70 group-hover:text-rog-blue transition-colors" />
               </div>
               <h3 className="text-lg font-medium text-white/70 group-hover:text-white transition-colors">
-                Add New Game
+                {t("gameUI.addGame.title")}
               </h3>
               <p className="text-sm text-white/50 mt-2 max-w-[200px]">
-                Import a new game to manage its save files
+                {t("gameUI.addGame.description")}
               </p>
             </div>
           </div>

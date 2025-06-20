@@ -1,28 +1,33 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DropdownSelect from "./DropdownSelect";
+import "../i18n/config";
 
 const BackupSettings: React.FC = () => {
+  const { t } = useTranslation();
   const [backupInterval, setBackupInterval] = useState("30min");
   const [maxBackups, setMaxBackups] = useState("5");
 
   const intervalOptions = [
-    { value: "15min", label: "15 minutes" },
-    { value: "30min", label: "30 minutes" },
-    { value: "1hour", label: "1 hour" },
+    { value: "15min", label: t("backupSettings.intervals.15min") },
+    { value: "30min", label: t("backupSettings.intervals.30min") },
+    { value: "1hour", label: t("backupSettings.intervals.1hour") },
   ];
 
   const maxBackupsOptions = [
-    { value: "3", label: "3 saves" },
-    { value: "5", label: "5 saves" },
-    { value: "10", label: "10 saves" },
+    { value: "3", label: t("backupSettings.maxBackups_options.3saves") },
+    { value: "5", label: t("backupSettings.maxBackups_options.5saves") },
+    { value: "10", label: t("backupSettings.maxBackups_options.10saves") },
   ];
 
   return (
     <div className="bg-game-card rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-6">Backup Settings</h2>
+      <h2 className="text-xl font-bold mb-6">{t("backupSettings.title")}</h2>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Auto-Backup</span>
+          <span className="text-gray-400">
+            {t("backupSettings.autoBackup")}
+          </span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -34,7 +39,7 @@ const BackupSettings: React.FC = () => {
           </label>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Backup Interval</span>
+          <span className="text-gray-400">{t("backupSettings.interval")}</span>
           <DropdownSelect
             options={intervalOptions}
             value={backupInterval}
@@ -43,7 +48,9 @@ const BackupSettings: React.FC = () => {
           />
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Max Backups</span>
+          <span className="text-gray-400">
+            {t("backupSettings.maxBackups")}
+          </span>
           <DropdownSelect
             options={maxBackupsOptions}
             value={maxBackups}
@@ -52,7 +59,9 @@ const BackupSettings: React.FC = () => {
           />
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Compression</span>
+          <span className="text-gray-400">
+            {t("backupSettings.compression")}
+          </span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"

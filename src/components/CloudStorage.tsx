@@ -1,20 +1,23 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DropdownSelect from "./DropdownSelect";
 import { Cloud } from "lucide-react";
+import "../i18n/config";
 
 const CloudStorage: React.FC = () => {
+  const { t } = useTranslation();
   const [syncFrequency, setSyncFrequency] = useState("every_save");
 
   const syncFrequencyOptions = [
-    { value: "every_save", label: "Every save" },
-    { value: "hourly", label: "Every hour" },
-    { value: "daily", label: "Every day" },
-    { value: "manual", label: "Manual only" },
+    { value: "every_save", label: t("cloudStorage.frequency.everySave") },
+    { value: "hourly", label: t("cloudStorage.frequency.hourly") },
+    { value: "daily", label: t("cloudStorage.frequency.daily") },
+    { value: "manual", label: t("cloudStorage.frequency.manual") },
   ];
 
   return (
     <div className="bg-game-card rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-6">Cloud Storage</h2>
+      <h2 className="text-xl font-bold mb-6">{t("cloudStorage.title")}</h2>
       <div className="space-y-6">
         {/* Google Drive */}
         <div className="flex items-center justify-between">
@@ -23,12 +26,12 @@ const CloudStorage: React.FC = () => {
             <div>
               <p className="font-medium">Google Drive</p>
               <p className="text-sm text-gray-400">
-                Connected as john@gmail.com
+                {t("cloudStorage.connectedAs", { email: "john@gmail.com" })}
               </p>
             </div>
           </div>
           <button className="text-red-500 hover:text-red-400 text-sm">
-            Disconnect
+            {t("cloudStorage.actions.disconnect")}
           </button>
         </div>
 
@@ -38,11 +41,13 @@ const CloudStorage: React.FC = () => {
             <Cloud className="w-6 h-6 text-[#0061FF]" />
             <div>
               <p className="font-medium">Dropbox</p>
-              <p className="text-sm text-gray-400">Not connected</p>
+              <p className="text-sm text-gray-400">
+                {t("cloudStorage.status.notConnected")}
+              </p>
             </div>
           </div>
           <button className="text-rog-blue hover:text-blue-400 text-sm">
-            Connect
+            {t("cloudStorage.actions.connect")}
           </button>
         </div>
 
@@ -52,20 +57,26 @@ const CloudStorage: React.FC = () => {
             <Cloud className="w-6 h-6 text-[#0078D4]" />
             <div>
               <p className="font-medium">OneDrive</p>
-              <p className="text-sm text-gray-400">Not connected</p>
+              <p className="text-sm text-gray-400">
+                {t("cloudStorage.status.notConnected")}
+              </p>
             </div>
           </div>
           <button className="text-rog-blue hover:text-blue-400 text-sm">
-            Connect
+            {t("cloudStorage.actions.connect")}
           </button>
         </div>
 
         {/* Auto-sync Settings */}
         <div className="border-t border-white/10 pt-4 mt-4">
-          <h3 className="text-lg font-medium mb-4">Auto-sync Settings</h3>
+          <h3 className="text-lg font-medium mb-4">
+            {t("cloudStorage.autoSync.title")}
+          </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Auto-sync enabled</span>
+              <span className="text-gray-400">
+                {t("cloudStorage.autoSync.enabled")}
+              </span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -77,7 +88,9 @@ const CloudStorage: React.FC = () => {
               </label>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Sync frequency</span>
+              <span className="text-gray-400">
+                {t("cloudStorage.autoSync.frequency")}
+              </span>
               <DropdownSelect
                 options={syncFrequencyOptions}
                 value={syncFrequency}
@@ -86,7 +99,9 @@ const CloudStorage: React.FC = () => {
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">Keep local copy</span>
+              <span className="text-gray-400">
+                {t("cloudStorage.autoSync.keepLocal")}
+              </span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"

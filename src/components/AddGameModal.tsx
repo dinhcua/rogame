@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DropdownSelect from "./DropdownSelect";
 import { X, Folder } from "lucide-react";
+import "../i18n/config";
 
 interface AddGameModalProps {
   isOpen: boolean;
@@ -9,14 +11,15 @@ interface AddGameModalProps {
 }
 
 const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
+  const { t } = useTranslation();
   const [selectedPlatform, setSelectedPlatform] = useState("");
 
   const platformOptions = [
     { value: "steam", label: "Steam" },
-    { value: "epic", label: "Epic Games" },
+    { value: "epic", label: t("addGameModal.platforms.epic") },
     { value: "gog", label: "GOG" },
     { value: "origin", label: "Origin" },
-    { value: "other", label: "Other" },
+    { value: "other", label: t("addGameModal.platforms.other") },
   ];
 
   if (!isOpen) return null;
@@ -26,7 +29,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
       <div className="bg-game-card rounded-lg w-full max-w-2xl mx-4">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h3 className="text-xl font-medium">Add New Game Manually</h3>
+          <h3 className="text-xl font-medium">{t("addGameModal.title")}</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -41,35 +44,35 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                Game Title
+                {t("addGameModal.gameInfo.title")}
               </label>
               <input
                 type="text"
                 className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
-                placeholder="Enter game title"
+                placeholder={t("addGameModal.gameInfo.titlePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Platform
+                  {t("addGameModal.gameInfo.platform")}
                 </label>
                 <DropdownSelect
                   options={platformOptions}
                   value={selectedPlatform}
                   onChange={setSelectedPlatform}
-                  placeholder="Select platform"
+                  placeholder={t("addGameModal.gameInfo.platformPlaceholder")}
                   className="w-full"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Game Version
+                  {t("addGameModal.gameInfo.version")}
                 </label>
                 <input
                   type="text"
                   className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
-                  placeholder="e.g. 1.0.5"
+                  placeholder={t("addGameModal.gameInfo.versionPlaceholder")}
                 />
               </div>
             </div>
@@ -78,37 +81,36 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
           {/* Save Location Section */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Save Files Location
+              {t("addGameModal.saveLocation.title")}
             </label>
             <div className="flex space-x-2">
               <input
                 type="text"
                 className="flex-1 bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
-                placeholder="Path to save files directory"
+                placeholder={t("addGameModal.saveLocation.pathPlaceholder")}
               />
               <button className="bg-white/10 px-4 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
                 <Folder className="w-5 h-5" />
-                <span>Browse</span>
+                <span>{t("addGameModal.saveLocation.browse")}</span>
               </button>
             </div>
             <p className="text-sm text-gray-400 mt-2">
-              Common locations: %USERPROFILE%/Documents/My Games,
-              %APPDATA%/Local
+              {t("addGameModal.saveLocation.commonLocations")}
             </p>
           </div>
 
           {/* Save Pattern Section */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Save File Pattern
+              {t("addGameModal.savePattern.title")}
             </label>
             <input
               type="text"
               className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
-              placeholder="e.g. *.sav, save*.dat"
+              placeholder={t("addGameModal.savePattern.placeholder")}
             />
             <p className="text-sm text-gray-400 mt-2">
-              Use wildcards (*) to match multiple files
+              {t("addGameModal.savePattern.hint")}
             </p>
           </div>
 
@@ -120,7 +122,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
                 className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
               />
               <span className="text-sm">
-                Monitor save directory for changes
+                {t("addGameModal.options.monitorChanges")}
               </span>
             </label>
             <label className="flex items-center space-x-3">
@@ -128,14 +130,18 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
                 type="checkbox"
                 className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
               />
-              <span className="text-sm">Create automatic backups</span>
+              <span className="text-sm">
+                {t("addGameModal.options.autoBackup")}
+              </span>
             </label>
             <label className="flex items-center space-x-3">
               <input
                 type="checkbox"
                 className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
               />
-              <span className="text-sm">Enable cloud sync</span>
+              <span className="text-sm">
+                {t("addGameModal.options.cloudSync")}
+              </span>
             </label>
           </div>
         </div>
@@ -146,7 +152,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             onClick={onClose}
             className="px-6 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={() => {
@@ -156,7 +162,7 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             }}
             className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors"
           >
-            Add Game
+            {t("addGameModal.actions.add")}
           </button>
         </div>
       </div>

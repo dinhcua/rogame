@@ -1,5 +1,7 @@
 import React from "react";
 import { Trash2, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface DeleteGameModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
   isDeleting = false,
   error = null,
 }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   return (
@@ -36,10 +40,11 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
             )}
           </div>
         </div>
-        <h3 className="text-xl font-bold text-center mb-2">Delete Game</h3>
+        <h3 className="text-xl font-bold text-center mb-2">
+          {t("deleteGameModal.title")}
+        </h3>
         <p className="text-gray-400 text-center mb-6">
-          Are you sure you want to delete "{gameTitle}"? This action cannot be
-          undone.
+          {t("deleteGameModal.confirmation", { gameTitle })}
         </p>
 
         <div className="mb-6">
@@ -52,7 +57,7 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
               className="w-4 h-4 rounded border-gray-600 text-rog-blue focus:ring-rog-blue bg-transparent disabled:opacity-50"
             />
             <span className="text-sm text-gray-300">
-              Also delete all save files associated with this game
+              {t("deleteGameModal.includeSaveFiles")}
             </span>
           </label>
         </div>
@@ -69,7 +74,7 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
               isDeleting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={onDelete}
@@ -81,10 +86,10 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
             {isDeleting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Deleting...</span>
+                <span>{t("deleteGameModal.deleting")}</span>
               </>
             ) : (
-              <span>Delete Game</span>
+              <span>{t("deleteGameModal.deleteButton")}</span>
             )}
           </button>
         </div>

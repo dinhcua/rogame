@@ -1,6 +1,8 @@
 import React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { X, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface SaveFile {
   id: string;
@@ -29,6 +31,8 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
   selectedSaveId,
   onSelectSave,
 }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   const formatFileSize = (bytes: number) => {
@@ -48,7 +52,7 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-game-card rounded-lg w-full max-w-lg p-6 m-4 shadow-xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Restore Save File</h2>
+          <h2 className="text-2xl font-bold">{t("restoreModal.title")}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
@@ -70,11 +74,13 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
                       {saveFile.file_name}
                     </h3>
                     <p className="text-gray-400 text-sm">
-                      Created:{" "}
-                      {formatDistanceToNow(new Date(saveFile.created_at))} ago
+                      {t("restoreModal.created")}:{" "}
+                      {formatDistanceToNow(new Date(saveFile.created_at))}{" "}
+                      {t("restoreModal.ago")}
                     </p>
                     <p className="text-gray-400 text-sm mt-1">
-                      Size: {formatFileSize(saveFile.size_bytes)}
+                      {t("restoreModal.size")}:{" "}
+                      {formatFileSize(saveFile.size_bytes)}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -85,7 +91,7 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
                       }}
                       className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500"
                     >
-                      Restore
+                      {t("restoreModal.restoreButton")}
                     </button>
                   </div>
                 </div>
@@ -109,7 +115,7 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
             <div className="flex items-center space-x-3">
               <AlertTriangle className="w-6 h-6 text-yellow-500" />
               <span className="text-sm text-yellow-500">
-                Restoring a save will overwrite your current game progress
+                {t("restoreModal.warning")}
               </span>
             </div>
           </div>
@@ -119,7 +125,7 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
               onClick={onClose}
               className="px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             >
-              Cancel
+              {t("restoreModal.cancelButton")}
             </button>
           </div>
         </div>

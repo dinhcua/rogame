@@ -1,12 +1,16 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { User, Home, History, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "../i18n/config";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen bg-game-dark text-white font-sans">
       {/* Top Status Bar */}
@@ -47,6 +51,7 @@ export default function Layout({ children }: LayoutProps) {
                 isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
               }`
             }
+            title={t("navigation.home")}
           >
             <Home className="w-6 h-6" />
           </NavLink>
@@ -57,6 +62,7 @@ export default function Layout({ children }: LayoutProps) {
                 isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
               }`
             }
+            title={t("navigation.history")}
           >
             <History className="w-6 h-6" />
           </NavLink>
@@ -67,6 +73,7 @@ export default function Layout({ children }: LayoutProps) {
                 isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
               }`
             }
+            title={t("navigation.settings")}
           >
             <Settings className="w-6 h-6" />
           </NavLink>

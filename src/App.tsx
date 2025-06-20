@@ -1,22 +1,25 @@
-import Layout from "./components/Layout";
+import { useEffect } from "react";
+import "./App.css";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import GameUI from "./pages/GameUI";
 import GameDetail from "./pages/GameDetail";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import History from "./pages/History";
 import Settings from "./pages/Settings";
+import History from "./pages/History";
+import Layout from "./components/Layout";
+import "./i18n/config";
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Layout>
         <Routes>
           <Route path="/" element={<GameUI />} />
           <Route path="/game/:id" element={<GameDetail />} />
-          <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/history" element={<History />} />
         </Routes>
       </Layout>
-    </BrowserRouter>
+    </Router>
   );
 }
 

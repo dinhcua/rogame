@@ -1,0 +1,333 @@
+{
+  "settings": {
+    "general": {
+      "title": "General Settings",
+      "darkMode": {
+        "label": "Dark Mode",
+        "description": "Enable dark mode for the application"
+      },
+      "notifications": {
+        "label": "Desktop Notifications",
+        "description": "Show notifications for backup events"
+      },
+      "startup": {
+        "label": "Start on System Startup",
+        "description": "Launch application when system starts"
+      }
+    },
+    "backup": {
+      "title": "Backup Settings",
+      "location": {
+        "label": "Default Backup Location",
+        "browse": "Browse"
+      },
+      "compression": {
+        "label": "Default Compression Level",
+        "none": "None",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "schedule": {
+        "label": "Backup Schedule",
+        "automatic": {
+          "title": "Automatic Backups",
+          "description": "Create backups on a schedule"
+        },
+        "frequency": {
+          "label": "Frequency",
+          "everySave": "Every save",
+          "hourly": "Every hour",
+          "daily": "Every day",
+          "weekly": "Every week",
+          "custom": "Custom"
+        },
+        "timeOfDay": "Time of Day"
+      }
+    },
+    "cloud": {
+      "title": "Cloud Integration",
+      "connected": "Connected as {{email}}",
+      "notConnected": "Not connected",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "autoSync": {
+        "title": "Auto-sync Settings",
+        "enabled": "Auto-sync enabled",
+        "frequency": {
+          "label": "Sync frequency",
+          "everySave": "Every save",
+          "hourly": "Every hour",
+          "daily": "Every day",
+          "manual": "Manual only"
+        }
+      }
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "clearData": {
+        "title": "Clear All Data",
+        "description": "Remove all saved games and settings",
+        "button": "Clear Data"
+      },
+      "reset": {
+        "title": "Reset to Default",
+        "description": "Reset all settings to default values",
+        "button": "Reset Settings"
+      }
+    },
+    "language": {
+      "label": "Language",
+      "en": "English",
+      "vi": "Vietnamese"
+    }
+  },
+  "gameUI": {
+    "scanner": {
+      "title": "Game Scanner",
+      "description": "Automatically detect and import games from your system",
+      "scanButton": "Scan for Games",
+      "scanning": "Scanning game directories...",
+      "steamFound": "Steam Library: {{count}} games found",
+      "epicFound": "Epic Games: {{count}} games found",
+      "scanningGog": "Scanning GOG Galaxy..."
+    },
+    "foundGames": {
+      "title": "Recently Found Games",
+      "importAll": "Import All",
+      "addToLibrary": "Add to Library",
+      "added": "Added"
+    },
+    "filters": {
+      "search": "Search games...",
+      "platform": "Select Platform",
+      "sortBy": "Sort by",
+      "allPlatforms": "All Platforms",
+      "sortOptions": {
+        "name": "Sort by Name",
+        "lastPlayed": "Sort by Last Played",
+        "saveCount": "Sort by Save Count",
+        "size": "Sort by Size"
+      }
+    },
+    "platforms": {
+      "all": "All Platforms",
+      "steam": "Steam",
+      "epic": "Epic Games",
+      "gog": "GOG",
+      "origin": "Origin"
+    },
+    "sort": {
+      "byName": "Sort by Name",
+      "byLastPlayed": "Sort by Last Played",
+      "bySaveCount": "Sort by Save Count",
+      "bySize": "Sort by Size"
+    },
+    "categories": {
+      "allGames": "All Games",
+      "recentlyPlayed": "Recently Played",
+      "favorites": "Favorites",
+      "actionRPG": "Action RPG",
+      "rpg": "RPG",
+      "strategy": "Strategy",
+      "action": "Action",
+      "adventure": "Adventure",
+      "jrpg": "JRPG",
+      "survivalHorror": "Survival Horror",
+      "more": "More",
+      "less": "Less"
+    },
+    "addGame": {
+      "title": "Add Game",
+      "description": "Add a new game to your library"
+    },
+    "status": {
+      "synced": "Synced",
+      "syncing": "Syncing..."
+    },
+    "saveCount": "{{count}} saves"
+  },
+  "gameDetail": {
+    "title": "Save Files Manager",
+    "actions": {
+      "backup": "Backup",
+      "backingUp": "Backing up...",
+      "restore": "Restore",
+      "deleteGame": "Delete"
+    },
+    "saveDetails": {
+      "title": "Save Details",
+      "totalSaves": "Total Saves",
+      "saveFiles": "Save Files",
+      "platform": "Platform",
+      "lastPlayed": "Last Played",
+      "category": "Category",
+      "unknown": "Unknown",
+      "never": "Never"
+    },
+    "saveFiles": {
+      "title": "Save Files",
+      "manageAll": "Manage All",
+      "loading": "Loading save files...",
+      "noSaves": "No save files yet"
+    }
+  },
+  "history": {
+    "filters": {
+      "search": "Search backups...",
+      "selectGame": "Select Game",
+      "allGames": "All Games",
+      "timeRange": {
+        "title": "Select Time Range",
+        "allTime": "All Time",
+        "last24h": "Last 24 Hours",
+        "lastWeek": "Last Week",
+        "lastMonth": "Last Month"
+      }
+    },
+    "actions": {
+      "export": "Export",
+      "filter": "Filter"
+    },
+    "backup": {
+      "created": "Created: {{time}} ago",
+      "size": "Size: {{size}}",
+      "status": {
+        "synced": "Cloud Synced",
+        "syncing": "Syncing...",
+        "notSynced": "Not Synced"
+      },
+      "restore": "Restore"
+    },
+    "loading": "Loading backups...",
+    "noBackups": "No backups found",
+    "pagination": {
+      "showing": "Showing {{start}}-{{end}} of {{total}} backups",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "notifications": {
+      "restoreSuccess": "Successfully restored save file",
+      "restoreError": "Failed to restore backup",
+      "loadError": "Failed to load backups"
+    }
+  },
+  "saveFile": {
+    "actions": {
+      "restore": "Restore",
+      "delete": "Delete Save File"
+    },
+    "info": {
+      "lastModified": "Last Modified",
+      "size": "Size"
+    }
+  },
+  "deleteGameModal": {
+    "title": "Delete Game",
+    "confirmation": "Are you sure you want to delete \"{{gameTitle}}\"? This action cannot be undone.",
+    "includeSaveFiles": "Also delete all save files associated with this game",
+    "deleting": "Deleting...",
+    "deleteButton": "Delete Game"
+  },
+  "restoreModal": {
+    "title": "Restore Save File",
+    "created": "Created",
+    "ago": "ago",
+    "size": "Size",
+    "restoreButton": "Restore",
+    "warning": "Restoring a save will overwrite your current game progress",
+    "cancelButton": "Cancel"
+  },
+  "addGameModal": {
+    "title": "Add New Game Manually",
+    "gameInfo": {
+      "title": "Game Title",
+      "titlePlaceholder": "Enter game title",
+      "platform": "Platform",
+      "platformPlaceholder": "Select platform",
+      "version": "Game Version",
+      "versionPlaceholder": "e.g. 1.0.5"
+    },
+    "platforms": {
+      "epic": "Epic Games",
+      "other": "Other"
+    },
+    "saveLocation": {
+      "title": "Save Files Location",
+      "pathPlaceholder": "Path to save files directory",
+      "browse": "Browse",
+      "commonLocations": "Common locations: %USERPROFILE%/Documents/My Games, %APPDATA%/Local"
+    },
+    "savePattern": {
+      "title": "Save File Pattern",
+      "placeholder": "e.g. *.sav, save*.dat",
+      "hint": "Use wildcards (*) to match multiple files"
+    },
+    "options": {
+      "monitorChanges": "Monitor save directory for changes",
+      "autoBackup": "Create automatic backups",
+      "cloudSync": "Enable cloud sync"
+    },
+    "actions": {
+      "add": "Add Game"
+    }
+  },
+  "backupSettings": {
+    "title": "Backup Settings",
+    "autoBackup": "Auto Backup",
+    "interval": "Interval",
+    "maxBackups": "Maximum Backups",
+    "compression": "Compression",
+    "intervals": {
+      "15min": "15 minutes",
+      "30min": "30 minutes",
+      "1hour": "1 hour"
+    },
+    "maxBackups_options": {
+      "3saves": "3 saves",
+      "5saves": "5 saves",
+      "10saves": "10 saves"
+    }
+  },
+  "cloudStorage": {
+    "title": "Cloud Storage",
+    "connectedAs": "Connected as {{email}}",
+    "status": {
+      "notConnected": "Not connected"
+    },
+    "actions": {
+      "connect": "Connect",
+      "disconnect": "Disconnect"
+    },
+    "frequency": {
+      "everySave": "Every save",
+      "hourly": "Every hour",
+      "daily": "Every day",
+      "manual": "Manual only"
+    },
+    "autoSync": {
+      "title": "Auto-sync Settings",
+      "enabled": "Auto-sync enabled",
+      "frequency": "Sync frequency",
+      "keepLocal": "Keep local copy"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "storageInfo": {
+    "title": "Storage",
+    "usedSpace": "Used Space",
+    "availableSpace": "Available Space"
+  },
+  "navigation": {
+    "home": "Home",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "dropdown": {
+    "searchPlaceholder": "Search...",
+    "noOptions": "No options found"
+  }
+}
