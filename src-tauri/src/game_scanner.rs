@@ -406,10 +406,18 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
 
             // Try to remove the directory if it's empty
             if expanded_path.exists() {
-                if let Err(e) = fs::remove_dir_all(&expanded_path) {
-                    println!("Failed to remove directory {}: {}", expanded_path.display(), e);
-                } else {
-                    println!("Successfully removed directory: {:?}", expanded_path);
+                match fs::read_dir(&expanded_path) {
+                    Ok(mut dir) => {
+                        if dir.next().is_none() {
+                            // Directory is empty
+                            if let Err(e) = fs::remove_dir(&expanded_path) {
+                                println!("Failed to remove empty directory {}: {}", expanded_path.display(), e);
+                            } else {
+                                println!("Successfully removed empty directory: {:?}", expanded_path);
+                            }
+                        }
+                    },
+                    Err(e) => println!("Failed to read directory {}: {}", expanded_path.display(), e),
                 }
             }
         }

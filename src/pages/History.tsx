@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import DropdownSelect from "../components/DropdownSelect";
 import { RefreshCw, MoreVertical } from "lucide-react";
 import { Game } from "../types/game";
+import NotificationModal from "../components/NotificationModal";
 
 interface SaveFile {
   id: string;
@@ -137,7 +138,15 @@ export default function History() {
   const [backups, setBackups] = useState<BackupHistoryItem[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+    isOpen: boolean;
+  }>({
+    message: "",
+    type: "success",
+    isOpen: false,
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
@@ -161,14 +170,22 @@ export default function History() {
       setGames(Object.values(result));
     } catch (err) {
       console.error("Failed to load games:", err);
-      setError("Failed to load games");
+      setNotification({
+        message: "Failed to load games",
+        type: "error",
+        isOpen: true,
+      });
     }
   };
 
   const loadBackups = async () => {
     try {
       setLoading(true);
-      setError(null);
+      setNotification({
+        message: "",
+        type: "success",
+        isOpen: false,
+      });
 
       // First get all games
       const gamesResult = await invoke<Record<string, Game>>("scan_games");
@@ -178,10 +195,10 @@ export default function History() {
       let allBackups: BackupHistoryItem[] = [];
       for (const game of allGames) {
         const saveFiles = await invoke<SaveFile[]>("list_saves", {
-          gameId: game.id,
+          gameId: game.title,
         });
         const gameBackups = saveFiles.map((save) => ({
-          id: `${game.id}-${save.id}`,
+          id: `${game.title}-${save.id}`,
           game: game,
           save_file: save,
           sync_status: "synced" as const,
@@ -195,7 +212,7 @@ export default function History() {
 
       if (selectedGame !== "all") {
         filteredBackups = filteredBackups.filter(
-          (b) => b.game.id === selectedGame
+          (b) => b.game.title === selectedGame
         );
       }
 
@@ -230,7 +247,11 @@ export default function History() {
       }));
     } catch (err) {
       console.error("Failed to load backups:", err);
-      setError("Failed to load backups");
+      setNotification({
+        message: "Failed to load backups",
+        type: "error",
+        isOpen: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -238,16 +259,28 @@ export default function History() {
 
   const handleRestore = async (backup: BackupHistoryItem) => {
     try {
-      setError(null);
-      await invoke("restore_save", {
-        gameId: backup.game.id,
+      console.log("Restoring backup:", {
+        gameId: backup.game.title,
         saveId: backup.save_file.id,
       });
-      // Show success message
-      setError("Successfully restored save file");
+
+      await invoke("restore_save", {
+        gameId: backup.game.title,
+        saveId: backup.save_file.id,
+      });
+
+      setNotification({
+        message: "Successfully restored save file",
+        type: "success",
+        isOpen: true,
+      });
     } catch (err) {
       console.error("Failed to restore backup:", err);
-      setError("Failed to restore backup");
+      setNotification({
+        message: "Failed to restore backup",
+        type: "error",
+        isOpen: true,
+      });
     }
   };
 
@@ -266,18 +299,10 @@ export default function History() {
   const gameOptions = [
     { value: "all", label: "All Games" },
     ...games.map((game) => ({
-      value: game.id,
+      value: game.title,
       label: game.title,
     })),
   ];
-
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="bg-red-500/20 text-red-400 p-4 rounded-lg">{error}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto p-8">
@@ -454,6 +479,13 @@ export default function History() {
           </div>
         </div>
       )}
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification((prev) => ({ ...prev, isOpen: false }))}
+        message={notification.message}
+        type={notification.type}
+      />
     </div>
   );
 }

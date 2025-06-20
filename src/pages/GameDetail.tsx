@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useParams, useNavigate } from "react-router-dom";
-import DropdownSelect from "../components/DropdownSelect";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import { Tag, Settings, Trash2 } from "lucide-react";
+import { Settings, Trash2 } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 
@@ -26,7 +25,6 @@ const GameDetail: React.FC = () => {
   const { id: gameId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { deleteGame } = useGameStore();
-  const [selectedTag, setSelectedTag] = useState("all");
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +35,13 @@ const GameDetail: React.FC = () => {
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
   const [isDeletingSave, setIsDeletingSave] = useState(false);
 
-  const tagOptions = [
-    { value: "all", label: "All Files" },
-    { value: "boss_fight", label: "Boss Fight" },
-    { value: "achievement", label: "Achievement" },
-    { value: "story", label: "Story" },
-    { value: "checkpoint", label: "Checkpoint" },
-  ];
+  // const tagOptions = [
+  //   { value: "all", label: "All Files" },
+  //   { value: "boss_fight", label: "Boss Fight" },
+  //   { value: "achievement", label: "Achievement" },
+  //   { value: "story", label: "Story" },
+  //   { value: "checkpoint", label: "Checkpoint" },
+  // ];
 
   const loadGameDetails = async () => {
     if (!gameId) return;
@@ -209,11 +207,6 @@ const GameDetail: React.FC = () => {
     }
   }, [gameDetails]);
 
-  const filteredSaveFiles =
-    selectedTag === "all"
-      ? saveFiles
-      : saveFiles.filter((file) => file.tags.includes(selectedTag));
-
   return (
     <div>
       {/* Game Header */}
@@ -318,13 +311,6 @@ const GameDetail: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => {}}
-                    className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2"
-                  >
-                    <Tag className="w-5 h-5" />
-                    <span>Manage Tags</span>
-                  </button>
-                  <button
-                    onClick={() => {}}
                     className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 transition-colors flex items-center space-x-2"
                   >
                     <Settings className="w-5 h-5" />
@@ -333,44 +319,18 @@ const GameDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tag Filters */}
-              <div className="mb-6">
-                <DropdownSelect
-                  options={tagOptions}
-                  value={selectedTag}
-                  onChange={setSelectedTag}
-                  placeholder="Filter by tag"
-                  className="w-48"
-                  icon={
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  }
-                />
-              </div>
-
               {/* Save Files List */}
               <div className="space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8 text-gray-400">
                     Loading save files...
                   </div>
-                ) : filteredSaveFiles.length === 0 ? (
+                ) : saveFiles.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
-                    {saveFiles.length === 0
-                      ? "No save files yet"
-                      : "No save files match the selected filter"}
+                    No save files yet
                   </div>
                 ) : (
-                  filteredSaveFiles.map((saveFile) => (
+                  saveFiles.map((saveFile) => (
                     <SaveFileItem
                       key={saveFile.id}
                       saveFile={saveFile}

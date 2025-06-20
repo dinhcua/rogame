@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { Search, Plus, User, Home, History, Settings } from "lucide-react";
+import { User, Home, History, Settings } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;

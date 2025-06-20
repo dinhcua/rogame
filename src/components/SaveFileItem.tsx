@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Clock, HardDrive, Tag, Trash2 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { Clock, HardDrive, Trash2 } from "lucide-react";
 
 interface SaveFile {
   id: string;
@@ -70,7 +69,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4 text-sm text-gray-400">
+      <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
         <div className="flex items-center space-x-2">
           <Clock className="w-4 h-4" />
           <span>{saveFile.modified_at}</span>
@@ -78,10 +77,6 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
         <div className="flex items-center space-x-2">
           <HardDrive className="w-4 h-4" />
           <span>{formatSize(saveFile.size_bytes)}</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Tag className="w-4 h-4" />
-          <span>{saveFile.tags.join(", ") || "No tags"}</span>
         </div>
       </div>
     </div>

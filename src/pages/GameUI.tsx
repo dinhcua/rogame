@@ -61,9 +61,6 @@ const GameUI = () => {
   const {
     games,
     foundGames,
-    isLoading,
-    error,
-    setGames,
     setFoundGames,
     addFoundGameToLibrary,
     loadGames,
@@ -76,7 +73,12 @@ const GameUI = () => {
   const [epicGamesCount, setEpicGamesCount] = useState(0);
   const [showFoundGames, setShowFoundGames] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
-  const [gridView, setGridView] = useState<"3x3" | "4x4">("4x4");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
+  const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,13 +86,6 @@ const GameUI = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Games");
   const [sortBy, setSortBy] = useState("name");
   const [showMoreCategories, setShowMoreCategories] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
-  const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Apply filters and sort to games
   const filteredGames = games
@@ -126,12 +121,6 @@ const GameUI = () => {
     });
 
   useEffect(() => {
-    // Load grid view preference
-    const savedView = localStorage.getItem("gridView") as "3x3" | "4x4";
-    if (savedView) {
-      setGridView(savedView);
-    }
-
     // Load games from IndexedDB
     loadGames();
   }, []);
@@ -184,11 +173,6 @@ const GameUI = () => {
       });
   };
 
-  const handleGridViewChange = (view: "3x3" | "4x4") => {
-    setGridView(view);
-    localStorage.setItem("gridView", view);
-  };
-
   const addGameToLibrary = async (gameId: string) => {
     await addFoundGameToLibrary(gameId);
   };
@@ -199,13 +183,22 @@ const GameUI = () => {
     try {
       setIsDeleting(true);
       setDeleteError(null);
+
+      console.log("Deleting game:", {
+        id: gameToDelete.id,
+        title: gameToDelete.title,
+        includeSaveFiles,
+      });
+
       await deleteGame(gameToDelete.id, gameToDelete.title, includeSaveFiles);
       setShowDeleteModal(false);
       setGameToDelete(null);
       setIncludeSaveFiles(false);
     } catch (error) {
       console.error("Failed to delete game:", error);
-      setDeleteError("Failed to delete game. Please try again.");
+      setDeleteError(
+        error instanceof Error ? error.message : "Failed to delete game"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -362,33 +355,6 @@ const GameUI = () => {
               icon={<SlidersHorizontal className="w-5 h-5" />}
             />
           </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2"
-            >
-              <SlidersHorizontal className="w-5 h-5" />
-              <span>Filters</span>
-            </button>
-            <div className="flex rounded-lg overflow-hidden">
-              <button
-                onClick={() => handleGridViewChange("4x4")}
-                className={`px-4 py-2 hover:bg-white/30 transition-colors ${
-                  gridView === "4x4" ? "bg-white/20" : "bg-white/10"
-                }`}
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => handleGridViewChange("3x3")}
-                className={`px-4 py-2 hover:bg-white/30 transition-colors ${
-                  gridView === "3x3" ? "bg-white/20" : "bg-white/10"
-                }`}
-              >
-                <Layout className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Game Categories */}
@@ -424,13 +390,7 @@ const GameUI = () => {
         </div>
 
         {/* Games Grid */}
-        <div
-          className={`grid gap-6 ${
-            gridView === "3x3"
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          }`}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredGames.map((game) => (
             <div key={game.id} className="relative group">
               <div className="absolute top-3 right-3 z-10 flex space-x-2">
@@ -448,7 +408,7 @@ const GameUI = () => {
               </div>
               <a
                 href={`/game/${game.id}`}
-                className="block bg-game-card rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
+                className="block bg-game-card h-[320px] rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
               >
                 <div className="relative">
                   <img
@@ -516,7 +476,7 @@ const GameUI = () => {
           {/* Add Game Card */}
           <div
             onClick={() => setShowAddGameModal(true)}
-            className="bg-game-card rounded-lg overflow-hidden border-2 border-dashed border-white/20 flex items-center justify-center h-[400px] cursor-pointer hover:border-rog-blue transition-colors group"
+            className="bg-game-card rounded-lg overflow-hidden border-2 border-dashed border-white/20 flex items-center justify-center h-[320px] cursor-pointer hover:border-rog-blue transition-colors group"
           >
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-rog-blue/20 transition-colors">
