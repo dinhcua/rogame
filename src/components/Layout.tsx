@@ -10,7 +10,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-game-dark text-white font-sans">
       {/* Top Status Bar */}
-      <div className="fixed top-0 left-0 right-0 bg-black/30 h-12 flex items-center justify-between pl-4.5 z-50">
+      {/* <div className="fixed top-0 left-0 right-0 bg-black/30 h-12 flex items-center justify-between pl-4.5 z-50">
         <div className="flex items-center space-x-4">
           <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
             <Search className="w-5 h-5" />
@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
             })}
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Left Sidebar */}
       <div className="fixed left-0 top-0 bottom-0 w-16 bg-sidebar flex flex-col items-center py-10 space-y-8 z-40">

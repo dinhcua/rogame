@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import DropdownSelect from "../components/DropdownSelect";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
-import { Tag, Settings } from "lucide-react";
+import DeleteGameModal from "../components/DeleteGameModal";
+import { Tag, Settings, Trash2 } from "lucide-react";
 import { Game } from "../types/game";
+import useGameStore from "../store/gameStore";
 
 interface SaveFile {
   id: string;
@@ -22,6 +24,8 @@ interface SaveFile {
 
 const GameDetail: React.FC = () => {
   const { id: gameId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { deleteGame } = useGameStore();
   const [selectedTag, setSelectedTag] = useState("all");
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +33,9 @@ const GameDetail: React.FC = () => {
   const [selectedSaveId, setSelectedSaveId] = useState<string | null>(null);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
   const [gameDetails, setGameDetails] = useState<Game | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
+  const [isDeletingSave, setIsDeletingSave] = useState(false);
 
   const tagOptions = [
     { value: "all", label: "All Files" },
@@ -60,11 +67,13 @@ const GameDetail: React.FC = () => {
   };
 
   const loadSaveFiles = async () => {
-    if (!gameId) return;
+    if (!gameId || !gameDetails) return;
 
     try {
       setIsLoading(true);
-      const files = await invoke<SaveFile[]>("list_saves", { gameId });
+      const files = await invoke<SaveFile[]>("list_saves", {
+        gameId: gameDetails.title,
+      });
       setSaveFiles(files);
     } catch (err) {
       setError(
@@ -76,12 +85,14 @@ const GameDetail: React.FC = () => {
   };
 
   const handleBackup = async () => {
-    if (!gameId) return;
+    if (!gameId || !gameDetails) return;
 
     try {
       setIsLoading(true);
       setError(null);
-      const newSave = await invoke<SaveFile>("backup_save", { gameId });
+      const newSave = await invoke<SaveFile>("backup_save", {
+        gameId: gameDetails.title,
+      });
       setSaveFiles((prev) => [...prev, newSave]);
     } catch (err) {
       setError(
@@ -93,18 +104,18 @@ const GameDetail: React.FC = () => {
   };
 
   const handleRestore = async (saveFile: SaveFile) => {
-    if (!gameId) return;
+    if (!gameId || !gameDetails) return;
 
     try {
       setIsLoading(true);
       setError(null);
       console.log("Attempting to restore save:", {
-        gameId,
+        gameId: gameDetails.title,
         saveId: saveFile.id,
       });
 
       const result = await invoke<SaveFile>("restore_save", {
-        gameId,
+        gameId: gameDetails.title,
         saveId: saveFile.id,
       });
 
@@ -122,10 +133,81 @@ const GameDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteGame = async () => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // console.log("Deleting game:", {
+      //   gameId,
+      //   title: gameDetails.title,
+      //   includeSaveFiles,
+      // });
+
+      const gameTitle = gameDetails.title;
+
+      await deleteGame(gameId, gameTitle, includeSaveFiles);
+      navigate("/"); // Navigate back to game list after deletion
+    } catch (error) {
+      console.error("Delete game error:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete game"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSave = async (saveFile: SaveFile) => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsDeletingSave(true);
+      setError(null);
+
+      console.log("Deleting save file:", {
+        gameId: gameDetails.title,
+        saveId: saveFile.file_name,
+      });
+
+      // Delete the save file using the Tauri command
+      await invoke("delete_save_file", {
+        gameId: gameDetails.title,
+        saveId: saveFile.file_name,
+      });
+
+      // Remove the deleted save from the state
+      setSaveFiles((prev) => prev.filter((file) => file.id !== saveFile.id));
+
+      // Update game details if needed
+      if (gameDetails) {
+        setGameDetails({
+          ...gameDetails,
+          save_count: gameDetails.save_count - 1,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to delete save file:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to delete save file"
+      );
+    } finally {
+      setIsDeletingSave(false);
+    }
+  };
+
   useEffect(() => {
     loadGameDetails();
-    loadSaveFiles();
   }, [gameId]);
+
+  // Create a separate effect for loadSaveFiles that depends on gameDetails
+  useEffect(() => {
+    if (gameDetails) {
+      loadSaveFiles();
+    }
+  }, [gameDetails]);
 
   const filteredSaveFiles =
     selectedTag === "all"
@@ -175,6 +257,13 @@ const GameDetail: React.FC = () => {
                     }`}
                   >
                     Restore Save
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="bg-red-600/20 px-8 py-3 rounded-lg text-lg font-medium hover:bg-red-500/30 transition-colors flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-6 h-6" />
+                    <span>Delete Game</span>
                   </button>
                 </div>
                 {error && (
@@ -286,7 +375,8 @@ const GameDetail: React.FC = () => {
                       key={saveFile.id}
                       saveFile={saveFile}
                       onRestore={handleRestore}
-                      onShareClick={() => {}}
+                      onDelete={handleDeleteSave}
+                      isDeleting={isDeletingSave}
                     />
                   ))
                 )}
@@ -311,6 +401,19 @@ const GameDetail: React.FC = () => {
         saveFiles={saveFiles}
         selectedSaveId={selectedSaveId}
         onSelectSave={setSelectedSaveId}
+      />
+
+      {/* Delete Game Modal */}
+      <DeleteGameModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setIncludeSaveFiles(false);
+        }}
+        onDelete={handleDeleteGame}
+        gameTitle={gameDetails?.title || ""}
+        includeSaveFiles={includeSaveFiles}
+        setIncludeSaveFiles={setIncludeSaveFiles}
       />
     </div>
   );

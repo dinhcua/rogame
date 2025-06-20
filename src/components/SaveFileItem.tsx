@@ -1,6 +1,6 @@
-import React from "react";
-import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Share2 } from "lucide-react";
+import React, { useState } from "react";
+import { Clock, HardDrive, Tag, Trash2 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 
 interface SaveFile {
   id: string;
@@ -14,73 +14,74 @@ interface SaveFile {
 
 interface SaveFileItemProps {
   saveFile: SaveFile;
-  onRestore?: (saveFile: SaveFile) => void;
-  onShareClick?: () => void;
+  onRestore: (saveFile: SaveFile) => void;
+  onDelete: (saveFile: SaveFile) => void;
+  isDeleting?: boolean;
 }
 
 const SaveFileItem: React.FC<SaveFileItemProps> = ({
   saveFile,
   onRestore,
-  onShareClick,
+  onDelete,
+  isDeleting = false,
 }) => {
-  const formatFileSize = (bytes: number) => {
-    const units = ["B", "KB", "MB", "GB"];
-    let size = bytes;
-    let unitIndex = 0;
+  const [isHovered, setIsHovered] = useState(false);
 
-    while (size >= 1024 && unitIndex < units.length - 1) {
+  const formatSize = (bytes: number) => {
+    const sizes = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let size = bytes;
+
+    while (size >= 1024 && i < sizes.length - 1) {
       size /= 1024;
-      unitIndex++;
+      i++;
     }
 
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
+    return `${size.toFixed(1)} ${sizes[i]}`;
   };
 
   return (
-    <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <h3 className="font-medium">{saveFile.file_name}</h3>
-            <div className="flex items-center space-x-2">
-              {saveFile.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <p className="text-sm text-gray-400">
-            Last modified: {formatDistanceToNow(new Date(saveFile.modified_at))}{" "}
-            ago
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            Size: {formatFileSize(saveFile.size_bytes)}
-          </p>
+    <div
+      className="bg-black/20 rounded-lg p-4 hover:bg-black/30 transition-colors"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-medium">{saveFile.file_name}</h4>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onRestore(saveFile)}
+            className={`${
+              isHovered ? "opacity-100" : "opacity-0"
+            } bg-blue-500/20 p-2 rounded hover:bg-blue-500/30 transition-all`}
+          >
+            Restore
+          </button>
+          <button
+            onClick={() => onDelete(saveFile)}
+            disabled={isDeleting}
+            className={`${
+              isHovered ? "opacity-100" : "opacity-0"
+            } bg-red-500/20 p-2 rounded hover:bg-red-500/30 transition-all ${
+              isDeleting ? "cursor-not-allowed opacity-50" : ""
+            }`}
+          >
+            <Trash2 className="w-5 h-5 text-red-500" />
+          </button>
         </div>
-        <div className="flex items-start space-x-2">
-          <button
-            onClick={() => onRestore?.(saveFile)}
-            className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500 group relative flex items-center space-x-2"
-          >
-            <RefreshCw className="w-5 h-5" />
-            <span>Restore</span>
-            <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Restore this save
-            </span>
-          </button>
-          <button
-            onClick={onShareClick}
-            className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative"
-          >
-            <Share2 className="w-5 h-5" />
-            <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Share
-            </span>
-          </button>
+      </div>
+      <div className="grid grid-cols-3 gap-4 text-sm text-gray-400">
+        <div className="flex items-center space-x-2">
+          <Clock className="w-4 h-4" />
+          <span>{saveFile.modified_at}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <HardDrive className="w-4 h-4" />
+          <span>{formatSize(saveFile.size_bytes)}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Tag className="w-4 h-4" />
+          <span>{saveFile.tags.join(", ") || "No tags"}</span>
         </div>
       </div>
     </div>

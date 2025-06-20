@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Game } from "../types/game";
 import AddGameModal from "../components/AddGameModal";
+import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
 import { invoke } from "@tauri-apps/api/core";
+import useGameStore from "../store/gameStore";
 import {
   Search,
   ShoppingBag,
@@ -21,6 +23,7 @@ import {
   FileText,
   Download,
   Check,
+  Trash2,
 } from "lucide-react";
 
 // Categories for filtering
@@ -55,6 +58,18 @@ const sortOptions = [
 ];
 
 const GameUI = () => {
+  const {
+    games,
+    foundGames,
+    isLoading,
+    error,
+    setGames,
+    setFoundGames,
+    addFoundGameToLibrary,
+    loadGames,
+    deleteGame,
+  } = useGameStore();
+
   const [showScanProgress, setShowScanProgress] = useState(false);
   const [scanPercentage, setScanPercentage] = useState(0);
   const [steamGamesCount, setSteamGamesCount] = useState(0);
@@ -62,8 +77,6 @@ const GameUI = () => {
   const [showFoundGames, setShowFoundGames] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [gridView, setGridView] = useState<"3x3" | "4x4">("4x4");
-  const [games, setGames] = useState<Game[]>([]);
-  const [foundGames, setFoundGames] = useState<Game[]>([]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,9 +86,15 @@ const GameUI = () => {
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
+  const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Apply filters and sort to games
   const filteredGames = games
-    .filter((game) => {
+    .filter((game: Game) => {
       const matchesSearch = game.title
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
@@ -91,7 +110,7 @@ const GameUI = () => {
 
       return matchesSearch && matchesPlatform && matchesCategory;
     })
-    .sort((a, b) => {
+    .sort((a: Game, b: Game) => {
       switch (sortBy) {
         case "name":
           return a.title.localeCompare(b.title);
@@ -112,6 +131,9 @@ const GameUI = () => {
     if (savedView) {
       setGridView(savedView);
     }
+
+    // Load games from IndexedDB
+    loadGames();
   }, []);
 
   const handleScan = () => {
@@ -167,14 +189,26 @@ const GameUI = () => {
     localStorage.setItem("gridView", view);
   };
 
-  const addGameToLibrary = (gameId: string) => {
-    const gameToAdd = foundGames.find((g) => g.id === gameId);
-    if (!gameToAdd) return;
+  const addGameToLibrary = async (gameId: string) => {
+    await addFoundGameToLibrary(gameId);
+  };
 
-    setGames((prev) => [...prev, gameToAdd]);
-    setFoundGames((prev) =>
-      prev.map((g) => (g.id === gameId ? { ...g, status: "added" } : g))
-    );
+  const handleDeleteGame = async () => {
+    if (!gameToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await deleteGame(gameToDelete.id, gameToDelete.title, includeSaveFiles);
+      setShowDeleteModal(false);
+      setGameToDelete(null);
+      setIncludeSaveFiles(false);
+    } catch (error) {
+      console.error("Failed to delete game:", error);
+      setDeleteError("Failed to delete game. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -398,62 +432,85 @@ const GameUI = () => {
           }`}
         >
           {filteredGames.map((game) => (
-            <a
-              key={game.id}
-              href={`/game/${game.id}`}
-              className="bg-game-card rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
-            >
-              <div className="relative">
-                <img
-                  src={game.cover_image}
-                  alt={game.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-3 right-3 flex space-x-2">
-                  <span
-                    className={`${
-                      game.status === "synced"
-                        ? "bg-green-500/90"
-                        : "bg-yellow-500/90"
-                    } text-white px-2 py-1 rounded text-sm`}
-                  >
-                    {game.status === "synced" ? "Synced" : "Syncing..."}
-                  </span>
-                  <button className="bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors">
-                    <Star className="w-5 h-5" />
-                  </button>
-                </div>
+            <div key={game.id} className="relative group">
+              <div className="absolute top-3 right-3 z-10 flex space-x-2">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setGameToDelete(game);
+                    setShowDeleteModal(true);
+                  }}
+                  className="bg-black/50 p-1.5 rounded-lg hover:bg-red-500/70 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-medium group-hover:text-rog-blue transition-colors">
-                    {game.title}
-                  </h3>
-                  <div className="flex items-center space-x-1 text-gray-400">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm">{game.last_played}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 mb-3">
+              <a
+                href={`/game/${game.id}`}
+                className="block bg-game-card rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
+              >
+                <div className="relative">
                   <img
-                    src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/steamworks_logo.png"
-                    alt={game.platform}
-                    className="w-5 h-5"
+                    src={game.cover_image}
+                    alt={game.title}
+                    className="w-full h-48 object-cover"
                   />
-                  <span className="text-sm text-gray-400">{game.platform}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <File className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm">{game.save_count} saves</span>
+                  <div className="absolute top-3 right-3 flex space-x-2">
+                    <span
+                      className={`${
+                        game.status === "synced"
+                          ? "bg-green-500/90"
+                          : "bg-yellow-500/90"
+                      } text-white px-2 py-1 rounded text-sm`}
+                    >
+                      {game.status === "synced" ? "Synced" : "Syncing..."}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // TODO: Add favorite functionality
+                      }}
+                      className="bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors"
+                    >
+                      <Star className="w-5 h-5" />
+                    </button>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Scale className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm">{game.size}</span>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-medium group-hover:text-rog-blue transition-colors">
+                      {game.title}
+                    </h3>
+                    <div className="flex items-center space-x-1 text-gray-400">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm">{game.last_played}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <img
+                      src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/steamworks_logo.png"
+                      alt={game.platform}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-sm text-gray-400">
+                      {game.platform}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <File className="w-5 h-5 text-gray-400" />
+                      <span className="text-sm">{game.save_count} saves</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Scale className="w-5 h-5 text-gray-400" />
+                      <span className="text-sm">{game.size}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </a>
+              </a>
+            </div>
           ))}
 
           {/* Add Game Card */}
@@ -484,6 +541,25 @@ const GameUI = () => {
           // TODO: Implement adding game to library
           console.log("Adding game:", gameData);
         }}
+      />
+
+      {/* Delete Game Modal */}
+      <DeleteGameModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteModal(false);
+            setGameToDelete(null);
+            setIncludeSaveFiles(false);
+            setDeleteError(null);
+          }
+        }}
+        onDelete={handleDeleteGame}
+        gameTitle={gameToDelete?.title || ""}
+        includeSaveFiles={includeSaveFiles}
+        setIncludeSaveFiles={setIncludeSaveFiles}
+        isDeleting={isDeleting}
+        error={deleteError}
       />
     </div>
   );
