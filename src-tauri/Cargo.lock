@@ -2992,6 +2992,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
+ "glob",
  "serde",
  "serde_json",
  "tauri",
