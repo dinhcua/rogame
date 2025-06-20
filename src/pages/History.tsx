@@ -3,23 +3,24 @@ import { invoke } from "@tauri-apps/api/core";
 import { formatDistanceToNow } from "date-fns";
 import DropdownSelect from "../components/DropdownSelect";
 import { RefreshCw, MoreVertical } from "lucide-react";
+import { Game } from "../types/game";
 
-interface Game {
-  id: string;
-  name: string;
-  image: string;
-}
-
-interface BackupItem {
+interface SaveFile {
   id: string;
   game_id: string;
-  game: Game;
   file_name: string;
   created_at: string;
+  modified_at: string;
   size_bytes: number;
+  tags: string[];
+}
+
+interface BackupHistoryItem {
+  id: string;
+  game: Game;
+  save_file: SaveFile;
   sync_status: "synced" | "syncing" | "not_synced";
   description: string;
-  tags: string[];
 }
 
 interface PaginationInfo {
@@ -30,10 +31,10 @@ interface PaginationInfo {
 }
 
 const BackupCard: React.FC<{
-  backup: BackupItem;
-  onRestore: (backup: BackupItem) => void;
+  backup: BackupHistoryItem;
+  onRestore: (backup: BackupHistoryItem) => void;
 }> = ({ backup, onRestore }) => {
-  const getSyncStatusColor = (status: BackupItem["sync_status"]) => {
+  const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
     switch (status) {
       case "synced":
         return "text-green-500";
@@ -46,7 +47,7 @@ const BackupCard: React.FC<{
     }
   };
 
-  const getSyncStatusText = (status: BackupItem["sync_status"]) => {
+  const getSyncStatusText = (status: BackupHistoryItem["sync_status"]) => {
     switch (status) {
       case "synced":
         return "Cloud Synced";
@@ -77,20 +78,21 @@ const BackupCard: React.FC<{
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <img
-            src={backup.game.image}
-            alt={backup.game.name}
+            src={backup.game.cover_image}
+            alt={backup.game.title}
             className="w-16 h-20 rounded-lg object-cover"
           />
           <div>
             <h3 className="text-xl font-bold">
-              {backup.game.name} - {backup.file_name}
+              {backup.game.title} - {backup.save_file.file_name}
             </h3>
             <p className="text-gray-400">
-              Created: {formatDistanceToNow(new Date(backup.created_at))} ago
+              Created:{" "}
+              {formatDistanceToNow(new Date(backup.save_file.created_at))} ago
             </p>
             <div className="flex items-center space-x-4 mt-2">
               <span className="text-sm text-gray-400">
-                Size: {formatFileSize(backup.size_bytes)}
+                Size: {formatFileSize(backup.save_file.size_bytes)}
               </span>
               <span className="text-sm text-gray-400">•</span>
               <span
@@ -116,7 +118,7 @@ const BackupCard: React.FC<{
       </div>
       <div className="mt-4 text-gray-400">
         <div className="flex items-center space-x-2 mb-2">
-          {backup.tags.map((tag, index) => (
+          {backup.save_file.tags.map((tag, index) => (
             <span
               key={index}
               className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs"
@@ -132,7 +134,7 @@ const BackupCard: React.FC<{
 };
 
 export default function History() {
-  const [backups, setBackups] = useState<BackupItem[]>([]);
+  const [backups, setBackups] = useState<BackupHistoryItem[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,8 +157,8 @@ export default function History() {
 
   const loadGames = async () => {
     try {
-      const fetchedGames = await invoke<Game[]>("list_games");
-      setGames(fetchedGames);
+      const result = await invoke<Record<string, Game>>("scan_games");
+      setGames(Object.values(result));
     } catch (err) {
       console.error("Failed to load games:", err);
       setError("Failed to load games");
@@ -168,19 +170,64 @@ export default function History() {
       setLoading(true);
       setError(null);
 
-      const response = await invoke<{
-        items: BackupItem[];
-        pagination: PaginationInfo;
-      }>("list_backups", {
-        page: pagination.current_page,
-        itemsPerPage: pagination.items_per_page,
-        gameId: selectedGame === "all" ? null : selectedGame,
-        timeRange: selectedTime,
-        searchQuery: searchQuery.trim() || null,
-      });
+      // First get all games
+      const gamesResult = await invoke<Record<string, Game>>("scan_games");
+      const allGames = Object.values(gamesResult);
 
-      setBackups(response.items);
-      setPagination(response.pagination);
+      // Then get save files for each game
+      let allBackups: BackupHistoryItem[] = [];
+      for (const game of allGames) {
+        const saveFiles = await invoke<SaveFile[]>("list_saves", {
+          gameId: game.id,
+        });
+        const gameBackups = saveFiles.map((save) => ({
+          id: `${game.id}-${save.id}`,
+          game: game,
+          save_file: save,
+          sync_status: "synced" as const,
+          description: `Backup for ${game.title}`,
+        }));
+        allBackups = [...allBackups, ...gameBackups];
+      }
+
+      // Apply filters
+      let filteredBackups = allBackups;
+
+      if (selectedGame !== "all") {
+        filteredBackups = filteredBackups.filter(
+          (b) => b.game.id === selectedGame
+        );
+      }
+
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredBackups = filteredBackups.filter(
+          (b) =>
+            b.game.title.toLowerCase().includes(query) ||
+            b.save_file.file_name.toLowerCase().includes(query)
+        );
+      }
+
+      // Sort by date
+      filteredBackups.sort(
+        (a, b) =>
+          new Date(b.save_file.created_at).getTime() -
+          new Date(a.save_file.created_at).getTime()
+      );
+
+      // Apply pagination
+      const start = (pagination.current_page - 1) * pagination.items_per_page;
+      const end = start + pagination.items_per_page;
+      const paginatedBackups = filteredBackups.slice(start, end);
+
+      setBackups(paginatedBackups);
+      setPagination((prev) => ({
+        ...prev,
+        total_items: filteredBackups.length,
+        total_pages: Math.ceil(
+          filteredBackups.length / pagination.items_per_page
+        ),
+      }));
     } catch (err) {
       console.error("Failed to load backups:", err);
       setError("Failed to load backups");
@@ -189,14 +236,15 @@ export default function History() {
     }
   };
 
-  const handleRestore = async (backup: BackupItem) => {
+  const handleRestore = async (backup: BackupHistoryItem) => {
     try {
       setError(null);
-      await invoke("restore_backup", {
-        gameId: backup.game_id,
-        backupId: backup.id,
+      await invoke("restore_save", {
+        gameId: backup.game.id,
+        saveId: backup.save_file.id,
       });
-      // Show success message or handle UI feedback
+      // Show success message
+      setError("Successfully restored save file");
     } catch (err) {
       console.error("Failed to restore backup:", err);
       setError("Failed to restore backup");
@@ -219,7 +267,7 @@ export default function History() {
     { value: "all", label: "All Games" },
     ...games.map((game) => ({
       value: game.id,
-      label: game.name,
+      label: game.title,
     })),
   ];
 

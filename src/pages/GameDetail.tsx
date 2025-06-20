@@ -8,6 +8,7 @@ import CloudStorage from "../components/CloudStorage";
 import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import { Tag, Settings } from "lucide-react";
+import { Game } from "../types/game";
 
 interface SaveFile {
   id: string;
@@ -27,6 +28,7 @@ const GameDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSaveId, setSelectedSaveId] = useState<string | null>(null);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [gameDetails, setGameDetails] = useState<Game | null>(null);
 
   const tagOptions = [
     { value: "all", label: "All Files" },
@@ -35,6 +37,27 @@ const GameDetail: React.FC = () => {
     { value: "story", label: "Story" },
     { value: "checkpoint", label: "Checkpoint" },
   ];
+
+  const loadGameDetails = async () => {
+    if (!gameId) return;
+
+    try {
+      setIsLoading(true);
+      const result = await invoke<Record<string, Game>>("scan_games");
+      const game = result[gameId];
+      if (game) {
+        setGameDetails(game);
+      } else {
+        setError("Game not found");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load game details"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadSaveFiles = async () => {
     if (!gameId) return;
@@ -100,6 +123,7 @@ const GameDetail: React.FC = () => {
   };
 
   useEffect(() => {
+    loadGameDetails();
     loadSaveFiles();
   }, [gameId]);
 
@@ -113,8 +137,8 @@ const GameDetail: React.FC = () => {
       {/* Game Header */}
       <div className="relative h-[500px]">
         <img
-          src="https://images.igdb.com/igdb/image/upload/t_1080p/sc8bj6.jpg"
-          alt="Game Banner"
+          src={gameDetails?.cover_image || ""}
+          alt={`${gameDetails?.title || "Game"} Banner`}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-game-dark via-game-dark/50 to-transparent"></div>
@@ -122,12 +146,14 @@ const GameDetail: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center">
               <img
-                src="https://images.igdb.com/igdb/image/upload/t_cover_big/co5nng.jpg"
-                alt="Game Cover"
+                src={gameDetails?.cover_image || ""}
+                alt={`${gameDetails?.title || "Game"} Cover`}
                 className="w-40 h-52 rounded-lg mr-8 shadow-2xl"
               />
               <div>
-                <h1 className="text-5xl font-bold mb-2">Hollow Knight</h1>
+                <h1 className="text-5xl font-bold mb-2">
+                  {gameDetails?.title || "Loading..."}
+                </h1>
                 <p className="text-xl text-gray-300 mb-6">Save Files Manager</p>
                 <div className="flex items-center space-x-4">
                   <button
@@ -179,23 +205,19 @@ const GameDetail: React.FC = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-gray-400 mb-2">Total Saves</h3>
-                  <p>{saveFiles.length} Save Files</p>
+                  <p>{gameDetails?.save_count || 0} Save Files</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Save Location</h3>
-                  <p>Local App Data</p>
+                  <h3 className="text-gray-400 mb-2">Platform</h3>
+                  <p>{gameDetails?.platform || "Unknown"}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Last Backup</h3>
-                  <p>
-                    {saveFiles[0]?.modified_at
-                      ? new Date(saveFiles[0].modified_at).toLocaleString()
-                      : "No backups yet"}
-                  </p>
+                  <h3 className="text-gray-400 mb-2">Last Played</h3>
+                  <p>{gameDetails?.last_played || "Never"}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Auto-Backup</h3>
-                  <p>Enabled (Every 30 mins)</p>
+                  <h3 className="text-gray-400 mb-2">Category</h3>
+                  <p>{gameDetails?.category || "Unknown"}</p>
                 </div>
               </div>
             </div>

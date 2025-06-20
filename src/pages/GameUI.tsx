@@ -23,36 +23,6 @@ import {
   Check,
 } from "lucide-react";
 
-// Sample data
-const sampleGames: Game[] = [
-  {
-    id: "game1",
-    title: "Elden Ring",
-    cover_image:
-      "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
-    platform: "Steam",
-    last_played: "Just added",
-    save_count: 8,
-    size: "128MB",
-    status: "synced",
-    category: "Action RPG",
-    is_favorite: false,
-  },
-  {
-    id: "game2",
-    title: "Lies of P",
-    cover_image:
-      "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg",
-    platform: "Epic Games",
-    last_played: "Just added",
-    save_count: 3,
-    size: "64MB",
-    status: "syncing",
-    category: "Action RPG",
-    is_favorite: true,
-  },
-];
-
 // Categories for filtering
 const gameCategories = [
   "All Games",
@@ -63,6 +33,8 @@ const gameCategories = [
   "Strategy",
   "Action",
   "Adventure",
+  "JRPG",
+  "Survival Horror",
 ];
 
 // Platform options
@@ -90,7 +62,7 @@ const GameUI = () => {
   const [showFoundGames, setShowFoundGames] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [gridView, setGridView] = useState<"3x3" | "4x4">("4x4");
-  const [games, setGames] = useState<Game[]>(sampleGames);
+  const [games, setGames] = useState<Game[]>([]);
   const [foundGames, setFoundGames] = useState<Game[]>([]);
 
   // Filter states
