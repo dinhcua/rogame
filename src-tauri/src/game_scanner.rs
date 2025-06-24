@@ -125,7 +125,7 @@ fn scan_save_locations(game_title: &str, save_config: &SaveGameConfig) -> Vec<Sa
                     };
 
                     save_locations.push(SaveLocation {
-                        path: location.clone(),
+                        path: expanded_path.to_string_lossy().into_owned(),
                         file_count,
                         total_size: format_size(total_size),
                         last_modified,

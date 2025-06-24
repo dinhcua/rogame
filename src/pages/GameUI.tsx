@@ -71,6 +71,7 @@ const GameUI = () => {
     loadGames,
     deleteGame,
     toggleFavorite,
+    updateGame,
   } = useGameStore();
 
   const [showScanProgress, setShowScanProgress] = useState(false);
@@ -136,10 +137,42 @@ const GameUI = () => {
       }
     });
 
+  // Function to fetch backup count for a game
+  const fetchBackupCount = async (game: Game) => {
+    try {
+      const saveFiles = await invoke<any[]>("list_saves", {
+        gameId: game.title,
+      });
+
+      // Update the game with the actual backup count
+      if (game.save_count !== saveFiles.length) {
+        updateGame({
+          ...game,
+          save_count: saveFiles.length,
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to fetch backup count for ${game.title}:`, error);
+    }
+  };
+
+  // Load games and their backup counts
   useEffect(() => {
-    // Load games from IndexedDB
-    loadGames();
-  }, []);
+    const initializeGames = async () => {
+      await loadGames();
+    };
+
+    initializeGames();
+  }, []); // Run once when component mounts
+
+  // Update backup counts whenever games change
+  useEffect(() => {
+    if (games.length > 0) {
+      games.forEach((game) => {
+        fetchBackupCount(game);
+      });
+    }
+  }, [games]); // Run when games array changes
 
   const handleScan = () => {
     setShowScanProgress(true);
@@ -483,7 +516,9 @@ const GameUI = () => {
                     <div className="flex items-center space-x-1 text-gray-400">
                       <Clock className="w-4 h-4" />
                       <span className="text-sm">
-                        {formatBackupTime(game.last_backup_time, t)}
+                        {game.last_backup_time === null
+                          ? t("gameUI.backup.never")
+                          : formatBackupTime(game.last_backup_time, t)}
                       </span>
                     </div>
                   </div>

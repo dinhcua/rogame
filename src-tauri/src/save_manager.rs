@@ -13,6 +13,7 @@ pub struct SaveFile {
     pub size_bytes: u64,
     pub tags: Vec<String>,
     pub file_path: String,
+    pub origin_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -27,9 +28,45 @@ pub struct BackupResponse {
     pub save_count: i32,  // Current number of saves
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BackupSettings {
+    pub auto_backup: bool,
+    pub backup_interval: String,
+    pub max_backups: i32,
+    pub compression_enabled: bool,
+}
+
+impl Default for BackupSettings {
+    fn default() -> Self {
+        Self {
+            auto_backup: true,
+            backup_interval: "30min".to_string(),
+            max_backups: 5,
+            compression_enabled: true,
+        }
+    }
+}
+
 impl SaveFile {
     pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String) -> Self {
         let now = Utc::now().to_rfc3339();
+        let expanded_path = expand_tilde(&file_path);
+        
+        // For mock saves, set origin_path to the Steam saves directory
+        let origin_path = if let Some(home) = dirs::home_dir() {
+            let mock_saves_path = home
+                .join("Library/Application Support/Steam/steamapps/common")
+                .join(&game_id)
+                .join("saves");
+            if mock_saves_path.exists() {
+                mock_saves_path
+            } else {
+                expanded_path.clone()
+            }
+        } else {
+            expanded_path.clone()
+        };
+
         Self {
             id: file_name.clone(),
             game_id,
@@ -38,9 +75,19 @@ impl SaveFile {
             modified_at: now,
             size_bytes,
             tags: Vec::new(),
-            file_path,
+            file_path: expanded_path.to_string_lossy().into_owned(),
+            origin_path: origin_path.to_string_lossy().into_owned(),
         }
     }
+}
+
+fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    PathBuf::from(path)
 }
 
 #[tauri::command]
@@ -78,6 +125,9 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
+    // Load backup settings
+    let settings = load_backup_settings().await?;
+
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
 
@@ -104,14 +154,34 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     let backup_time = Utc::now().timestamp_millis();
 
     // Count total number of save files
-    let save_count = fs::read_dir(&game_saves_dir)
-        .map(|entries| {
-            entries
-                .filter_map(Result::ok)
-                .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
-                .count() as i32
-        })
-        .unwrap_or(1); // If we can't read the directory, assume this is the first save
+    let mut save_files: Vec<_> = fs::read_dir(&game_saves_dir)
+        .map_err(|e| SaveFileError {
+            message: format!("Failed to read saves directory: {}", e),
+        })?
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+        .collect();
+
+    // Sort files by creation time (newest first)
+    save_files.sort_by(|a, b| {
+        b.metadata()
+            .and_then(|m| m.created())
+            .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH)
+            .cmp(
+                &a.metadata()
+                    .and_then(|m| m.created())
+                    .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH),
+            )
+    });
+
+    // Remove old backups if we exceed max_backups
+    if save_files.len() > settings.max_backups as usize {
+        for old_file in save_files.iter().skip(settings.max_backups as usize) {
+            if let Err(e) = fs::remove_file(old_file.path()) {
+                println!("Failed to remove old backup: {}", e);
+            }
+        }
+    }
 
     Ok(BackupResponse {
         save_file: SaveFile::new(
@@ -121,7 +191,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
             save_path.to_string_lossy().into_owned(),
         ),
         backup_time,
-        save_count,
+        save_count: save_files.len() as i32,
     })
 }
 
@@ -159,6 +229,53 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
     }
 
     Ok(saves)
+}
+
+#[tauri::command]
+pub async fn save_backup_settings(settings: BackupSettings) -> Result<(), SaveFileError> {
+    let config_dir = dirs::config_local_dir()
+        .ok_or_else(|| SaveFileError {
+            message: "Failed to get config directory".to_string(),
+        })?
+        .join("rogame");
+
+    fs::create_dir_all(&config_dir).map_err(|e| SaveFileError {
+        message: format!("Failed to create config directory: {}", e),
+    })?;
+
+    let settings_path = config_dir.join("backup_settings.json");
+    let settings_json = serde_json::to_string_pretty(&settings).map_err(|e| SaveFileError {
+        message: format!("Failed to serialize settings: {}", e),
+    })?;
+
+    fs::write(&settings_path, settings_json).map_err(|e| SaveFileError {
+        message: format!("Failed to write settings file: {}", e),
+    })?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn load_backup_settings() -> Result<BackupSettings, SaveFileError> {
+    let config_dir = dirs::config_local_dir()
+        .ok_or_else(|| SaveFileError {
+            message: "Failed to get config directory".to_string(),
+        })?
+        .join("rogame");
+
+    let settings_path = config_dir.join("backup_settings.json");
+
+    if !settings_path.exists() {
+        return Ok(BackupSettings::default());
+    }
+
+    let settings_json = fs::read_to_string(&settings_path).map_err(|e| SaveFileError {
+        message: format!("Failed to read settings file: {}", e),
+    })?;
+
+    serde_json::from_str(&settings_json).map_err(|e| SaveFileError {
+        message: format!("Failed to deserialize settings: {}", e),
+    })
 }
 
 fn get_saves_directory() -> Result<PathBuf, SaveFileError> {

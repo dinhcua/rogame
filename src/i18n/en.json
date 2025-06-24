@@ -145,40 +145,51 @@
       "synced": "Synced",
       "syncing": "Syncing..."
     },
-    "saveCount": "{{count}} saves"
+    "saveCount": "{{count}} saves",
+    "backup": {
+      "never": "Never",
+      "timeAgo": {
+        "lessThanAMinute": "less than a minute ago",
+        "minutes": "{{count}} minutes ago",
+        "hours": "{{count}} hours ago",
+        "days": "{{count}} days ago",
+        "weeks": "{{count}} weeks ago",
+        "months": "{{count}} months ago"
+      }
+    }
   },
   "gameDetail": {
-    "title": "Save Files Manager",
+    "title": "Game Details",
     "actions": {
       "backup": "Backup",
       "backingUp": "Backing up...",
       "restore": "Restore",
-      "deleteGame": "Delete"
+      "deleteGame": "Delete Game"
     },
     "saveDetails": {
-      "title": "Save Details",
-      "totalSaves": "Total Saves",
-      "saveFiles": "Save Files",
+      "title": "Backup Information",
+      "totalSaves": "Total Backups",
+      "saveFiles": "backups",
       "platform": "Platform",
-      "lastPlayed": "Last Played",
+      "lastPlayed": "Last Backup",
       "category": "Category",
       "unknown": "Unknown",
       "never": "Never"
     },
     "saveFiles": {
-      "title": "Save Files",
+      "title": "Backup List",
       "manageAll": "Manage All",
-      "loading": "Loading save files...",
-      "noSaves": "No save files yet"
+      "loading": "Loading...",
+      "noSaves": "No backups yet"
     }
   },
   "history": {
     "filters": {
       "search": "Search backups...",
-      "selectGame": "Select Game",
       "allGames": "All Games",
+      "selectGame": "Select Game",
       "timeRange": {
-        "title": "Select Time Range",
+        "title": "Time Range",
         "allTime": "All Time",
         "last24h": "Last 24 Hours",
         "lastWeek": "Last Week",
@@ -190,33 +201,47 @@
       "filter": "Filter"
     },
     "backup": {
-      "created": "Created: {{time}} ago",
-      "size": "Size: {{size}}",
+      "created": "Created {{time}}",
+      "backupFor": "Backup for {{game}}",
+      "restore": "Restore",
       "status": {
         "synced": "Cloud Synced",
-        "syncing": "Syncing...",
-        "notSynced": "Not Synced"
+        "syncing": "Syncing",
+        "not_synced": "Not Synced"
       },
-      "restore": "Restore"
+      "timeAgo": {
+        "lessThanAMinute": "less than a minute ago",
+        "minutes": "{{count}} minutes ago",
+        "hours": "{{count}} hours ago",
+        "days": "{{count}} days ago",
+        "weeks": "{{count}} weeks ago",
+        "months": "{{count}} months ago"
+      }
+    },
+    "fileSize": {
+      "bytes": "{{size}} bytes",
+      "kb": "{{size}} KB",
+      "mb": "{{size}} MB",
+      "gb": "{{size}} GB"
     },
     "loading": "Loading backups...",
     "noBackups": "No backups found",
+    "notifications": {
+      "restoreSuccess": "Backup restored successfully",
+      "restoreError": "Failed to restore backup"
+    },
     "pagination": {
       "showing": "Showing {{start}}-{{end}} of {{total}} backups",
       "previous": "Previous",
       "next": "Next"
-    },
-    "notifications": {
-      "restoreSuccess": "Successfully restored save file",
-      "restoreError": "Failed to restore backup",
-      "loadError": "Failed to load backups"
     }
   },
   "saveFile": {
     "actions": {
       "restore": "Restore",
       "delete": "Delete Save File",
-      "openLocation": "Open Location"
+      "openBackupLocation": "Open Backup Location",
+      "openOriginalLocation": "Open Original Save Location"
     },
     "info": {
       "lastModified": "Last Modified",
@@ -279,15 +304,16 @@
     "interval": "Interval",
     "maxBackups": "Maximum Backups",
     "compression": "Compression",
+    "comingSoon": "Coming Soon",
     "intervals": {
       "15min": "15 minutes",
       "30min": "30 minutes",
       "1hour": "1 hour"
     },
     "maxBackups_options": {
-      "3saves": "3 saves",
-      "5saves": "5 saves",
-      "10saves": "10 saves"
+      "3saves": "3 backups",
+      "5saves": "5 backups",
+      "10saves": "10 backups"
     }
   },
   "cloudStorage": {

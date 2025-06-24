@@ -140,13 +140,21 @@
       "description": "Thêm game mới vào thư viện"
     },
     "backup": {
-      "never": "Chưa lưu",
+      "never": "Chưa bao giờ",
       "justNow": "Vừa xong",
       "minutesAgo": "{{count}} phút trước",
       "hoursAgo": "{{count}} giờ trước",
       "daysAgo": "{{count}} ngày trước",
       "weeksAgo": "{{count}} tuần trước",
-      "monthsAgo": "{{count}} tháng trước"
+      "monthsAgo": "{{count}} tháng trước",
+      "timeAgo": {
+        "lessThanAMinute": "chưa đến một phút",
+        "minutes": "{{count}} phút trước",
+        "hours": "{{count}} giờ trước",
+        "days": "{{count}} ngày trước",
+        "weeks": "{{count}} tuần trước",
+        "months": "{{count}} tháng trước"
+      }
     },
     "status": {
       "synced": "Đã đồng bộ",
@@ -186,41 +194,41 @@
     }
   },
   "gameDetail": {
-    "title": "Quản Lý File Save",
+    "title": "Chi tiết trò chơi",
     "actions": {
-      "backup": "Sao Lưu",
+      "backup": "Sao lưu",
       "backingUp": "Đang sao lưu...",
-      "restore": "Khôi Phục",
-      "deleteGame": "Xóa"
+      "restore": "Khôi phục",
+      "deleteGame": "Xóa trò chơi"
     },
     "saveDetails": {
-      "title": "Chi Tiết Save",
-      "totalSaves": "Tổng Số Save",
-      "saveFiles": "File Save",
-      "platform": "Nền Tảng",
-      "lastPlayed": "Lần Chơi Cuối",
-      "category": "Thể Loại",
-      "unknown": "Không Xác Định",
-      "never": "Chưa Bao Giờ"
+      "title": "Thông tin sao lưu",
+      "totalSaves": "Tổng số bản sao lưu",
+      "saveFiles": "bản sao lưu",
+      "platform": "Nền tảng",
+      "lastPlayed": "Lần lưu cuối",
+      "category": "Thể loại",
+      "unknown": "Không xác định",
+      "never": "Chưa bao giờ"
     },
     "saveFiles": {
-      "title": "File Save",
-      "manageAll": "Quản Lý Tất Cả",
-      "loading": "Đang tải file save...",
-      "noSaves": "Chưa có file save nào"
+      "title": "Danh sách bản sao lưu",
+      "manageAll": "Quản lý tất cả",
+      "loading": "Đang tải...",
+      "noSaves": "Chưa có bản sao lưu nào"
     }
   },
   "history": {
     "filters": {
       "search": "Tìm kiếm bản sao lưu...",
-      "selectGame": "Chọn Game",
-      "allGames": "Tất Cả Game",
+      "allGames": "Tất cả trò chơi",
+      "selectGame": "Chọn trò chơi",
       "timeRange": {
-        "title": "Chọn Khoảng Thời Gian",
-        "allTime": "Mọi Thời Điểm",
-        "last24h": "24 Giờ Qua",
-        "lastWeek": "Tuần Trước",
-        "lastMonth": "Tháng Trước"
+        "title": "Khoảng thời gian",
+        "allTime": "Tất cả",
+        "last24h": "24 giờ qua",
+        "lastWeek": "Tuần qua",
+        "lastMonth": "Tháng qua"
       }
     },
     "actions": {
@@ -228,52 +236,51 @@
       "filter": "Lọc"
     },
     "backup": {
-      "created": "Đã tạo: {{time}}",
-      "size": "Kích thước: {{size}}",
+      "created": "Đã tạo {{time}}",
+      "backupFor": "Sao lưu cho {{game}}",
+      "restore": "Khôi phục",
       "status": {
-        "synced": "Đã Đồng Bộ Cloud",
-        "syncing": "Đang Đồng Bộ...",
-        "notSynced": "Chưa Đồng Bộ"
+        "synced": "Đã đồng bộ",
+        "syncing": "Đang đồng bộ",
+        "not_synced": "Chưa đồng bộ"
       },
-      "restore": "Khôi Phục",
-      "backupFor": "Bản sao lưu cho {{game}}",
       "timeAgo": {
-        "lessThanAMinute": "chưa đến 1 phút",
-        "minutes": "{{count}} phút",
-        "hours": "{{count}} giờ",
-        "days": "{{count}} ngày",
-        "weeks": "{{count}} tuần",
-        "months": "{{count}} tháng"
+        "lessThanAMinute": "chưa đến một phút",
+        "minutes": "{{count}} phút trước",
+        "hours": "{{count}} giờ trước",
+        "days": "{{count}} ngày trước",
+        "weeks": "{{count}} tuần trước",
+        "months": "{{count}} tháng trước"
       }
     },
-    "loading": "Đang tải bản sao lưu...",
-    "noBackups": "Không tìm thấy bản sao lưu nào",
-    "pagination": {
-      "showing": "Hiển thị {{start}}-{{end}} trong số {{total}} bản sao lưu",
-      "previous": "Trước",
-      "next": "Tiếp"
-    },
-    "notifications": {
-      "restoreSuccess": "Khôi phục file save thành công",
-      "restoreError": "Không thể khôi phục bản sao lưu",
-      "loadError": "Không thể tải bản sao lưu"
-    },
     "fileSize": {
-      "bytes": "{{size}} B",
+      "bytes": "{{size}} bytes",
       "kb": "{{size}} KB",
       "mb": "{{size}} MB",
       "gb": "{{size}} GB"
+    },
+    "loading": "Đang tải bản sao lưu...",
+    "noBackups": "Không có bản sao lưu nào",
+    "notifications": {
+      "restoreSuccess": "Khôi phục bản sao lưu thành công",
+      "restoreError": "Không thể khôi phục bản sao lưu"
+    },
+    "pagination": {
+      "showing": "Hiển thị {{start}}-{{end}} trong tổng số {{total}} bản sao lưu",
+      "previous": "Trước",
+      "next": "Sau"
     }
   },
   "saveFile": {
     "actions": {
-      "restore": "Khôi Phục",
-      "delete": "Xóa File Save",
-      "openLocation": "Mở Thư Mục Chứa"
+      "restore": "Khôi phục",
+      "delete": "Xóa file save",
+      "openBackupLocation": "Mở thư mục sao lưu",
+      "openOriginalLocation": "Mở thư mục save gốc"
     },
     "info": {
-      "lastModified": "Lần Sửa Cuối",
-      "size": "Kích Thước"
+      "lastModified": "Lần sửa cuối",
+      "size": "Kích thước"
     }
   },
   "deleteGameModal": {
@@ -328,19 +335,20 @@
   },
   "backupSettings": {
     "title": "Cài Đặt Sao Lưu",
-    "autoBackup": "Tự Động Sao Lưu",
-    "interval": "Khoảng Thời Gian",
-    "maxBackups": "Số Lượng Bản Sao Lưu Tối Đa",
-    "compression": "Nén",
+    "autoBackup": "Tự động sao lưu",
+    "interval": "Khoảng thời gian",
+    "maxBackups": "Số lượng sao lưu tối đa",
+    "compression": "Nén tệp tin",
+    "comingSoon": "Sắp ra mắt",
     "intervals": {
       "15min": "15 phút",
       "30min": "30 phút",
       "1hour": "1 giờ"
     },
     "maxBackups_options": {
-      "3saves": "3 bản",
-      "5saves": "5 bản",
-      "10saves": "10 bản"
+      "3saves": "3 bản sao lưu",
+      "5saves": "5 bản sao lưu",
+      "10saves": "10 bản sao lưu"
     }
   },
   "cloudStorage": {

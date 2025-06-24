@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Clock, HardDrive, Trash2, FolderOpen } from "lucide-react";
+import {
+  Clock,
+  HardDrive,
+  Trash2,
+  FolderOpen,
+  FolderInput,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import "../i18n/config";
@@ -12,7 +18,8 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
-  file_path?: string; // Add file path for opening location
+  file_path?: string;
+  origin_path?: string; // Add origin path
 }
 
 interface SaveFileItemProps {
@@ -57,12 +64,22 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     });
   };
 
+  const handleOpenOriginalLocation = async () => {
+    if (!saveFile.origin_path) return;
+    try {
+      // For mock saves, this will open the Steam saves directory
+      await revealItemInDir(saveFile.origin_path);
+    } catch (error) {
+      console.error("Failed to open original save location:", error);
+    }
+  };
+
   const handleOpenLocation = async () => {
     if (!saveFile.file_path) return;
     try {
       await revealItemInDir(saveFile.file_path);
     } catch (error) {
-      console.error("Failed to open file location:", error);
+      console.error("Failed to open backup location:", error);
     }
   };
 
@@ -83,13 +100,24 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
           >
             {t("saveFile.actions.restore")}
           </button>
+          {saveFile.origin_path && (
+            <button
+              onClick={handleOpenOriginalLocation}
+              className={`${
+                isHovered ? "opacity-100" : "opacity-0"
+              } bg-purple-500/20 p-2 rounded hover:bg-purple-500/30 transition-all`}
+              title={t("saveFile.actions.openOriginalLocation")}
+            >
+              <FolderInput className="w-5 h-5 text-purple-400" />
+            </button>
+          )}
           {saveFile.file_path && (
             <button
               onClick={handleOpenLocation}
               className={`${
                 isHovered ? "opacity-100" : "opacity-0"
               } bg-gray-500/20 p-2 rounded hover:bg-gray-500/30 transition-all`}
-              title={t("saveFile.actions.openLocation")}
+              title={t("saveFile.actions.openBackupLocation")}
             >
               <FolderOpen className="w-5 h-5 text-gray-400" />
             </button>

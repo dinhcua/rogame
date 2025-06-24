@@ -1,11 +1,19 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod game_scanner;
+mod save_manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![game_scanner::scan_games])
+        .invoke_handler(tauri::generate_handler![
+            game_scanner::scan_games,
+            save_manager::backup_save,
+            save_manager::restore_save,
+            save_manager::list_saves,
+            save_manager::save_backup_settings,
+            save_manager::load_backup_settings
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

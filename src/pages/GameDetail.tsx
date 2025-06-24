@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
-import StorageInfo from "../components/StorageInfo";
+// import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import { Settings } from "lucide-react";
@@ -29,6 +29,13 @@ interface BackupResponse {
   save_count: number;
 }
 
+interface GameBackupSettings {
+  auto_backup: boolean;
+  backup_interval: string;
+  max_backups: number;
+  compression_enabled: boolean;
+}
+
 const GameDetail: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { id: gameId } = useParams<{ id: string }>();
@@ -43,6 +50,9 @@ const GameDetail: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
   const [isDeletingSave, setIsDeletingSave] = useState(false);
+  const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
 
   // Initialize language from localStorage
   useEffect(() => {
@@ -60,44 +70,50 @@ const GameDetail: React.FC = () => {
   //   { value: "checkpoint", label: "Checkpoint" },
   // ];
 
-  const loadGameDetails = async () => {
-    if (!gameId) return;
+  // Load game details and save files
+  useEffect(() => {
+    const initializeGameData = async () => {
+      if (!gameId) return;
 
-    try {
-      setIsLoading(true);
-      const result = await invoke<Record<string, Game>>("scan_games");
-      const game = result[gameId];
-      if (game) {
-        setGameDetails(game);
-      } else {
-        setError("Game not found");
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Load game details
+        const result = await invoke<Record<string, Game>>("scan_games");
+        const game = result[gameId];
+
+        if (game) {
+          // Load save files
+          const files = await invoke<SaveFile[]>("list_saves", {
+            gameId: game.title,
+          });
+
+          // Update game with correct save count
+          const updatedGame = {
+            ...game,
+            save_count: files.length,
+          };
+
+          setGameDetails(updatedGame);
+          setSaveFiles(files);
+
+          // Update the game in the store
+          await useGameStore.getState().updateGame(updatedGame);
+        } else {
+          setError("Game not found");
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load game details"
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load game details"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const loadSaveFiles = async () => {
-    if (!gameId || !gameDetails) return;
-
-    try {
-      setIsLoading(true);
-      const files = await invoke<SaveFile[]>("list_saves", {
-        gameId: gameDetails.title,
-      });
-      setSaveFiles(files);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load save files"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    initializeGameData();
+  }, [gameId]);
 
   const handleBackup = async () => {
     if (!gameId || !gameDetails) return;
@@ -235,16 +251,65 @@ const GameDetail: React.FC = () => {
     }
   };
 
+  // Load backup settings and setup auto-backup
   useEffect(() => {
-    loadGameDetails();
-  }, [gameId]);
+    const setupAutoBackup = async () => {
+      try {
+        const settings = await invoke<GameBackupSettings>(
+          "load_backup_settings"
+        );
+        if (settings.auto_backup && gameId && gameDetails) {
+          // Convert interval to milliseconds
+          const intervalMs =
+            settings.backup_interval === "15min"
+              ? 15 * 60 * 1000
+              : settings.backup_interval === "30min"
+              ? 30 * 60 * 1000
+              : 60 * 60 * 1000; // 1hour
 
-  // Create a separate effect for loadSaveFiles that depends on gameDetails
-  useEffect(() => {
-    if (gameDetails) {
-      loadSaveFiles();
+          const interval = setInterval(async () => {
+            await handleBackup();
+          }, intervalMs);
+
+          setAutoBackupInterval(interval);
+        }
+      } catch (error) {
+        console.error("Failed to setup auto-backup:", error);
+      }
+    };
+
+    setupAutoBackup();
+
+    // Cleanup interval on unmount
+    return () => {
+      if (autoBackupInterval) {
+        clearInterval(autoBackupInterval);
+      }
+    };
+  }, [gameId, gameDetails]);
+
+  const getLastSaveTime = () => {
+    if (saveFiles.length === 0) {
+      return t("gameDetail.saveDetails.never");
     }
-  }, [gameDetails]);
+
+    // Sort save files by modified time (newest first)
+    const sortedSaves = [...saveFiles].sort(
+      (a, b) =>
+        new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime()
+    );
+
+    // Format the date of the most recent save
+    const lastSave = new Date(sortedSaves[0].modified_at);
+    return lastSave.toLocaleString(i18n.language, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
 
   return (
     <div>
@@ -351,10 +416,7 @@ const GameDetail: React.FC = () => {
                   <h3 className="text-gray-400 mb-2">
                     {t("gameDetail.saveDetails.lastPlayed")}
                   </h3>
-                  <p>
-                    {gameDetails?.last_played ||
-                      t("gameDetail.saveDetails.never")}
-                  </p>
+                  <p>{getLastSaveTime()}</p>
                 </div>
                 <div>
                   <h3 className="text-gray-400 mb-2">
@@ -414,7 +476,7 @@ const GameDetail: React.FC = () => {
           <div className="col-span-4 space-y-8">
             <BackupSettings />
             <CloudStorage />
-            <StorageInfo />
+            {/* <StorageInfo /> */}
           </div>
         </div>
       </div>
