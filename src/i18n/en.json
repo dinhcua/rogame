@@ -215,7 +215,8 @@
   "saveFile": {
     "actions": {
       "restore": "Restore",
-      "delete": "Delete Save File"
+      "delete": "Delete Save File",
+      "openLocation": "Open Location"
     },
     "info": {
       "lastModified": "Last Modified",

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { formatDistanceToNow } from "date-fns";
 import DropdownSelect from "../components/DropdownSelect";
 import { RefreshCw, MoreVertical } from "lucide-react";
 import { Game } from "../types/game";

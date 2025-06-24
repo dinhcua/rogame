@@ -1,7 +1,7 @@
-use std::fs::{self, create_dir_all};
-use std::path::PathBuf;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fs::{self, create_dir_all};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SaveFile {
@@ -12,6 +12,7 @@ pub struct SaveFile {
     pub modified_at: String,
     pub size_bytes: u64,
     pub tags: Vec<String>,
+    pub file_path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,12 +23,12 @@ pub struct SaveFileError {
 #[derive(Debug, Serialize)]
 pub struct BackupResponse {
     pub save_file: SaveFile,
-    pub backup_time: i64,  // Unix timestamp in milliseconds
-    pub save_count: i32,   // Current number of saves
+    pub backup_time: i64, // Unix timestamp in milliseconds
+    pub save_count: i32,  // Current number of saves
 }
 
 impl SaveFile {
-    pub fn new(game_id: String, file_name: String, size_bytes: u64) -> Self {
+    pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String) -> Self {
         let now = Utc::now().to_rfc3339();
         Self {
             id: file_name.clone(),
@@ -37,14 +38,18 @@ impl SaveFile {
             modified_at: now,
             size_bytes,
             tags: Vec::new(),
+            file_path,
         }
     }
 }
 
 #[tauri::command]
 pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, SaveFileError> {
-    println!("Attempting to restore save. Game ID: {}, Save ID: {}", game_id, save_id);
-    
+    println!(
+        "Attempting to restore save. Game ID: {}, Save ID: {}",
+        game_id, save_id
+    );
+
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
 
@@ -63,16 +68,19 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         message: format!("Failed to read save file metadata: {}", e),
     })?;
 
-    println!("Successfully verified save file. Size: {} bytes", metadata.len());
+    println!(
+        "Successfully verified save file. Size: {} bytes",
+        metadata.len()
+    );
 
-    Ok(SaveFile::new(game_id, save_id, metadata.len()))
+    Ok(SaveFile::new(game_id, save_id, metadata.len(), save_path.to_string_lossy().into_owned()))
 }
 
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
-    
+
     // Create game saves directory if it doesn't exist
     create_dir_all(&game_saves_dir).map_err(|e| SaveFileError {
         message: format!("Failed to create saves directory: {}", e),
@@ -94,7 +102,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     })?;
 
     let backup_time = Utc::now().timestamp_millis();
-    
+
     // Count total number of save files
     let save_count = fs::read_dir(&game_saves_dir)
         .map(|entries| {
@@ -104,9 +112,14 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
                 .count() as i32
         })
         .unwrap_or(1); // If we can't read the directory, assume this is the first save
-    
+
     Ok(BackupResponse {
-        save_file: SaveFile::new(game_id, save_file_name, metadata.len()),
+        save_file: SaveFile::new(
+            game_id,
+            save_file_name,
+            metadata.len(),
+            save_path.to_string_lossy().into_owned(),
+        ),
         backup_time,
         save_count,
     })
@@ -128,17 +141,19 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
         let entry = entry.map_err(|e| SaveFileError {
             message: format!("Failed to read directory entry: {}", e),
         })?;
-        
+
         let metadata = entry.metadata().map_err(|e| SaveFileError {
             message: format!("Failed to get file metadata: {}", e),
         })?;
 
         if metadata.is_file() {
             let file_name = entry.file_name().to_string_lossy().to_string();
+            let file_path = entry.path().to_string_lossy().into_owned();
             saves.push(SaveFile::new(
                 game_id.clone(),
                 file_name,
                 metadata.len(),
+                file_path,
             ));
         }
     }
@@ -147,10 +162,9 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
 }
 
 fn get_saves_directory() -> Result<PathBuf, SaveFileError> {
-    let app_data_dir = dirs::data_local_dir()
-        .ok_or_else(|| SaveFileError {
-            message: "Failed to get app data directory".to_string(),
-        })?;
-    
+    let app_data_dir = dirs::data_local_dir().ok_or_else(|| SaveFileError {
+        message: "Failed to get app data directory".to_string(),
+    })?;
+
     Ok(app_data_dir.join("rogame").join("saves"))
-} 
+}

@@ -1,8 +1,8 @@
-use serde::{Serialize, Deserialize};
-use std::{collections::HashMap, path::PathBuf, fs};
-use walkdir::WalkDir;
-use glob::glob;
 use chrono::Local;
+use glob::glob;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs, path::PathBuf};
+use walkdir::WalkDir;
 
 #[derive(Debug, Serialize)]
 pub struct GameInfo {
@@ -42,14 +42,14 @@ struct GameSaveInfo {
 
 // Common game installation directories
 const STEAM_PATHS: &[&str] = &[
-    "~/Library/Application Support/Steam/steamapps/common",  // macOS
+    "~/Library/Application Support/Steam/steamapps/common", // macOS
     "~/.steam/steam/steamapps/common",                      // Linux
     "C:\\Program Files (x86)\\Steam\\steamapps\\common",    // Windows
 ];
 
 const EPIC_PATHS: &[&str] = &[
-    "~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests",  // macOS
-    "~/.config/Epic/EpicGamesLauncher/Data/Manifests",                      // Linux
+    "~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests", // macOS
+    "~/.config/Epic/EpicGamesLauncher/Data/Manifests",                     // Linux
     "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests",           // Windows
 ];
 
@@ -89,7 +89,7 @@ fn format_size(size: u64) -> String {
 
 fn scan_save_locations(game_title: &str, save_config: &SaveGameConfig) -> Vec<SaveLocation> {
     let mut save_locations = Vec::new();
-    
+
     if let Some(game_info) = save_config.games.get(game_title) {
         for location in &game_info.locations {
             let expanded_path = expand_tilde(location);
@@ -162,15 +162,17 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                             let size = get_directory_size(&game_path);
                             let save_locations = scan_save_locations(&game_name, &save_config);
                             let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
-                            
+
                             // Get cover image and category from config if available, otherwise use defaults
-                            let (cover_image, category) = if let Some(game_info) = save_config.games.get(&game_name) {
+                            let (cover_image, category) = if let Some(game_info) =
+                                save_config.games.get(&game_name)
+                            {
                                 (game_info.cover_image.clone(), game_info.category.clone())
                             } else {
                                 ("https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg".to_string(), 
                                  "Unknown".to_string())
                             };
-                            
+
                             game_id += 1;
                             games.insert(
                                 format!("game{}", game_id),
@@ -179,14 +181,23 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                     title: game_name,
                                     cover_image,
                                     platform: "Steam".to_string(),
-                                    last_played: save_locations.first().map_or("Never".to_string(), |loc| loc.last_modified.clone()),
+                                    last_played: save_locations
+                                        .first()
+                                        .map_or("Never".to_string(), |loc| {
+                                            loc.last_modified.clone()
+                                        }),
                                     save_count,
                                     size: format_size(size),
-                                    status: if save_count > 0 { "has_saves" } else { "no_saves" }.to_string(),
+                                    status: if save_count > 0 {
+                                        "has_saves"
+                                    } else {
+                                        "no_saves"
+                                    }
+                                    .to_string(),
                                     category,
                                     is_favorite: false,
                                     save_locations,
-                                }
+                                },
                             );
                         }
                     }
@@ -201,24 +212,34 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
         if path.exists() {
             if let Ok(entries) = fs::read_dir(&path) {
                 for entry in entries.filter_map(|e| e.ok()) {
-                    if entry.path().is_file() && entry.path().extension().map_or(false, |ext| ext == "item") {
+                    if entry.path().is_file()
+                        && entry.path().extension().map_or(false, |ext| ext == "item")
+                    {
                         if let Ok(content) = fs::read_to_string(entry.path()) {
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                                 if let Some(display_name) = json["DisplayName"].as_str() {
-                                    if let Some(install_location) = json["InstallLocation"].as_str() {
+                                    if let Some(install_location) = json["InstallLocation"].as_str()
+                                    {
                                         let game_path = PathBuf::from(install_location);
                                         let size = get_directory_size(&game_path);
-                                        let save_locations = scan_save_locations(display_name, &save_config);
-                                        let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
-                                        
+                                        let save_locations =
+                                            scan_save_locations(display_name, &save_config);
+                                        let save_count =
+                                            save_locations.iter().map(|loc| loc.file_count).sum();
+
                                         // Get cover image and category from config if available, otherwise use defaults
-                                        let (cover_image, category) = if let Some(game_info) = save_config.games.get(display_name) {
-                                            (game_info.cover_image.clone(), game_info.category.clone())
+                                        let (cover_image, category) = if let Some(game_info) =
+                                            save_config.games.get(display_name)
+                                        {
+                                            (
+                                                game_info.cover_image.clone(),
+                                                game_info.category.clone(),
+                                            )
                                         } else {
                                             ("https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg".to_string(), 
                                              "Unknown".to_string())
                                         };
-                                        
+
                                         game_id += 1;
                                         games.insert(
                                             format!("game{}", game_id),
@@ -227,14 +248,23 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                                 title: display_name.to_string(),
                                                 cover_image,
                                                 platform: "Epic Games".to_string(),
-                                                last_played: save_locations.first().map_or("Never".to_string(), |loc| loc.last_modified.clone()),
+                                                last_played: save_locations
+                                                    .first()
+                                                    .map_or("Never".to_string(), |loc| {
+                                                        loc.last_modified.clone()
+                                                    }),
                                                 save_count,
                                                 size: format_size(size),
-                                                status: if save_count > 0 { "has_saves" } else { "no_saves" }.to_string(),
+                                                status: if save_count > 0 {
+                                                    "has_saves"
+                                                } else {
+                                                    "no_saves"
+                                                }
+                                                .to_string(),
                                                 category,
                                                 is_favorite: false,
                                                 save_locations,
-                                            }
+                                            },
                                         );
                                     }
                                 }
@@ -267,7 +297,9 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
         Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
     };
 
-    let game_info = save_config.games.iter()
+    let game_info = save_config
+        .games
+        .iter()
         .find(|(name, _)| name.contains(&game_id))
         .map(|(_, info)| info)
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
@@ -336,13 +368,15 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
         Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
     };
 
-    let game_info = save_config.games.iter()
+    let game_info = save_config
+        .games
+        .iter()
         .find(|(name, _)| name.contains(game_id))
         .map(|(_, info)| info)
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
     let mut save_files = Vec::new();
-    
+
     for location in &game_info.locations {
         let expanded_path = expand_tilde(location);
         if expanded_path.exists() {
@@ -366,7 +400,7 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
 pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     println!("Attempting to delete saves for game: {}", game_id);
     let mut errors = Vec::new();
-    
+
     // 1. Delete from original save locations
     let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
     let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
@@ -375,7 +409,9 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     };
 
     // Find game info by exact title match
-    let game_info = save_config.games.get(&game_id)
+    let game_info = save_config
+        .games
+        .get(&game_id)
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
     println!("Found game info: {:?}", game_info);
@@ -384,17 +420,18 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     for location in &game_info.locations {
         let expanded_path = expand_tilde(location);
         println!("Checking location: {:?}", expanded_path);
-        
+
         if expanded_path.exists() {
             for pattern in &game_info.patterns {
                 let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
                 println!("Checking pattern: {}", glob_pattern);
-                
+
                 if let Ok(entries) = glob(&glob_pattern) {
                     for entry in entries.filter_map(Result::ok) {
                         println!("Deleting file: {:?}", entry);
                         if let Err(e) = fs::remove_file(&entry) {
-                            let error_msg = format!("Failed to delete save file {}: {}", entry.display(), e);
+                            let error_msg =
+                                format!("Failed to delete save file {}: {}", entry.display(), e);
                             println!("Error: {}", error_msg);
                             errors.push(error_msg);
                         } else {
@@ -411,13 +448,24 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
                         if dir.next().is_none() {
                             // Directory is empty
                             if let Err(e) = fs::remove_dir(&expanded_path) {
-                                println!("Failed to remove empty directory {}: {}", expanded_path.display(), e);
+                                println!(
+                                    "Failed to remove empty directory {}: {}",
+                                    expanded_path.display(),
+                                    e
+                                );
                             } else {
-                                println!("Successfully removed empty directory: {:?}", expanded_path);
+                                println!(
+                                    "Successfully removed empty directory: {:?}",
+                                    expanded_path
+                                );
                             }
                         }
-                    },
-                    Err(e) => println!("Failed to read directory {}: {}", expanded_path.display(), e),
+                    }
+                    Err(e) => println!(
+                        "Failed to read directory {}: {}",
+                        expanded_path.display(),
+                        e
+                    ),
                 }
             }
         }
@@ -426,7 +474,7 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     // 2. Delete from backup directory
     let backup_dir = get_backup_dir().join(&game_id);
     println!("Checking backup directory: {:?}", backup_dir);
-    
+
     if backup_dir.exists() {
         if let Err(e) = fs::remove_dir_all(&backup_dir) {
             let error_msg = format!("Failed to delete backup directory: {}", e);
@@ -443,4 +491,4 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
         println!("Successfully deleted all save files for game: {}", game_id);
         Ok(())
     }
-} 
+}

@@ -268,7 +268,8 @@
   "saveFile": {
     "actions": {
       "restore": "Khôi Phục",
-      "delete": "Xóa File Save"
+      "delete": "Xóa File Save",
+      "openLocation": "Mở Thư Mục Chứa"
     },
     "info": {
       "lastModified": "Lần Sửa Cuối",
