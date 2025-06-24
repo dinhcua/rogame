@@ -99,11 +99,9 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
-
-    println!("Game saves directory: {:?}", game_saves_dir);
-
     let save_path = game_saves_dir.join(&save_id);
-    println!("Save file path: {:?}", save_path);
+
+    println!("Backup file path: {:?}", save_path);
 
     if !save_path.exists() {
         return Err(SaveFileError {
@@ -111,16 +109,48 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         });
     }
 
+    // Get the origin path (where to restore the save)
+    let origin_path = if let Some(home) = dirs::home_dir() {
+        let path = home
+            .join("Library/Application Support/Steam/steamapps/common")
+            .join(&game_id)
+            .join("saves")
+            .join("save1.sav"); // For test purposes, always restore to save1.sav
+        
+        // Create the directory if it doesn't exist
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| SaveFileError {
+                message: format!("Failed to create origin directory: {}", e),
+            })?;
+        }
+        
+        path
+    } else {
+        return Err(SaveFileError {
+            message: "Failed to get home directory".to_string(),
+        });
+    };
+
+    // Copy the backup file to the original location
+    fs::copy(&save_path, &origin_path).map_err(|e| SaveFileError {
+        message: format!("Failed to restore save file: {}", e),
+    })?;
+
     let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
         message: format!("Failed to read save file metadata: {}", e),
     })?;
 
     println!(
-        "Successfully verified save file. Size: {} bytes",
-        metadata.len()
+        "Successfully restored save file from {:?} to {:?}",
+        save_path, origin_path
     );
 
-    Ok(SaveFile::new(game_id, save_id, metadata.len(), save_path.to_string_lossy().into_owned()))
+    Ok(SaveFile::new(
+        game_id,
+        save_id,
+        metadata.len(),
+        save_path.to_string_lossy().into_owned(),
+    ))
 }
 
 #[tauri::command]
@@ -136,16 +166,44 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         message: format!("Failed to create saves directory: {}", e),
     })?;
 
+    // Get the origin path (mock saves directory)
+    let origin_path = if let Some(home) = dirs::home_dir() {
+        home.join("Library/Application Support/Steam/steamapps/common")
+            .join(&game_id)
+            .join("saves")
+    } else {
+        return Err(SaveFileError {
+            message: "Failed to get home directory".to_string(),
+        });
+    };
+
     // Create a new save file with timestamp
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
     let save_file_name = format!("save_{}.sav", timestamp);
     let save_path = game_saves_dir.join(&save_file_name);
 
-    // TODO: Implement actual save file copying logic here
-    // For now, we'll create an empty file
-    fs::write(&save_path, "").map_err(|e| SaveFileError {
-        message: format!("Failed to create save file: {}", e),
-    })?;
+    // Find and copy the first available save file from origin
+    let mut found_save = false;
+    if let Ok(entries) = fs::read_dir(&origin_path) {
+        for entry in entries.filter_map(Result::ok) {
+            if entry.path().extension().map_or(false, |ext| ext == "sav") {
+                // Copy the first .sav file we find
+                if let Err(e) = fs::copy(&entry.path(), &save_path) {
+                    return Err(SaveFileError {
+                        message: format!("Failed to copy save file: {}", e),
+                    });
+                }
+                found_save = true;
+                break;
+            }
+        }
+    }
+
+    if !found_save {
+        return Err(SaveFileError {
+            message: "No save files found in origin directory".to_string(),
+        });
+    }
 
     let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
         message: format!("Failed to get file metadata: {}", e),
