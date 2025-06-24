@@ -15,8 +15,6 @@ import {
   Star,
   Plus,
   CheckCircle2,
-  LayoutGrid,
-  Layout,
   ChevronDown,
   File,
   Scale,
@@ -82,7 +80,6 @@ const GameUI = () => {
   const [epicGamesCount, setEpicGamesCount] = useState(0);
   const [showFoundGames, setShowFoundGames] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
@@ -242,7 +239,7 @@ const GameUI = () => {
                 onClick={handleScan}
                 className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
               >
-                <FileText className="w-5 h-5" />
+                <Search className="w-5 h-5" />
                 <span>{t("gameUI.scanner.scanButton")}</span>
               </button>
             </div>
@@ -312,42 +309,47 @@ const GameUI = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {foundGames.map((game) => (
-                  <div
-                    key={game.id}
-                    className="bg-black/20 rounded-lg p-4 flex items-center space-x-3"
-                  >
-                    <img
-                      src={game.cover_image}
-                      alt={game.title}
-                      className="w-12 h-12 rounded object-cover"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-medium">{game.title}</h4>
-                      <p className="text-sm text-gray-400">{game.platform}</p>
-                    </div>
-                    <button
-                      onClick={() => addGameToLibrary(game.id)}
-                      disabled={game.status === "added"}
-                      className={`${
-                        game.status === "added"
-                          ? "bg-green-500/20"
-                          : "bg-rog-blue/20 hover:bg-rog-blue/30"
-                      } p-2 rounded-lg transition-colors group relative`}
+                {foundGames.map((game) => {
+                  const isInLibrary = games.some((g) => g.id === game.id);
+                  return (
+                    <div
+                      key={game.id}
+                      className="bg-black/20 rounded-lg p-4 flex items-center space-x-3"
                     >
-                      {game.status === "added" ? (
-                        <Check className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <Plus className="w-5 h-5 text-rog-blue group-hover:scale-110 transition-transform" />
-                      )}
-                      <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {game.status === "added"
-                          ? t("gameUI.foundGames.added")
-                          : t("gameUI.foundGames.addToLibrary")}
-                      </span>
-                    </button>
-                  </div>
-                ))}
+                      <img
+                        src={game.cover_image}
+                        alt={game.title}
+                        className="w-12 h-12 rounded object-cover"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-medium">{game.title}</h4>
+                        <p className="text-sm text-gray-400">{game.platform}</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          !isInLibrary && addGameToLibrary(game.id)
+                        }
+                        className={`${
+                          isInLibrary
+                            ? "bg-green-500/20 text-green-500 cursor-default"
+                            : "bg-rog-blue/20 hover:bg-rog-blue/30 text-rog-blue"
+                        } p-2 rounded-lg transition-colors group relative`}
+                        disabled={isInLibrary}
+                      >
+                        {isInLibrary ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        )}
+                        <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {isInLibrary
+                            ? t("gameUI.foundGames.added")
+                            : t("gameUI.foundGames.addToLibrary")}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
