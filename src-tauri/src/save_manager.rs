@@ -19,6 +19,13 @@ pub struct SaveFileError {
     pub message: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct BackupResponse {
+    pub save_file: SaveFile,
+    pub backup_time: i64,  // Unix timestamp in milliseconds
+    pub save_count: i32,   // Current number of saves
+}
+
 impl SaveFile {
     pub fn new(game_id: String, file_name: String, size_bytes: u64) -> Self {
         let now = Utc::now().to_rfc3339();
@@ -62,7 +69,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 }
 
 #[tauri::command]
-pub async fn backup_save(game_id: String) -> Result<SaveFile, SaveFileError> {
+pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
     
@@ -86,7 +93,23 @@ pub async fn backup_save(game_id: String) -> Result<SaveFile, SaveFileError> {
         message: format!("Failed to get file metadata: {}", e),
     })?;
 
-    Ok(SaveFile::new(game_id, save_file_name, metadata.len()))
+    let backup_time = Utc::now().timestamp_millis();
+    
+    // Count total number of save files
+    let save_count = fs::read_dir(&game_saves_dir)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+                .count() as i32
+        })
+        .unwrap_or(1); // If we can't read the directory, assume this is the first save
+    
+    Ok(BackupResponse {
+        save_file: SaveFile::new(game_id, save_file_name, metadata.len()),
+        backup_time,
+        save_count,
+    })
 }
 
 #[tauri::command]

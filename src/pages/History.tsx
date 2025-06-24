@@ -57,7 +57,7 @@ const BackupCard: React.FC<{
   };
 
   const formatFileSize = (bytes: number) => {
-    const units = ["B", "KB", "MB", "GB"];
+    const units = ["bytes", "kb", "mb", "gb"];
     let size = bytes;
     let unitIndex = 0;
 
@@ -66,7 +66,42 @@ const BackupCard: React.FC<{
       unitIndex++;
     }
 
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
+    return t(`history.fileSize.${units[unitIndex]}`, {
+      size: size.toFixed(1),
+    });
+  };
+
+  const formatTimeAgo = (date: string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diffInMinutes = Math.floor(
+      (now.getTime() - then.getTime()) / (1000 * 60)
+    );
+
+    if (diffInMinutes < 1) {
+      return t("history.backup.timeAgo.lessThanAMinute");
+    } else if (diffInMinutes < 60) {
+      return t("history.backup.timeAgo.minutes", { count: diffInMinutes });
+    } else if (diffInMinutes < 1440) {
+      // less than 24 hours
+      return t("history.backup.timeAgo.hours", {
+        count: Math.floor(diffInMinutes / 60),
+      });
+    } else if (diffInMinutes < 10080) {
+      // less than 7 days
+      return t("history.backup.timeAgo.days", {
+        count: Math.floor(diffInMinutes / 1440),
+      });
+    } else if (diffInMinutes < 43200) {
+      // less than 30 days
+      return t("history.backup.timeAgo.weeks", {
+        count: Math.floor(diffInMinutes / 10080),
+      });
+    } else {
+      return t("history.backup.timeAgo.months", {
+        count: Math.floor(diffInMinutes / 43200),
+      });
+    }
   };
 
   return (
@@ -84,16 +119,15 @@ const BackupCard: React.FC<{
             </h3>
             <p className="text-gray-400">
               {t("history.backup.created", {
-                time: formatDistanceToNow(
-                  new Date(backup.save_file.created_at)
-                ),
+                time: formatTimeAgo(backup.save_file.created_at),
               })}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {t("history.backup.backupFor", { game: backup.game.title })}
             </p>
             <div className="flex items-center space-x-4 mt-2">
               <span className="text-sm text-gray-400">
-                {t("history.backup.size", {
-                  size: formatFileSize(backup.save_file.size_bytes),
-                })}
+                {formatFileSize(backup.save_file.size_bytes)}
               </span>
               <span className="text-sm text-gray-400">•</span>
               <span
@@ -128,7 +162,6 @@ const BackupCard: React.FC<{
             </span>
           ))}
         </div>
-        {backup.description}
       </div>
     </div>
   );

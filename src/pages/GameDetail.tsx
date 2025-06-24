@@ -23,6 +23,12 @@ interface SaveFile {
   tags: string[];
 }
 
+interface BackupResponse {
+  save_file: SaveFile;
+  backup_time: number;
+  save_count: number;
+}
+
 const GameDetail: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { id: gameId } = useParams<{ id: string }>();
@@ -99,10 +105,32 @@ const GameDetail: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const newSave = await invoke<SaveFile>("backup_save", {
+      const response = await invoke<BackupResponse>("backup_save", {
         gameId: gameDetails.title,
       });
-      setSaveFiles((prev) => [...prev, newSave]);
+
+      // Update save files list
+      setSaveFiles((prev) => [...prev, response.save_file]);
+
+      // Update game details with new backup time and save count from response
+      setGameDetails((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          last_backup_time: response.backup_time,
+          save_count: response.save_count,
+        };
+      });
+
+      // Update the game in the store
+      if (gameDetails) {
+        const updatedGame = {
+          ...gameDetails,
+          last_backup_time: response.backup_time,
+          save_count: response.save_count,
+        };
+        await useGameStore.getState().updateGame(updatedGame);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to backup save file"

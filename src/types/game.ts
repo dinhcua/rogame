@@ -4,6 +4,7 @@ export interface Game {
   cover_image: string;
   platform: string;
   last_played: string;
+  last_backup_time: number | null; // Unix timestamp in milliseconds
   save_count: number;
   size: string;
   status: "added" | "synced" | "syncing" | "not_synced";

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Game } from "../types/game";
+import { formatBackupTime } from "../utils/time";
 import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
@@ -483,7 +484,9 @@ const GameUI = () => {
                     </h3>
                     <div className="flex items-center space-x-1 text-gray-400">
                       <Clock className="w-4 h-4" />
-                      <span className="text-sm">{game.last_played}</span>
+                      <span className="text-sm">
+                        {formatBackupTime(game.last_backup_time, t)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 mb-3">
@@ -502,10 +505,10 @@ const GameUI = () => {
                         {t("gameUI.saveCount", { count: game.save_count })}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <Scale className="w-5 h-5 text-gray-400" />
                       <span className="text-sm">{game.size}</span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </a>
