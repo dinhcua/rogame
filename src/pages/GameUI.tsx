@@ -4,6 +4,7 @@ import { Game } from "../types/game";
 import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
+import PlatformIcon from "../components/PlatformIcon";
 import { invoke } from "@tauri-apps/api/core";
 import useGameStore from "../store/gameStore";
 import {
@@ -28,19 +29,22 @@ import {
 } from "lucide-react";
 import "../i18n/config";
 
+// Categories for filtering with their corresponding internal values
+const CATEGORY_MAPPING = {
+  "gameUI.categories.allGames": "all",
+  "gameUI.categories.recentlyPlayed": "recent",
+  "gameUI.categories.favorites": "favorites",
+  "gameUI.categories.actionRPG": "Action RPG",
+  "gameUI.categories.rpg": "RPG",
+  "gameUI.categories.strategy": "Strategy",
+  "gameUI.categories.action": "Action",
+  "gameUI.categories.adventure": "Adventure",
+  "gameUI.categories.jrpg": "JRPG",
+  "gameUI.categories.survivalHorror": "Survival Horror",
+} as const;
+
 // Categories for filtering
-const gameCategories = [
-  "gameUI.categories.allGames",
-  "gameUI.categories.recentlyPlayed",
-  "gameUI.categories.favorites",
-  "gameUI.categories.actionRPG",
-  "gameUI.categories.rpg",
-  "gameUI.categories.strategy",
-  "gameUI.categories.action",
-  "gameUI.categories.adventure",
-  "gameUI.categories.jrpg",
-  "gameUI.categories.survivalHorror",
-];
+const gameCategories = Object.keys(CATEGORY_MAPPING);
 
 // Platform options
 const getPlatformOptions = (t: any) => [
@@ -69,6 +73,7 @@ const GameUI = () => {
     addFoundGameToLibrary,
     loadGames,
     deleteGame,
+    toggleFavorite,
   } = useGameStore();
 
   const [showScanProgress, setShowScanProgress] = useState(false);
@@ -87,7 +92,9 @@ const GameUI = () => {
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("All Platforms");
-  const [selectedCategory, setSelectedCategory] = useState("All Games");
+  const [selectedCategory, setSelectedCategory] = useState(
+    "gameUI.categories.allGames"
+  );
   const [sortBy, setSortBy] = useState("name");
   const [showMoreCategories, setShowMoreCategories] = useState(false);
 
@@ -103,12 +110,18 @@ const GameUI = () => {
       const matchesPlatform =
         selectedPlatform === "All Platforms" ||
         game.platform === selectedPlatform;
+
+      // Get the internal category value
+      const selectedInternalCategory =
+        CATEGORY_MAPPING[selectedCategory as keyof typeof CATEGORY_MAPPING];
+
+      // Updated category filtering logic using internal values
       const matchesCategory =
-        selectedCategory === "All Games" ||
-        (selectedCategory === "Recently Played" &&
+        selectedInternalCategory === "all" ||
+        (selectedInternalCategory === "recent" &&
           game.last_played !== "Just added") ||
-        (selectedCategory === "Favorites" && game.is_favorite) ||
-        game.category === selectedCategory;
+        (selectedInternalCategory === "favorites" && game.is_favorite) ||
+        game.category === selectedInternalCategory;
 
       return matchesSearch && matchesPlatform && matchesCategory;
     })
@@ -371,7 +384,7 @@ const GameUI = () => {
         </div>
 
         {/* Game Categories */}
-        <div className="flex items-center space-x-4 mb-8 overflow-x-auto pb-2">
+        <div className="flex flex-wrap gap-4 mb-8">
           {gameCategories
             .slice(0, showMoreCategories ? undefined : 6)
             .map((category) => (
@@ -410,19 +423,6 @@ const GameUI = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredGames.map((game) => (
             <div key={game.id} className="relative group">
-              <div className="absolute top-3 right-3 z-10 flex space-x-2">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setGameToDelete(game);
-                    setShowDeleteModal(true);
-                  }}
-                  className="bg-black/50 p-1.5 rounded-lg hover:bg-red-500/70 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
               <a
                 href={`/game/${game.id}`}
                 className="block bg-game-card h-[320px] rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
@@ -433,7 +433,7 @@ const GameUI = () => {
                     alt={game.title}
                     className="w-full h-48 object-cover"
                   />
-                  <div className="absolute top-3 right-3 flex space-x-2">
+                  <div className="absolute top-3 right-3 flex items-center space-x-2">
                     <span
                       className={`${
                         game.status === "synced"
@@ -449,11 +449,28 @@ const GameUI = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // TODO: Add favorite functionality
+                        toggleFavorite(game.id).catch(console.error);
                       }}
-                      className="bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors"
+                      className={`bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors ${
+                        game.is_favorite ? "text-yellow-500" : "text-white"
+                      }`}
                     >
-                      <Star className="w-5 h-5" />
+                      <Star
+                        className={`w-5 h-5 ${
+                          game.is_favorite ? "fill-current" : ""
+                        }`}
+                      />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setGameToDelete(game);
+                        setShowDeleteModal(true);
+                      }}
+                      className="bg-black/50 p-1.5 rounded-lg hover:bg-red-500/70 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -468,10 +485,9 @@ const GameUI = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 mb-3">
-                    <img
-                      src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/steamworks_logo.png"
-                      alt={game.platform}
-                      className="w-5 h-5"
+                    <PlatformIcon
+                      platform={game.platform}
+                      className="w-5 h-5 brightness-0 invert opacity-70"
                     />
                     <span className="text-sm text-gray-400">
                       {game.platform}

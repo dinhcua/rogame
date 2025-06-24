@@ -36,6 +36,7 @@ interface GameState {
     gameTitle: string,
     includeSaveFiles: boolean
   ) => Promise<void>;
+  toggleFavorite: (gameId: string) => Promise<void>;
 }
 
 // Create the store
@@ -139,6 +140,19 @@ const useGameStore = create<GameState>((set, get) => ({
     } catch (error) {
       console.error("Failed to delete game:", error);
       throw error; // Re-throw the error to be handled by the UI
+    }
+  },
+
+  toggleFavorite: async (gameId) => {
+    try {
+      const game = get().games.find((g) => g.id === gameId);
+      if (!game) return;
+
+      const updatedGame = { ...game, is_favorite: !game.is_favorite };
+      await get().updateGame(updatedGame);
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+      throw error;
     }
   },
 }));
