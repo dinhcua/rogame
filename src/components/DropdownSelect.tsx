@@ -16,6 +16,7 @@ interface DropdownSelectProps {
   className?: string;
   icon?: React.ReactNode;
   isSearchable?: boolean;
+  disabled?: boolean;
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({
@@ -26,6 +27,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
   className = "",
   icon,
   isSearchable = false,
+  disabled = false,
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +68,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white/10 rounded-lg px-4 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue flex items-center justify-between"
+        className={`w-full bg-white/10 rounded-lg px-4 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue flex items-center justify-between ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+        disabled={disabled}
       >
         <div className="flex items-center space-x-2">
           {icon && <span className="text-gray-400">{icon}</span>}

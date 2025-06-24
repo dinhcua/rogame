@@ -1,8 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import DropdownSelect from "./DropdownSelect";
-import { Cloud } from "lucide-react";
 import "../i18n/config";
+import PlatformIcon from "./PlatformIcon";
+
+// Import platform icons
+// import googleDriveIcon from "../assets/platforms/google_drive.svg";
+// import dropboxIcon from "../assets/platforms/dropbox.svg";
+// import onedriveIcon from "../assets/platforms/onedrive.svg";
 
 const CloudStorage: React.FC = () => {
   const { t } = useTranslation();
@@ -17,28 +22,38 @@ const CloudStorage: React.FC = () => {
 
   return (
     <div className="bg-game-card rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-6">{t("cloudStorage.title")}</h2>
-      <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold">{t("cloudStorage.title")}</h2>
+        <span className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded">
+          Coming Soon
+        </span>
+      </div>
+
+      <div className="space-y-6 opacity-50">
         {/* Google Drive */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Cloud className="w-6 h-6 text-[#4285F4]" />
+            <PlatformIcon platform="google_drive" />
             <div>
               <p className="font-medium">Google Drive</p>
               <p className="text-sm text-gray-400">
-                {t("cloudStorage.connectedAs", { email: "john@gmail.com" })}
+                {t("cloudStorage.status.notConnected")}
               </p>
             </div>
           </div>
-          <button className="text-red-500 hover:text-red-400 text-sm">
-            {t("cloudStorage.actions.disconnect")}
+          <button
+            disabled
+            className="text-rog-blue hover:text-blue-400 text-sm cursor-not-allowed"
+          >
+            {t("cloudStorage.actions.connect")}
           </button>
         </div>
 
         {/* Dropbox */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Cloud className="w-6 h-6 text-[#0061FF]" />
+            {/* <img src={dropboxIcon} alt="Dropbox" className="w-6 h-6" /> */}
+            <PlatformIcon platform="dropbox" />
             <div>
               <p className="font-medium">Dropbox</p>
               <p className="text-sm text-gray-400">
@@ -46,7 +61,10 @@ const CloudStorage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button className="text-rog-blue hover:text-blue-400 text-sm">
+          <button
+            disabled
+            className="text-rog-blue hover:text-blue-400 text-sm cursor-not-allowed"
+          >
             {t("cloudStorage.actions.connect")}
           </button>
         </div>
@@ -54,7 +72,8 @@ const CloudStorage: React.FC = () => {
         {/* OneDrive */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Cloud className="w-6 h-6 text-[#0078D4]" />
+            {/* <img src={onedriveIcon} alt="OneDrive" className="w-6 h-6" /> */}
+            <PlatformIcon platform="onedrive" />
             <div>
               <p className="font-medium">OneDrive</p>
               <p className="text-sm text-gray-400">
@@ -62,7 +81,10 @@ const CloudStorage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button className="text-rog-blue hover:text-blue-400 text-sm">
+          <button
+            disabled
+            className="text-rog-blue hover:text-blue-400 text-sm cursor-not-allowed"
+          >
             {t("cloudStorage.actions.connect")}
           </button>
         </div>
@@ -77,14 +99,14 @@ const CloudStorage: React.FC = () => {
               <span className="text-gray-400">
                 {t("cloudStorage.autoSync.enabled")}
               </span>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex items-center cursor-not-allowed">
                 <input
                   type="checkbox"
                   value=""
                   className="sr-only peer"
-                  defaultChecked
+                  disabled
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-700 rounded-full peer dark:bg-gray-700 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600"></div>
               </label>
             </div>
             <div className="flex items-center justify-between">
@@ -96,20 +118,21 @@ const CloudStorage: React.FC = () => {
                 value={syncFrequency}
                 onChange={setSyncFrequency}
                 className="w-48"
+                disabled
               />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400">
                 {t("cloudStorage.autoSync.keepLocal")}
               </span>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex items-center cursor-not-allowed">
                 <input
                   type="checkbox"
                   value=""
                   className="sr-only peer"
-                  defaultChecked
+                  disabled
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-700 rounded-full peer dark:bg-gray-700 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600"></div>
               </label>
             </div>
           </div>
