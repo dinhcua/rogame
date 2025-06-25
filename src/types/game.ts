@@ -4,18 +4,12 @@ export interface Game {
   cover_image: string;
   platform: string;
   last_played: string;
-  last_backup_time: number | null; // Unix timestamp in milliseconds
   save_count: number;
   size: string;
-  status: "added" | "synced" | "syncing" | "not_synced";
+  status: "has_saves" | "no_saves" | "added" | "synced" | "syncing";
   category: string;
   is_favorite: boolean;
-  save_locations?: SaveLocation[];
-}
-
-export interface SaveLocation {
-  path: string;
-  file_count: number;
-  total_size: string;
-  last_modified: string;
+  save_location: string;
+  backup_location?: string; // Optional backup location
+  last_backup_time?: number | null; // Optional since not all games have backups
 }

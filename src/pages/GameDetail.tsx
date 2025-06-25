@@ -79,9 +79,8 @@ const GameDetail: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // Load game details
-        const result = await invoke<Record<string, Game>>("scan_games");
-        const game = result[gameId];
+        // Load game details from database
+        const game = await invoke<Game>("get_game_detail", { gameId });
 
         if (game) {
           // Load save files

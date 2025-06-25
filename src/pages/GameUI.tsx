@@ -100,7 +100,7 @@ const GameUI = () => {
 
   // Apply filters and sort to games
   const filteredGames = games
-    .filter((game: Game) => {
+    .filter((game) => {
       const matchesSearch = game.title
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
@@ -122,7 +122,7 @@ const GameUI = () => {
 
       return matchesSearch && matchesPlatform && matchesCategory;
     })
-    .sort((a: Game, b: Game) => {
+    .sort((a, b) => {
       switch (sortBy) {
         case "name":
           return a.title.localeCompare(b.title);
@@ -146,10 +146,13 @@ const GameUI = () => {
 
       // Update the game with the actual backup count
       if (game.save_count !== saveFiles.length) {
-        updateGame({
+        const updatedGame: Game = {
           ...game,
           save_count: saveFiles.length,
-        });
+          status: saveFiles.length > 0 ? "has_saves" : "no_saves",
+          save_location: game.save_location,
+        };
+        updateGame(updatedGame);
       }
     } catch (error) {
       console.error(`Failed to fetch backup count for ${game.title}:`, error);
@@ -192,6 +195,7 @@ const GameUI = () => {
       });
     }, 500);
 
+    // Use the new scan_installed_games command
     invoke<Record<string, Game>>("scan_games")
       .then((result) => {
         const games = Object.values(result);
@@ -222,8 +226,20 @@ const GameUI = () => {
       });
   };
 
-  const addGameToLibrary = async (gameId: string) => {
-    await addFoundGameToLibrary(gameId);
+  const addGameToLibrary = async (game: Game) => {
+    try {
+      // Call the import_game command with the full game object
+      // const importedGame = await invoke<Game>("import_game", { game });
+
+      // Add the imported game to the local state
+      await addFoundGameToLibrary(game);
+
+      // Show success notification (you might want to add a notification system)
+      // console.log("Game imported successfully:", importedGame);
+    } catch (error) {
+      console.error("Failed to import game:", error);
+      // Show error notification
+    }
   };
 
   const handleDeleteGame = async () => {
@@ -325,7 +341,7 @@ const GameUI = () => {
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() =>
-                      foundGames.forEach((game) => addGameToLibrary(game.id))
+                      foundGames.forEach((game) => addGameToLibrary(game))
                     }
                     className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
                   >
@@ -358,9 +374,7 @@ const GameUI = () => {
                         <p className="text-sm text-gray-400">{game.platform}</p>
                       </div>
                       <button
-                        onClick={() =>
-                          !isInLibrary && addGameToLibrary(game.id)
-                        }
+                        onClick={() => !isInLibrary && addGameToLibrary(game)}
                         className={`${
                           isInLibrary
                             ? "bg-green-500/20 text-green-500 cursor-default"
@@ -470,14 +484,14 @@ const GameUI = () => {
                   <div className="absolute top-3 right-3 flex items-center space-x-2">
                     <span
                       className={`${
-                        game.status === "synced"
+                        game.status === "has_saves"
                           ? "bg-green-500/90"
                           : "bg-yellow-500/90"
                       } text-white px-2 py-1 rounded text-sm`}
                     >
-                      {game.status === "synced"
-                        ? t("gameUI.status.synced")
-                        : t("gameUI.status.syncing")}
+                      {game.status === "has_saves"
+                        ? t("gameUI.status.hasSaves")
+                        : t("gameUI.status.noSaves")}
                     </span>
                     <button
                       onClick={(e) => {
@@ -516,7 +530,7 @@ const GameUI = () => {
                     <div className="flex items-center space-x-1 text-gray-400">
                       <Clock className="w-4 h-4" />
                       <span className="text-sm">
-                        {game.last_backup_time === null
+                        {!game.last_backup_time
                           ? t("gameUI.backup.never")
                           : formatBackupTime(game.last_backup_time, t)}
                       </span>

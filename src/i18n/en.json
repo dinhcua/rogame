@@ -142,8 +142,11 @@
       "description": "Add a new game to your library"
     },
     "status": {
+      "hasSaves": "Has Saves",
+      "noSaves": "No Saves",
+      "added": "Added",
       "synced": "Synced",
-      "syncing": "Syncing..."
+      "syncing": "Syncing"
     },
     "saveCount": "{{count}} saves",
     "backup": {

@@ -18,7 +18,9 @@ fn main() {
             add_custom_game,
             delete_game_saves,
             delete_save_file,
-            
+            scan_installed_games,
+            import_game,
+            get_game_detail,
             // Save Manager Commands
             backup_save,
             list_saves,
