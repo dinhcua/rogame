@@ -1,8 +1,22 @@
-use chrono::Local;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::PathBuf};
 use walkdir::WalkDir;
+use crate::db::{self, Game as DbGame, SaveLocation as DbSaveLocation};
+use uuid::Uuid;
+
+#[derive(Debug, Deserialize)]
+struct SaveGameConfig {
+    games: HashMap<String, GameConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GameConfig {
+    locations: Vec<String>,
+    patterns: Vec<String>,
+    cover_image: String,
+    category: String,
+}
 
 #[derive(Debug, Serialize)]
 pub struct GameInfo {
@@ -28,12 +42,9 @@ pub struct SaveLocation {
 }
 
 #[derive(Debug, Deserialize)]
-struct SaveGameConfig {
-    games: HashMap<String, GameSaveInfo>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GameSaveInfo {
+pub struct CustomGameInfo {
+    title: String,
+    platform: String,
     locations: Vec<String>,
     patterns: Vec<String>,
     cover_image: String,
@@ -141,139 +152,67 @@ fn scan_save_locations(game_title: &str, save_config: &SaveGameConfig) -> Vec<Sa
 #[tauri::command]
 pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
     let mut games = HashMap::new();
-    let mut game_id = 0;
 
-    // Load save game configuration
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
-    let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
-        Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
-        Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
-    };
+    // Get all games from database
+    let db_games = db::get_all_games().map_err(|e| e.to_string())?;
 
-    // Scan Steam games
-    for steam_path in STEAM_PATHS {
-        let path = expand_tilde(steam_path);
-        if path.exists() {
-            if let Ok(entries) = fs::read_dir(&path) {
-                for entry in entries.filter_map(|e| e.ok()) {
-                    if entry.path().is_dir() {
-                        if let Ok(game_name) = entry.file_name().into_string() {
-                            let game_path = entry.path();
-                            let size = get_directory_size(&game_path);
-                            let save_locations = scan_save_locations(&game_name, &save_config);
-                            let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
+    for (game, locations) in db_games {
+        let save_locations = locations.iter().map(|loc| {
+            let expanded_path = expand_tilde(&loc.path);
+            let mut total_size = 0u64;
+            let mut file_count = 0;
+            let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
 
-                            // Get cover image and category from config if available, otherwise use defaults
-                            let (cover_image, category) = if let Some(game_info) =
-                                save_config.games.get(&game_name)
-                            {
-                                (game_info.cover_image.clone(), game_info.category.clone())
-                            } else {
-                                ("https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg".to_string(), 
-                                 "Unknown".to_string())
-                            };
-
-                            game_id += 1;
-                            games.insert(
-                                format!("game{}", game_id),
-                                GameInfo {
-                                    id: format!("game{}", game_id),
-                                    title: game_name,
-                                    cover_image,
-                                    platform: "Steam".to_string(),
-                                    last_played: save_locations
-                                        .first()
-                                        .map_or("Never".to_string(), |loc| {
-                                            loc.last_modified.clone()
-                                        }),
-                                    save_count,
-                                    size: format_size(size),
-                                    status: if save_count > 0 {
-                                        "has_saves"
-                                    } else {
-                                        "no_saves"
-                                    }
-                                    .to_string(),
-                                    category,
-                                    is_favorite: false,
-                                    save_locations,
-                                },
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Scan Epic games
-    for epic_path in EPIC_PATHS {
-        let path = expand_tilde(epic_path);
-        if path.exists() {
-            if let Ok(entries) = fs::read_dir(&path) {
-                for entry in entries.filter_map(|e| e.ok()) {
-                    if entry.path().is_file()
-                        && entry.path().extension().map_or(false, |ext| ext == "item")
-                    {
-                        if let Ok(content) = fs::read_to_string(entry.path()) {
-                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                                if let Some(display_name) = json["DisplayName"].as_str() {
-                                    if let Some(install_location) = json["InstallLocation"].as_str()
-                                    {
-                                        let game_path = PathBuf::from(install_location);
-                                        let size = get_directory_size(&game_path);
-                                        let save_locations =
-                                            scan_save_locations(display_name, &save_config);
-                                        let save_count =
-                                            save_locations.iter().map(|loc| loc.file_count).sum();
-
-                                        // Get cover image and category from config if available, otherwise use defaults
-                                        let (cover_image, category) = if let Some(game_info) =
-                                            save_config.games.get(display_name)
-                                        {
-                                            (
-                                                game_info.cover_image.clone(),
-                                                game_info.category.clone(),
-                                            )
-                                        } else {
-                                            ("https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg".to_string(), 
-                                             "Unknown".to_string())
-                                        };
-
-                                        game_id += 1;
-                                        games.insert(
-                                            format!("game{}", game_id),
-                                            GameInfo {
-                                                id: format!("game{}", game_id),
-                                                title: display_name.to_string(),
-                                                cover_image,
-                                                platform: "Epic Games".to_string(),
-                                                last_played: save_locations
-                                                    .first()
-                                                    .map_or("Never".to_string(), |loc| {
-                                                        loc.last_modified.clone()
-                                                    }),
-                                                save_count,
-                                                size: format_size(size),
-                                                status: if save_count > 0 {
-                                                    "has_saves"
-                                                } else {
-                                                    "no_saves"
-                                                }
-                                                .to_string(),
-                                                category,
-                                                is_favorite: false,
-                                                save_locations,
-                                            },
-                                        );
-                                    }
+            if expanded_path.exists() {
+                if let Ok(entries) = glob(&format!("{}/{}", expanded_path.to_string_lossy(), loc.pattern)) {
+                    for entry in entries.filter_map(Result::ok) {
+                        if let Ok(metadata) = entry.metadata() {
+                            total_size += metadata.len();
+                            file_count += 1;
+                            if let Ok(modified) = metadata.modified() {
+                                if modified > latest_modified {
+                                    latest_modified = modified;
                                 }
                             }
                         }
                     }
                 }
             }
-        }
+
+            let last_modified = if latest_modified > std::time::SystemTime::UNIX_EPOCH {
+                chrono::DateTime::<chrono::Local>::from(latest_modified)
+                    .format("%Y-%m-%d %H:%M:%S")
+                    .to_string()
+            } else {
+                "Unknown".to_string()
+            };
+
+            SaveLocation {
+                path: expanded_path.to_string_lossy().into_owned(),
+                file_count,
+                total_size: format_size(total_size),
+                last_modified,
+            }
+        }).collect::<Vec<_>>();
+
+        let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
+
+        games.insert(
+            game.id.clone(),
+            GameInfo {
+                id: game.id,
+                title: game.title,
+                cover_image: game.cover_image,
+                platform: game.platform,
+                last_played: game.last_played,
+                save_count,
+                size: format_size(0), // We'll calculate this later if needed
+                status: if save_count > 0 { "has_saves" } else { "no_saves" }.to_string(),
+                category: game.category,
+                is_favorite: game.is_favorite,
+                save_locations,
+            },
+        );
     }
 
     Ok(games)
@@ -491,4 +430,88 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
         println!("Successfully deleted all save files for game: {}", game_id);
         Ok(())
     }
+}
+
+#[tauri::command]
+pub async fn add_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, String> {
+    let game_id = Uuid::new_v4().to_string();
+    
+    // Create database game record
+    let db_game = DbGame {
+        id: game_id.clone(),
+        title: game_info.title.clone(),
+        platform: game_info.platform.clone(),
+        category: game_info.category.clone(),
+        cover_image: game_info.cover_image.clone(),
+        is_favorite: false,
+        last_played: "Never".to_string(),
+    };
+
+    // Create save locations
+    let mut db_locations = Vec::new();
+    for (location, pattern) in game_info.locations.iter().zip(game_info.patterns.iter()) {
+        db_locations.push(DbSaveLocation {
+            game_id: game_id.clone(),
+            path: location.clone(),
+            pattern: pattern.clone(),
+        });
+    }
+
+    // Save to database
+    db::add_game(&db_game, &db_locations).map_err(|e| e.to_string())?;
+
+    // Create GameInfo response
+    let save_locations = db_locations.iter().map(|loc| {
+        let expanded_path = expand_tilde(&loc.path);
+        let mut total_size = 0u64;
+        let mut file_count = 0;
+        let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
+
+        if expanded_path.exists() {
+            if let Ok(entries) = glob(&format!("{}/{}", expanded_path.to_string_lossy(), loc.pattern)) {
+                for entry in entries.filter_map(Result::ok) {
+                    if let Ok(metadata) = entry.metadata() {
+                        total_size += metadata.len();
+                        file_count += 1;
+                        if let Ok(modified) = metadata.modified() {
+                            if modified > latest_modified {
+                                latest_modified = modified;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let last_modified = if latest_modified > std::time::SystemTime::UNIX_EPOCH {
+            chrono::DateTime::<chrono::Local>::from(latest_modified)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+        } else {
+            "Unknown".to_string()
+        };
+
+        SaveLocation {
+            path: expanded_path.to_string_lossy().into_owned(),
+            file_count,
+            total_size: format_size(total_size),
+            last_modified,
+        }
+    }).collect::<Vec<_>>();
+
+    let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
+
+    Ok(GameInfo {
+        id: game_id,
+        title: game_info.title,
+        cover_image: game_info.cover_image,
+        platform: game_info.platform,
+        last_played: "Never".to_string(),
+        save_count,
+        size: "0B".to_string(),
+        status: if save_count > 0 { "has_saves" } else { "no_saves" }.to_string(),
+        category: game_info.category,
+        is_favorite: false,
+        save_locations,
+    })
 }

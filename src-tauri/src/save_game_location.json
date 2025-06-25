@@ -1,62 +1,14 @@
 {
   "games": {
-    "Bloodborne": {
-      "locations": [
-        "~/AppData/Roaming/Bloodborne",
-        "~/Library/Application Support/Bloodborne",
-        "~/.local/share/Steam/userdata/*/1399750/remote"
-      ],
-      "patterns": ["*.sav", "SAVEDATA.BIN"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1399750/header.jpg",
-      "category": "Action RPG"
-    },
-    "Elden Ring": {
-      "locations": [
-        "~/AppData/Roaming/EldenRing",
-        "~/Library/Application Support/EldenRing",
-        "~/.local/share/EldenRing"
-      ],
-      "patterns": ["*.sl2", "ER0000.sl2"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
-      "category": "Action RPG"
-    },
-    "Dark Souls III": {
-      "locations": [
-        "~/AppData/Roaming/DarkSoulsIII",
-        "~/Library/Application Support/Dark Souls III",
-        "~/.local/share/Steam/userdata/*/374320"
-      ],
-      "patterns": ["DS30000.sl2"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/374320/header.jpg",
-      "category": "Action RPG"
-    },
-    "The Witcher 3": {
-      "locations": [
-        "~/Documents/The Witcher 3/gamesaves",
-        "~/Library/Application Support/The Witcher 3/saves",
-        "~/.local/share/Steam/userdata/*/292030/remote/SaveGames"
-      ],
-      "patterns": ["*.sav"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
-      "category": "Action RPG"
-    },
-    "Cyberpunk 2077": {
-      "locations": [
-        "~/Saved Games/CD Projekt Red/Cyberpunk 2077",
-        "~/Library/Application Support/Steam/steamapps/common/Cyberpunk 2077/saves",
-        "~/.local/share/Steam/steamapps/compatdata/1091500/pfx/drive_c/users/steamuser/Saved Games/CD Projekt Red/Cyberpunk 2077"
-      ],
-      "patterns": ["*.save"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg",
-      "category": "Action RPG"
-    },
     "Red Dead Redemption 2": {
       "locations": [
         "~/Documents/Rockstar Games/Red Dead Redemption 2/Profiles",
         "~/Library/Application Support/Rockstar Games/Red Dead Redemption 2/Profiles",
         "~/.local/share/Steam/userdata/*/1174180/remote"
       ],
-      "patterns": ["SRDR*"],
+      "patterns": [
+        "SRDR*"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/header.jpg",
       "category": "Action Adventure"
     },
@@ -66,7 +18,9 @@
         "~/Library/Application Support/Steam/userdata/*/1593500/remote",
         "~/.local/share/Steam/userdata/*/1593500/remote"
       ],
-      "patterns": ["*.sav"],
+      "patterns": [
+        "*.sav"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1593500/header.jpg",
       "category": "Action Adventure"
     },
@@ -76,7 +30,9 @@
         "~/Library/Application Support/Steam/userdata/*/1462040/remote",
         "~/.local/share/Steam/userdata/*/1462040/remote"
       ],
-      "patterns": ["*.sav"],
+      "patterns": [
+        "*.sav"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1462040/header.jpg",
       "category": "JRPG"
     },
@@ -86,29 +42,37 @@
         "~/Library/Application Support/Steam/userdata/*/582010/remote",
         "~/.local/share/Steam/userdata/*/582010/remote"
       ],
-      "patterns": ["*.sl2", "SAVEDATA1000"],
+      "patterns": [
+        "*.sl2",
+        "SAVEDATA1000"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/582010/header.jpg",
       "category": "Action RPG"
     },
-    "Resident Evil 4": {
+    "Elden Ring": {
       "locations": [
-        "~/AppData/Roaming/RE4/Steam/*/SaveGames",
-        "~/Library/Application Support/Steam/userdata/*/2050650/remote",
-        "~/.local/share/Steam/userdata/*/2050650/remote"
+        "~/AppData/Roaming/EldenRing",
+        "~/Library/Application Support/EldenRing",
+        "~/.local/share/EldenRing"
       ],
-      "patterns": ["*.sav"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/header.jpg",
-      "category": "Survival Horror"
+      "patterns": [
+        "*.sl2",
+        "ER0000.sl2"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
+      "category": "Action RPG"
     },
-    "Baldur's Gate 3": {
+    "Cyberpunk 2077": {
       "locations": [
-        "~/AppData/Local/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
-        "~/Library/Application Support/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
-        "~/.local/share/Steam/userdata/*/1086940/remote"
+        "~/Saved Games/CD Projekt Red/Cyberpunk 2077",
+        "~/Library/Application Support/Steam/steamapps/common/Cyberpunk 2077/saves",
+        "~/.local/share/Steam/steamapps/compatdata/1091500/pfx/drive_c/users/steamuser/Saved Games/CD Projekt Red/Cyberpunk 2077"
       ],
-      "patterns": ["*.lsv"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg",
-      "category": "RPG"
+      "patterns": [
+        "*.save"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg",
+      "category": "Action RPG"
     },
     "Nioh 2": {
       "locations": [
@@ -116,8 +80,24 @@
         "~/Library/Application Support/Steam/userdata/*/1325200/remote",
         "~/.local/share/Steam/userdata/*/1325200/remote"
       ],
-      "patterns": ["*.dat", "SAVEDATA.BIN"],
+      "patterns": [
+        "*.dat",
+        "SAVEDATA.BIN"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1325200/header.jpg",
+      "category": "Action RPG"
+    },
+    "Bloodborne": {
+      "locations": [
+        "~/AppData/Roaming/Bloodborne",
+        "~/Library/Application Support/Bloodborne",
+        "~/.local/share/Steam/userdata/*/1399750/remote"
+      ],
+      "patterns": [
+        "*.sav",
+        "SAVEDATA.BIN"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1399750/header.jpg",
       "category": "Action RPG"
     },
     "Sekiro Shadows Die Twice": {
@@ -126,9 +106,58 @@
         "~/Library/Application Support/Sekiro",
         "~/.local/share/Steam/userdata/*/814380/remote"
       ],
-      "patterns": ["*.sl2", "S0000.sl2"],
+      "patterns": [
+        "*.sl2",
+        "S0000.sl2"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/814380/header.jpg",
       "category": "Action RPG"
+    },
+    "Baldur's Gate 3": {
+      "locations": [
+        "~/AppData/Local/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+        "~/Library/Application Support/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+        "~/.local/share/Steam/userdata/*/1086940/remote"
+      ],
+      "patterns": [
+        "*.lsv"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg",
+      "category": "RPG"
+    },
+    "GTA V": {
+      "locations": [
+        "/Users/dinhcua/Documents/games/Rockstar Games/GTA V"
+      ],
+      "patterns": [
+        "*.sav"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
+      "category": "Action"
+    },
+    "The Witcher 3": {
+      "locations": [
+        "~/Documents/The Witcher 3/gamesaves",
+        "~/Library/Application Support/The Witcher 3/saves",
+        "~/.local/share/Steam/userdata/*/292030/remote/SaveGames"
+      ],
+      "patterns": [
+        "*.sav"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
+      "category": "Action RPG"
+    },
+    "Resident Evil 4": {
+      "locations": [
+        "~/AppData/Roaming/RE4/Steam/*/SaveGames",
+        "~/Library/Application Support/Steam/userdata/*/2050650/remote",
+        "~/.local/share/Steam/userdata/*/2050650/remote"
+      ],
+      "patterns": [
+        "*.sav"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/header.jpg",
+      "category": "Survival Horror"
     },
     "Lies of P": {
       "locations": [
@@ -136,8 +165,22 @@
         "~/Library/Application Support/Steam/userdata/*/1627720/remote",
         "~/.local/share/Steam/userdata/*/1627720/remote"
       ],
-      "patterns": ["*.sav"],
+      "patterns": [
+        "*.sav"
+      ],
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1627720/header.jpg",
+      "category": "Action RPG"
+    },
+    "Dark Souls III": {
+      "locations": [
+        "~/AppData/Roaming/DarkSoulsIII",
+        "~/Library/Application Support/Dark Souls III",
+        "~/.local/share/Steam/userdata/*/374320"
+      ],
+      "patterns": [
+        "DS30000.sl2"
+      ],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/374320/header.jpg",
       "category": "Action RPG"
     }
   }

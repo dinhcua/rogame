@@ -265,34 +265,42 @@
     "cancelButton": "Cancel"
   },
   "addGameModal": {
-    "title": "Add New Game Manually",
+    "title": "Add Custom Game",
     "gameInfo": {
       "title": "Game Title",
       "titlePlaceholder": "Enter game title",
       "platform": "Platform",
       "platformPlaceholder": "Select platform",
-      "version": "Game Version",
-      "versionPlaceholder": "e.g. 1.0.5"
-    },
-    "platforms": {
-      "epic": "Epic Games",
-      "other": "Other"
+      "category": "Category",
+      "categoryPlaceholder": "e.g. Action RPG, Strategy, etc.",
+      "coverImage": "Cover Image URL",
+      "coverImagePlaceholder": "Enter URL for game cover image"
     },
     "saveLocation": {
-      "title": "Save Files Location",
-      "pathPlaceholder": "Path to save files directory",
+      "title": "Save File Locations",
+      "pathPlaceholder": "Enter save file path",
       "browse": "Browse",
-      "commonLocations": "Common locations: %USERPROFILE%/Documents/My Games, %APPDATA%/Local"
+      "addAnother": "Add Another Location",
+      "commonLocations": "Common locations: ~/Documents/My Games/, ~/Library/Application Support/"
     },
     "savePattern": {
-      "title": "Save File Pattern",
-      "placeholder": "e.g. *.sav, save*.dat",
-      "hint": "Use wildcards (*) to match multiple files"
+      "title": "Save File Patterns",
+      "placeholder": "e.g. *.sav, *.save, save*.dat",
+      "addAnother": "Add Another Pattern",
+      "hint": "Use * as a wildcard. Example: *.sav will match all files ending in .sav"
     },
-    "options": {
-      "monitorChanges": "Monitor save directory for changes",
-      "autoBackup": "Create automatic backups",
-      "cloudSync": "Enable cloud sync"
+    "errors": {
+      "titleRequired": "Game title is required",
+      "platformRequired": "Platform is required",
+      "locationRequired": "At least one save location is required",
+      "patternRequired": "At least one save pattern is required"
+    },
+    "platforms": {
+      "steam": "Steam",
+      "epic": "Epic Games",
+      "gog": "GOG",
+      "origin": "Origin",
+      "other": "Other"
     },
     "actions": {
       "add": "Add Game"
@@ -341,7 +349,12 @@
   },
   "common": {
     "cancel": "Cancel",
-    "close": "Close"
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "browse": "Browse"
   },
   "storageInfo": {
     "title": "Storage",

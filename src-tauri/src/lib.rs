@@ -1,6 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod game_scanner;
-mod save_manager;
+pub mod game_scanner;
+pub mod save_manager;
+pub mod db;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -8,6 +9,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             game_scanner::scan_games,
+            game_scanner::add_custom_game,
             save_manager::backup_save,
             save_manager::restore_save,
             save_manager::list_saves,

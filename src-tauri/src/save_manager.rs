@@ -51,7 +51,7 @@ impl SaveFile {
     pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String) -> Self {
         let now = Utc::now().to_rfc3339();
         let expanded_path = expand_tilde(&file_path);
-        
+
         // For mock saves, set origin_path to the Steam saves directory
         let origin_path = if let Some(home) = dirs::home_dir() {
             let mock_saves_path = home
@@ -116,14 +116,14 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
             .join(&game_id)
             .join("saves")
             .join("save1.sav"); // For test purposes, always restore to save1.sav
-        
+
         // Create the directory if it doesn't exist
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| SaveFileError {
                 message: format!("Failed to create origin directory: {}", e),
             })?;
         }
-        
+
         path
     } else {
         return Err(SaveFileError {
