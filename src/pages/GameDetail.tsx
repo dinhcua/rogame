@@ -21,6 +21,8 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
+  save_location: string;
+  backup_location: string;
 }
 
 interface BackupResponse {
@@ -121,7 +123,7 @@ const GameDetail: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const response = await invoke<BackupResponse>("backup_save", {
-        gameId: gameDetails.title,
+        gameId: gameDetails.id,
       });
 
       // Update save files list
@@ -167,7 +169,7 @@ const GameDetail: React.FC = () => {
       });
 
       const result = await invoke<SaveFile>("restore_save", {
-        gameId: gameDetails.title,
+        gameId: gameDetails.id,
         saveId: saveFile.id,
       });
 
@@ -484,7 +486,9 @@ const GameDetail: React.FC = () => {
       <RestoreModal
         isOpen={isRestoreModalOpen}
         onClose={() => setIsRestoreModalOpen(false)}
-        onRestore={handleRestore}
+        onRestore={async (saveFile: any) => {
+          await handleRestore(saveFile);
+        }}
         saveFiles={saveFiles}
         selectedSaveId={selectedSaveId}
         onSelectSave={setSelectedSaveId}

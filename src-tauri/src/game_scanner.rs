@@ -115,12 +115,24 @@ fn get_os_specific_location(locations: &[String]) -> Option<String> {
 
 fn scan_save_location(game_title: &str, save_config: &SaveGameConfig) -> (String, i32, String) {
     if let Some(game_info) = save_config.games.get(game_title) {
+        // Get platform-specific game installation path
+        let game_path = if cfg!(target_os = "macos") {
+            expand_tilde(STEAM_PATHS[0]).join(game_title)
+        } else if cfg!(target_os = "linux") {
+            expand_tilde(STEAM_PATHS[1]).join(game_title)
+        } else if cfg!(target_os = "windows") {
+            expand_tilde(STEAM_PATHS[2]).join(game_title)
+        } else {
+            PathBuf::new()
+        };
+
+        let mut total_size = 0u64;
+        let mut file_count = 0;
+
+        // First try the configured save locations
         if let Some(location) = get_os_specific_location(&game_info.locations) {
             let expanded_path = expand_tilde(&location);
             if expanded_path.exists() {
-                let mut total_size = 0u64;
-                let mut file_count = 0;
-
                 for pattern in &game_info.patterns {
                     let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
                     if let Ok(entries) = glob(&glob_pattern) {
@@ -133,12 +145,22 @@ fn scan_save_location(game_title: &str, save_config: &SaveGameConfig) -> (String
                     }
                 }
 
+                // If saves were found, return the actual save location
                 return (
                     expanded_path.to_string_lossy().into_owned(),
                     file_count,
                     format_size(total_size),
                 );
             }
+        }
+
+        // If no saves found in configured locations and game installation exists, return the game path
+        if game_path.exists() {
+            return (
+                game_path.to_string_lossy().into_owned(),
+                file_count,
+                format_size(total_size),
+            );
         }
     }
     (String::new(), 0, "0B".to_string())
@@ -594,8 +616,13 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn add_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, String> {
+pub async fn import_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, String> {
     let game_id = Uuid::new_v4().to_string();
+    
+    // Create backup directory for this game
+    let backup_dir = get_backup_dir().join(&game_id);
+    fs::create_dir_all(&backup_dir).map_err(|e| format!("Failed to create backup directory: {}", e))?;
+    let backup_location = backup_dir.to_string_lossy().into_owned();
     
     // Create database game record
     let db_game = DbGame {
@@ -610,7 +637,7 @@ pub async fn add_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, Stri
         size: "0B".to_string(),
         status: "no_saves".to_string(),
         save_location: game_info.save_location.clone(),
-        backup_location: None,
+        backup_location: Some(backup_location.clone()),
         last_backup_time: None,
     };
 
@@ -623,14 +650,6 @@ pub async fn add_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, Stri
 
     // Save to database
     db::add_game(&db_game, &[db_location]).map_err(|e| e.to_string())?;
-
-    // Create GameInfo response
-    // let save_location = SaveLocation {
-    //     path: game_info.locations[0].clone(),
-    //     file_count: 0,
-    //     total_size: "0B".to_string(),
-    //     last_modified: "Unknown".to_string(),
-    // };
 
     Ok(GameInfo {
         id: game_id,
@@ -649,6 +668,11 @@ pub async fn add_custom_game(game_info: CustomGameInfo) -> Result<GameInfo, Stri
 
 #[tauri::command]
 pub async fn import_game(game: GameInfo) -> Result<GameInfo, String> {
+    // Create backup directory for this game
+    let backup_dir = get_backup_dir().join(&game.id);
+    fs::create_dir_all(&backup_dir).map_err(|e| format!("Failed to create backup directory: {}", e))?;
+    let backup_location = backup_dir.to_string_lossy().into_owned();
+
     // Create database game record
     let db_game = DbGame {
         id: game.id.clone(),
@@ -662,15 +686,22 @@ pub async fn import_game(game: GameInfo) -> Result<GameInfo, String> {
         size: game.size.clone(),
         status: game.status.clone(),
         save_location: game.save_location.clone(),
-        backup_location: None,
+        backup_location: Some(backup_location.clone()),
         last_backup_time: None,
     };
 
-    // Create save location
+    // Create save location with appropriate pattern based on platform
+    let pattern = match game.platform.as_str() {
+        "Steam" => "*.sav;*.dat;*.save",
+        "Epic" => "*.sav;*.dat;*.save;*.json",
+        "GOG" => "*.sav;*.dat;*.save",
+        _ => "*.sav;*.dat;*.save", // Default pattern
+    };
+
     let db_location = DbSaveLocation {
         game_id: game.id.clone(),
         path: game.save_location.clone(),
-        pattern: "*.sav".to_string(), // Default pattern, you might want to adjust this based on the game type
+        pattern: pattern.to_string(),
     };
 
     // Save to database

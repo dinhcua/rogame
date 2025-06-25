@@ -284,8 +284,8 @@ pub fn toggle_favorite(game_id: &str) -> Result<()> {
 pub fn update_backup_time(game_id: &str, backup_time: i64) -> Result<()> {
     let mut conn = get_db()?;
     conn.execute(
-        "UPDATE games SET last_backup_time = ?2 WHERE id = ?1",
-        [game_id, &backup_time.to_string()],
+        "UPDATE games SET last_backup_time = ?1 WHERE id = ?2",
+        [&backup_time.to_string(), game_id],
     )?;
     Ok(())
 }

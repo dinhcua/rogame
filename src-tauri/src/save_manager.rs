@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all};
 use std::path::PathBuf;
+use crate::db::{self, Game as DbGame};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SaveFile {
@@ -12,8 +13,8 @@ pub struct SaveFile {
     pub modified_at: String,
     pub size_bytes: u64,
     pub tags: Vec<String>,
-    pub file_path: String,
-    pub origin_path: String,
+    pub save_location: String,
+    pub backup_location: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -48,12 +49,12 @@ impl Default for BackupSettings {
 }
 
 impl SaveFile {
-    pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String) -> Self {
+    pub fn new(game_id: String, file_name: String, size_bytes: u64, backup_location: String) -> Self {
         let now = Utc::now().to_rfc3339();
-        let expanded_path = expand_tilde(&file_path);
+        let expanded_path = expand_tilde(&backup_location);
 
-        // For mock saves, set origin_path to the Steam saves directory
-        let origin_path = if let Some(home) = dirs::home_dir() {
+        // For mock saves, set save_location to the Steam saves directory
+        let save_location = if let Some(home) = dirs::home_dir() {
             let mock_saves_path = home
                 .join("Library/Application Support/Steam/steamapps/common")
                 .join(&game_id)
@@ -75,8 +76,8 @@ impl SaveFile {
             modified_at: now,
             size_bytes,
             tags: Vec::new(),
-            file_path: expanded_path.to_string_lossy().into_owned(),
-            origin_path: origin_path.to_string_lossy().into_owned(),
+            save_location: save_location.to_string_lossy().into_owned(),
+            backup_location: expanded_path.to_string_lossy().into_owned(),
         }
     }
 }
@@ -93,163 +94,168 @@ fn expand_tilde(path: &str) -> PathBuf {
 #[tauri::command]
 pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, SaveFileError> {
     println!(
-        "Attempting to restore save. Game ID: {}, Save ID: {}",
+        "Starting restore process. Game ID: {}, Save ID: {}",
         game_id, save_id
     );
 
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
-    let save_path = game_saves_dir.join(&save_id);
+    // Step 1: Get game detail from database
+    let (game, _) = db::get_game(&game_id).map_err(|e| SaveFileError {
+        message: format!("Failed to get game info from database: {}", e),
+    })?;
 
-    println!("Backup file path: {:?}", save_path);
+    println!("Game info: {:?}", game);
 
-    if !save_path.exists() {
+    // Step 2: Get save_location and backup_location from game detail
+    let save_location = expand_tilde(&game.save_location);
+    let backup_location = match game.backup_location {
+        Some(loc) => expand_tilde(&loc),
+        None => return Err(SaveFileError {
+            message: "Backup location not set for this game".to_string(),
+        }),
+    };
+
+    println!("Save location: {:?}", save_location);
+    println!("Backup location: {:?}", backup_location);
+
+    // Verify backup file exists
+    let backup_file = backup_location.join(&save_id);
+    if !backup_file.exists() {
         return Err(SaveFileError {
-            message: format!("Save file not found at path: {:?}", save_path),
+            message: format!("Backup file not found: {:?}", backup_file),
         });
     }
 
-    // Get the origin path (where to restore the save)
-    let origin_path = if let Some(home) = dirs::home_dir() {
-        let path = home
-            .join("Library/Application Support/Steam/steamapps/common")
-            .join(&game_id)
-            .join("saves")
-            .join("save1.sav"); // For test purposes, always restore to save1.sav
+    // Create save directory if it doesn't exist
+    if let Some(parent) = save_location.parent() {
+        create_dir_all(parent).map_err(|e| SaveFileError {
+            message: format!("Failed to create save directory: {}", e),
+        })?;
+    }
 
-        // Create the directory if it doesn't exist
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|e| SaveFileError {
-                message: format!("Failed to create origin directory: {}", e),
-            })?;
-        }
+    // Step 3: Restore file from backup_location to save_location
+    let save_file_path = save_location.join(&save_id);
+    println!("Restoring from {:?} to {:?}", backup_file, save_file_path);
 
-        path
-    } else {
-        return Err(SaveFileError {
-            message: "Failed to get home directory".to_string(),
-        });
-    };
-
-    // Copy the backup file to the original location
-    fs::copy(&save_path, &origin_path).map_err(|e| SaveFileError {
+    // Copy the backup file to the save location
+    fs::copy(&backup_file, &save_file_path).map_err(|e| SaveFileError {
         message: format!("Failed to restore save file: {}", e),
     })?;
 
-    let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
-        message: format!("Failed to read save file metadata: {}", e),
+    let metadata = fs::metadata(&backup_file).map_err(|e| SaveFileError {
+        message: format!("Failed to read backup file metadata: {}", e),
     })?;
 
-    println!(
-        "Successfully restored save file from {:?} to {:?}",
-        save_path, origin_path
-    );
+    println!("Restore completed successfully");
 
     Ok(SaveFile::new(
         game_id,
         save_id,
         metadata.len(),
-        save_path.to_string_lossy().into_owned(),
+        backup_file.to_string_lossy().into_owned(),
     ))
 }
 
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
-    // Load backup settings
-    let settings = load_backup_settings().await?;
-
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
-
-    // Create game saves directory if it doesn't exist
-    create_dir_all(&game_saves_dir).map_err(|e| SaveFileError {
-        message: format!("Failed to create saves directory: {}", e),
+    println!("Starting backup process for game: {}", game_id);
+    
+    // Step 1: Get game detail from database
+    let (game, locations) = db::get_game(&game_id).map_err(|e| SaveFileError {
+        message: format!("Failed to get game info from database: {}", e),
     })?;
 
-    // Get the origin path (mock saves directory)
-    let origin_path = if let Some(home) = dirs::home_dir() {
-        home.join("Library/Application Support/Steam/steamapps/common")
-            .join(&game_id)
-            .join("saves")
-    } else {
-        return Err(SaveFileError {
-            message: "Failed to get home directory".to_string(),
-        });
+    println!("Game info: {:?}", game);
+
+    // Step 2: Get save_location and backup_location from game detail
+    let save_location = expand_tilde(&game.save_location);
+    let backup_location = match game.backup_location {
+        Some(loc) => expand_tilde(&loc),
+        None => return Err(SaveFileError {
+            message: "Backup location not set for this game".to_string(),
+        }),
     };
 
-    // Create a new save file with timestamp
+    println!("Save location: {:?}", save_location);
+    println!("Backup location: {:?}", backup_location);
+
+    // Verify save location exists
+    if !save_location.exists() {
+        return Err(SaveFileError {
+            message: format!("Save location does not exist: {:?}", save_location),
+        });
+    }
+
+    // Create backup directory if it doesn't exist
+    if let Some(parent) = backup_location.parent() {
+        create_dir_all(parent).map_err(|e| SaveFileError {
+            message: format!("Failed to create backup directory: {}", e),
+        })?;
+    }
+
+    // Step 3: Backup files from save_location to backup_location
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
     let save_file_name = format!("save_{}.sav", timestamp);
-    let save_path = game_saves_dir.join(&save_file_name);
+    let backup_path = backup_location.join(&save_file_name);
 
-    // Find and copy the first available save file from origin
+    // Find and copy save files using patterns from locations
     let mut found_save = false;
-    if let Ok(entries) = fs::read_dir(&origin_path) {
-        for entry in entries.filter_map(Result::ok) {
-            if entry.path().extension().map_or(false, |ext| ext == "sav") {
-                // Copy the first .sav file we find
-                if let Err(e) = fs::copy(&entry.path(), &save_path) {
-                    return Err(SaveFileError {
-                        message: format!("Failed to copy save file: {}", e),
-                    });
+    for location in locations {
+        let pattern = location.pattern;
+        println!("Checking pattern: {}", pattern);
+        
+        // Split pattern by semicolon to handle multiple patterns
+        for single_pattern in pattern.split(';') {
+            let glob_pattern = save_location.join(single_pattern.trim());
+            println!("Checking glob pattern: {:?}", glob_pattern);
+            
+            if let Ok(entries) = glob::glob(&glob_pattern.to_string_lossy()) {
+                for entry in entries.filter_map(Result::ok) {
+                    println!("Found save file: {:?}", entry);
+                    // Copy the save file
+                    if let Err(e) = fs::copy(&entry, &backup_path) {
+                        println!("Failed to copy save file: {}", e);
+                        continue;
+                    }
+                    found_save = true;
+                    break;
                 }
-                found_save = true;
-                break;
+                if found_save {
+                    break;
+                }
             }
+        }
+        if found_save {
+            break;
         }
     }
 
     if !found_save {
         return Err(SaveFileError {
-            message: "No save files found in origin directory".to_string(),
+            message: format!("No save files found in save location: {:?}", save_location),
         });
     }
 
-    let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
+    let metadata = fs::metadata(&backup_path).map_err(|e| SaveFileError {
         message: format!("Failed to get file metadata: {}", e),
     })?;
 
     let backup_time = Utc::now().timestamp_millis();
 
-    // Count total number of save files
-    let mut save_files: Vec<_> = fs::read_dir(&game_saves_dir)
-        .map_err(|e| SaveFileError {
-            message: format!("Failed to read saves directory: {}", e),
-        })?
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
-        .collect();
-
-    // Sort files by creation time (newest first)
-    save_files.sort_by(|a, b| {
-        b.metadata()
-            .and_then(|m| m.created())
-            .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH)
-            .cmp(
-                &a.metadata()
-                    .and_then(|m| m.created())
-                    .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH),
-            )
-    });
-
-    // Remove old backups if we exceed max_backups
-    if save_files.len() > settings.max_backups as usize {
-        for old_file in save_files.iter().skip(settings.max_backups as usize) {
-            if let Err(e) = fs::remove_file(old_file.path()) {
-                println!("Failed to remove old backup: {}", e);
-            }
-        }
+    // Update game's last backup time in database
+    if let Err(e) = db::update_backup_time(&game_id, backup_time) {
+        println!("Failed to update backup time in database: {}", e);
     }
 
+    println!("Backup completed successfully");
     Ok(BackupResponse {
         save_file: SaveFile::new(
             game_id,
             save_file_name,
             metadata.len(),
-            save_path.to_string_lossy().into_owned(),
+            backup_path.to_string_lossy().into_owned(),
         ),
         backup_time,
-        save_count: save_files.len() as i32,
+        save_count: 1, // Since we're backing up a single file
     })
 }
 
@@ -276,12 +282,12 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
 
         if metadata.is_file() {
             let file_name = entry.file_name().to_string_lossy().to_string();
-            let file_path = entry.path().to_string_lossy().into_owned();
+            let backup_location = entry.path().to_string_lossy().into_owned();
             saves.push(SaveFile::new(
                 game_id.clone(),
                 file_name,
                 metadata.len(),
-                file_path,
+                backup_location,
             ));
         }
     }

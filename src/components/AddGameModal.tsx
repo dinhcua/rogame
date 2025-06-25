@@ -19,6 +19,7 @@ interface FormData {
   patterns: string[];
   cover_image: string;
   category: string;
+  save_location: string;
 }
 
 const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
@@ -31,14 +32,15 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
     cover_image:
       "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg", // Default cover
     category: "",
+    save_location: "", // Initialize save_location
   });
   const [error, setError] = useState<string>("");
 
   const platformOptions = [
-    { value: "steam", label: "Steam" },
-    { value: "epic", label: t("addGameModal.platforms.epic") },
-    { value: "gog", label: "GOG" },
-    { value: "origin", label: "Origin" },
+    { value: "Steam", label: "Steam" },
+    { value: "Epic Games", label: t("addGameModal.platforms.epic") },
+    { value: "GOG", label: "GOG" },
+    { value: "Origin", label: "Origin" },
     { value: "other", label: t("addGameModal.platforms.other") },
   ];
 
@@ -133,10 +135,11 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
         ...formData,
         locations: formData.locations.filter((loc) => loc.trim() !== ""),
         patterns: formData.patterns.filter((pat) => pat.trim() !== ""),
+        save_location: formData.locations[0], // Use the first location as save_location
       };
 
       // Call Rust function to add custom game
-      const gameInfo = await invoke<any>("add_custom_game", {
+      const gameInfo = await invoke<any>("import_custom_game", {
         gameInfo: cleanedFormData,
       });
 

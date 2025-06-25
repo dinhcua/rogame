@@ -21,7 +21,6 @@ import {
   X,
   Loader2,
   Download,
-  Check,
   Trash2,
 } from "lucide-react";
 import "../i18n/config";
@@ -199,6 +198,7 @@ const GameUI = () => {
     invoke<Record<string, Game>>("scan_games")
       .then((result) => {
         const games = Object.values(result);
+        console.log("fff", games);
 
         // Count games by platform
         const steamGames = games.filter((game) => game.platform === "Steam");
@@ -230,6 +230,7 @@ const GameUI = () => {
     try {
       // Call the import_game command with the full game object
       // const importedGame = await invoke<Game>("import_game", { game });
+      console.log("Adding game to library:", game);
 
       // Add the imported game to the local state
       await addFoundGameToLibrary(game);
@@ -340,9 +341,12 @@ const GameUI = () => {
                 </h3>
                 <div className="flex items-center space-x-4">
                   <button
-                    onClick={() =>
-                      foundGames.forEach((game) => addGameToLibrary(game))
-                    }
+                    onClick={() => {
+                      const newGames = foundGames.filter(
+                        (game) => !games.some((g) => g.id === game.id)
+                      );
+                      newGames.forEach((game) => addGameToLibrary(game));
+                    }}
                     className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-5 h-5" />
@@ -357,9 +361,9 @@ const GameUI = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {foundGames.map((game) => {
-                  const isInLibrary = games.some((g) => g.id === game.id);
-                  return (
+                {foundGames
+                  .filter((game) => !games.some((g) => g.title === game.title))
+                  .map((game) => (
                     <div
                       key={game.id}
                       className="bg-black/20 rounded-lg p-4 flex items-center space-x-3"
@@ -374,28 +378,16 @@ const GameUI = () => {
                         <p className="text-sm text-gray-400">{game.platform}</p>
                       </div>
                       <button
-                        onClick={() => !isInLibrary && addGameToLibrary(game)}
-                        className={`${
-                          isInLibrary
-                            ? "bg-green-500/20 text-green-500 cursor-default"
-                            : "bg-rog-blue/20 hover:bg-rog-blue/30 text-rog-blue"
-                        } p-2 rounded-lg transition-colors group relative`}
-                        disabled={isInLibrary}
+                        onClick={() => addGameToLibrary(game)}
+                        className="bg-rog-blue/20 hover:bg-rog-blue/30 text-rog-blue p-2 rounded-lg transition-colors group relative"
                       >
-                        {isInLibrary ? (
-                          <Check className="w-5 h-5" />
-                        ) : (
-                          <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        )}
+                        <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {isInLibrary
-                            ? t("gameUI.foundGames.added")
-                            : t("gameUI.foundGames.addToLibrary")}
+                          {t("gameUI.foundGames.addToLibrary")}
                         </span>
                       </button>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             </div>
           )}

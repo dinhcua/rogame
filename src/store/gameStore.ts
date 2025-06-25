@@ -17,7 +17,7 @@ interface GameStore {
   updateGame: (game: Game) => void;
 }
 
-const useGameStore = create<GameStore>((set, get) => ({
+const useGameStore = create<GameStore>((set) => ({
   games: [],
   foundGames: [],
   setFoundGames: (games) => set({ foundGames: games }),

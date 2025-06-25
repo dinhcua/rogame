@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import "../i18n/config";
 
-interface SaveFile {
+export interface SaveFile {
   id: string;
   game_id: string;
   file_name: string;
@@ -18,8 +18,8 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
-  file_path?: string;
-  origin_path?: string; // Add origin path
+  save_location: string;
+  backup_location: string;
 }
 
 interface SaveFileItemProps {
@@ -64,20 +64,19 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     });
   };
 
-  const handleOpenOriginalLocation = async () => {
-    if (!saveFile.origin_path) return;
+  const handleOpenSaveLocation = async () => {
+    if (!saveFile.save_location) return;
     try {
-      // For mock saves, this will open the Steam saves directory
-      await revealItemInDir(saveFile.origin_path);
+      await revealItemInDir(saveFile.save_location);
     } catch (error) {
-      console.error("Failed to open original save location:", error);
+      console.error("Failed to open save location:", error);
     }
   };
 
-  const handleOpenLocation = async () => {
-    if (!saveFile.file_path) return;
+  const handleOpenBackupLocation = async () => {
+    if (!saveFile.backup_location) return;
     try {
-      await revealItemInDir(saveFile.file_path);
+      await revealItemInDir(saveFile.backup_location);
     } catch (error) {
       console.error("Failed to open backup location:", error);
     }
@@ -100,20 +99,20 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
           >
             {t("saveFile.actions.restore")}
           </button>
-          {saveFile.origin_path && (
+          {saveFile.save_location && (
             <button
-              onClick={handleOpenOriginalLocation}
+              onClick={handleOpenSaveLocation}
               className={`${
                 isHovered ? "opacity-100" : "opacity-0"
               } bg-purple-500/20 p-2 rounded hover:bg-purple-500/30 transition-all`}
-              title={t("saveFile.actions.openOriginalLocation")}
+              title={t("saveFile.actions.openSaveLocation")}
             >
               <FolderInput className="w-5 h-5 text-purple-400" />
             </button>
           )}
-          {saveFile.file_path && (
+          {saveFile.backup_location && (
             <button
-              onClick={handleOpenLocation}
+              onClick={handleOpenBackupLocation}
               className={`${
                 isHovered ? "opacity-100" : "opacity-0"
               } bg-gray-500/20 p-2 rounded hover:bg-gray-500/30 transition-all`}

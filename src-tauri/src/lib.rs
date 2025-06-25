@@ -10,7 +10,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             game_scanner::scan_games,
             game_scanner::scan_installed_games,
-            game_scanner::add_custom_game,
+            game_scanner::import_custom_game,
             game_scanner::import_game,
             game_scanner::delete_save_file,
             game_scanner::delete_game_saves,
