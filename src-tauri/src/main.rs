@@ -16,6 +16,8 @@ fn main() {
             // Game Scanner Commands
             scan_games,
             add_custom_game,
+            delete_game,
+            toggle_favorite,
             delete_game_saves,
             delete_save_file,
             scan_installed_games,

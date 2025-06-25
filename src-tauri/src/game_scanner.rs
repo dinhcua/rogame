@@ -485,6 +485,18 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
+pub async fn delete_game(game_id: String) -> Result<(), String> {
+    db::delete_game(&game_id).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn toggle_favorite(game_id: String) -> Result<(), String> {
+    db::toggle_favorite(&game_id).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     println!("Attempting to delete saves for game: {}", game_id);
     let mut errors = Vec::new();

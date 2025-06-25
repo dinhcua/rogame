@@ -14,6 +14,8 @@ pub fn run() {
             game_scanner::import_game,
             game_scanner::delete_save_file,
             game_scanner::delete_game_saves,
+            game_scanner::delete_game,
+            game_scanner::toggle_favorite,
             save_manager::backup_save,
             save_manager::restore_save,
             save_manager::list_saves,
