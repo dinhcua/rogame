@@ -15,9 +15,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placeholder }) =
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
+        className="bg-game-card border border-theme rounded-lg pl-10 pr-4 py-2 w-64 text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-rog-blue"
       />
-      <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+      <Search className="w-5 h-5 text-secondary absolute left-3 top-2.5" />
     </div>
   );
 };

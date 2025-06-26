@@ -68,34 +68,34 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-white/10 rounded-lg px-4 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue flex items-center justify-between ${
+        className={`w-full bg-game-card border border-theme rounded-lg px-4 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue flex items-center justify-between ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
         disabled={disabled}
       >
         <div className="flex items-center space-x-2">
-          {icon && <span className="text-gray-400">{icon}</span>}
-          <span className={selectedOption ? "text-white" : "text-gray-400"}>
+          {icon && <span className="text-secondary">{icon}</span>}
+          <span className={selectedOption ? "text-primary" : "text-secondary"}>
             {selectedOption ? selectedOption.label : t(placeholder)}
           </span>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-gray-400 transform transition-transform ${
+          className={`w-5 h-5 text-secondary transform transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-game-card rounded-lg shadow-lg border border-white/10 py-1 max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-game-card rounded-lg border border-theme py-1 max-h-60 overflow-auto">
           {isSearchable && (
-            <div className="px-3 py-2 border-b border-white/10">
+            <div className="px-3 py-2 border-b border-theme">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("dropdown.searchPlaceholder")}
-                className="w-full bg-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rog-blue"
+                className="w-full bg-white/5 rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-rog-blue"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -105,8 +105,8 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
               <button
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
-                className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-2 ${
-                  option.value === value ? "text-rog-blue" : "text-white"
+                className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-2 ${
+                  option.value === value ? "text-rog-blue" : "text-primary"
                 }`}
               >
                 <span>{option.label}</span>
@@ -116,7 +116,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
               </button>
             ))
           ) : (
-            <div className="px-4 py-2 text-gray-400 text-sm">
+            <div className="px-4 py-2 text-secondary text-sm">
               {t("dropdown.noOptions")}
             </div>
           )}

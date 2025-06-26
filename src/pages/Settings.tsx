@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import DropdownSelect from "../components/DropdownSelect";
 import { Clock, Cloud, Globe } from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
 import "../i18n/config";
 
 interface ToggleProps {
@@ -29,7 +30,7 @@ const Toggle: React.FC<ToggleProps> = ({
         checked={checked}
         onChange={(e) => onChange?.(e.target.checked)}
       />
-      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rog-blue/30 dark:peer-focus:ring-rog-blue/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-rog-blue"></div>
     </label>
   </div>
 );
@@ -78,9 +79,18 @@ const CloudProvider: React.FC<CloudProviderProps> = ({
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
   const [compression, setCompression] = useState("medium");
   const [backupFrequency, setBackupFrequency] = useState("daily");
   const [syncFrequency, setSyncFrequency] = useState("hourly");
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('notifications');
+    return saved ? JSON.parse(saved) : true;
+  });
+  const [startupLaunch, setStartupLaunch] = useState(() => {
+    const saved = localStorage.getItem('startupLaunch');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   const compressionOptions = [
     { value: "none", label: t("settings.backup.compression.none") },
@@ -117,6 +127,17 @@ export default function Settings() {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
+    localStorage.setItem('language', lang);
+  };
+
+  const handleNotificationsChange = (enabled: boolean) => {
+    setNotifications(enabled);
+    localStorage.setItem('notifications', JSON.stringify(enabled));
+  };
+
+  const handleStartupChange = (enabled: boolean) => {
+    setStartupLaunch(enabled);
+    localStorage.setItem('startupLaunch', JSON.stringify(enabled));
   };
 
   return (
@@ -144,16 +165,20 @@ export default function Settings() {
           <Toggle
             label={t("settings.general.darkMode.label")}
             description={t("settings.general.darkMode.description")}
-            checked={true}
+            checked={theme === 'dark'}
+            onChange={toggleTheme}
           />
           <Toggle
             label={t("settings.general.notifications.label")}
             description={t("settings.general.notifications.description")}
-            checked={true}
+            checked={notifications}
+            onChange={handleNotificationsChange}
           />
           <Toggle
             label={t("settings.general.startup.label")}
             description={t("settings.general.startup.description")}
+            checked={startupLaunch}
+            onChange={handleStartupChange}
           />
         </div>
       </div>

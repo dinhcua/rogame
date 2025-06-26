@@ -1,18 +1,430 @@
 @import "tailwindcss";
 
-/* 'game-dark': '#0a0a0a',
-'game-card': '#1a1a1a',
-'rog-blue': '#00b4d8',
-'sidebar': '#141414', */
+/* Configure manual dark mode using custom variant */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Game-specific colors */
+  --color-game-dark: #0a0a0a;
+  --color-game-card: #1a1a1a;
+  --color-rog-blue: #00b4d8;
+  --color-sidebar: #141414;
+
+  /* Light theme colors */
+  --color-light-game-dark: #f5f5f7;
+  --color-light-game-card: #ffffff;
+  --color-light-rog-blue: #0071e3;
+  --color-light-sidebar: #ffffff;
+  --color-light-text-primary: #1d1d1f;
+  --color-light-text-secondary: #515154;
+  --color-light-border: #d2d2d7;
+
+  /* Dark theme colors */
+  --color-dark-game-dark: #0a0a0a;
+  --color-dark-game-card: #1a1a1a;
+  --color-dark-rog-blue: #00b4d8;
+  --color-dark-sidebar: #141414;
+  --color-dark-text-primary: #f9fafb;
+  --color-dark-text-secondary: #9ca3af;
+  --color-dark-border: #374151;
+}
 
 button {
   cursor: pointer;
 }
 
-@theme {
-  /* Light theme colors */
-  --color-game-dark: #0a0a0a;
-  --color-game-card: #1a1a1a;
-  --color-rog-blue: #00b4d8;
-  --color-sidebar: #141414;
+/* Base styles */
+/* * {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+} */
+
+/* Theme-aware background colors */
+.bg-game-dark {
+  background-color: var(--color-light-game-dark);
+}
+
+.dark .bg-game-dark {
+  background-color: var(--color-dark-game-dark);
+}
+
+.bg-game-card {
+  background-color: var(--color-light-game-card);
+}
+
+.dark .bg-game-card {
+  background-color: var(--color-dark-game-card);
+}
+
+.bg-sidebar {
+  background-color: var(--color-light-sidebar);
+}
+
+.dark .bg-sidebar {
+  background-color: var(--color-dark-sidebar);
+}
+
+/* Theme-aware text colors */
+.text-primary {
+  color: var(--color-light-text-primary);
+}
+
+.dark .text-primary {
+  color: var(--color-dark-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-light-text-secondary);
+}
+
+.dark .text-secondary {
+  color: var(--color-dark-text-secondary);
+}
+
+/* Theme-aware border colors */
+.border-theme {
+  border-color: var(--color-light-border);
+}
+
+.dark .border-theme {
+  border-color: var(--color-dark-border);
+}
+
+/* ROG Blue accent color */
+.bg-rog-blue {
+  background-color: var(--color-light-rog-blue);
+}
+
+.dark .bg-rog-blue {
+  background-color: var(--color-dark-rog-blue);
+}
+
+.text-rog-blue {
+  color: var(--color-light-rog-blue);
+}
+
+.dark .text-rog-blue {
+  color: var(--color-dark-rog-blue);
+}
+
+/* Hover states for ROG Blue */
+.hover\:bg-rog-blue:hover {
+  background-color: var(--color-light-rog-blue);
+}
+
+.dark .hover\:bg-rog-blue:hover {
+  background-color: var(--color-dark-rog-blue);
+}
+
+/* Focus states for ROG Blue */
+.focus\:ring-rog-blue:focus {
+  --tw-ring-color: var(--color-light-rog-blue);
+}
+
+.dark .focus\:ring-rog-blue:focus {
+  --tw-ring-color: var(--color-dark-rog-blue);
+}
+
+/* Utility classes for common patterns */
+.bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.bg-white\/20 {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.bg-black\/70 {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.hover\:bg-white\/20:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.hover\:bg-black\/70:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Remove shadows - using borders for separation instead */
+
+/* Light theme specific adjustments */
+.bg-green-500\/90 {
+  background-color: rgba(34, 197, 94, 0.9);
+}
+
+.bg-yellow-500\/90 {
+  background-color: rgba(234, 179, 8, 0.9);
+}
+
+/* Better contrast for light theme buttons */
+.bg-rog-blue\/20 {
+  background-color: rgba(0, 113, 227, 0.2);
+}
+
+.hover\:bg-rog-blue\/30:hover {
+  background-color: rgba(0, 113, 227, 0.3);
+}
+
+.dark .bg-rog-blue\/20 {
+  background-color: rgba(0, 180, 216, 0.2);
+}
+
+.dark .hover\:bg-rog-blue\/30:hover {
+  background-color: rgba(0, 180, 216, 0.3);
+}
+
+/* Light theme hover states */
+.hover\:bg-gray-100:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme hover for dropdown items */
+.bg-game-card .hover\:bg-white\/5:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .bg-game-card .hover\:bg-white\/5:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Dropdown specific background */
+.bg-game-card.dropdown-menu {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .bg-game-card.dropdown-menu {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+}
+
+/* White with opacity variations */
+.bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme input backgrounds */
+.bg-game-card input[type="text"],
+.bg-game-card input[type="search"] {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.dark .bg-game-card input[type="text"],
+.dark .bg-game-card input[type="search"] {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+}
+
+/* Light theme dropdown menu backgrounds */
+.bg-game-card .bg-white\/5 {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .bg-game-card .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+}
+
+/* Dropdown input focus states */
+.bg-game-card input.bg-white\/5:focus {
+  background-color: #ffffff;
+  border-color: var(--color-light-rog-blue);
+}
+
+.dark .bg-game-card input.bg-white\/5:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-dark-rog-blue);
+}
+
+/* Fix focus ring colors */
+.focus\:ring-2:focus {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0
+    var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0
+    calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+/* Light theme status badges */
+.bg-green-500\/90 {
+  background-color: rgba(16, 185, 129, 0.9);
+}
+
+.bg-yellow-500\/90 {
+  background-color: rgba(245, 158, 11, 0.9);
+}
+
+/* Placeholder text colors */
+.placeholder\:text-secondary::placeholder {
+  color: var(--color-light-text-secondary);
+}
+
+.dark .placeholder\:text-secondary::placeholder {
+  color: var(--color-dark-text-secondary);
+}
+
+/* Ring colors */
+.focus\:ring-rog-blue:focus {
+  --tw-ring-color: var(--color-light-rog-blue);
+}
+
+.dark .focus\:ring-rog-blue:focus {
+  --tw-ring-color: var(--color-dark-rog-blue);
+}
+
+/* Ensure white text stays white in both themes for badges */
+.text-white {
+  color: #ffffff !important;
+}
+
+/* Progress bar backgrounds */
+.bg-gray-200 {
+  background-color: #e5e7eb;
+}
+
+.dark .bg-gray-200 {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Success and warning colors that work in both themes */
+.text-green-500 {
+  color: #10b981;
+}
+
+.text-yellow-500 {
+  color: #f59e0b;
+}
+
+/* Ensure good contrast for status colors */
+.dark .text-green-500 {
+  color: #34d399;
+}
+
+.dark .text-yellow-500 {
+  color: #fbbf24;
+}
+
+/* Light theme game card hover effects */
+.bg-game-card {
+  border: 1px solid var(--color-light-border);
+}
+
+.dark .bg-game-card {
+  border: 1px solid transparent;
+}
+
+/* .bg-game-card:hover {
+  border-color: var(--color-light-rog-blue);
+}
+
+.dark .bg-game-card:hover {
+  border-color: var(--color-dark-rog-blue);
+} */
+
+/* Game scanner status badges */
+.bg-rog-blue\\\/10 {
+  background-color: rgba(0, 113, 227, 0.1);
+}
+
+.dark .bg-rog-blue\\\/10 {
+  background-color: rgba(0, 180, 216, 0.1);
+}
+
+/* Toggle/Switch component styles */
+.peer:checked ~ .peer-checked\:bg-rog-blue {
+  background-color: var(--color-light-rog-blue);
+}
+
+.dark .peer:checked ~ .peer-checked\:bg-rog-blue {
+  background-color: var(--color-dark-rog-blue);
+}
+
+/* Toggle background colors */
+.bg-gray-200 {
+  background-color: #e5e7eb;
+}
+
+.dark .bg-gray-700 {
+  background-color: #374151;
+}
+
+/* Toggle focus ring colors */
+.peer-focus\:ring-rog-blue\/30:focus ~ div {
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.3);
+}
+
+.dark .peer-focus\:ring-rog-blue\/30:focus ~ div {
+  box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.3);
+}
+
+/* Add game card dashed border */
+.border-dashed {
+  border-style: dashed;
+}
+
+/* Light theme gray background */
+.bg-gray-100 {
+  background-color: #f3f4f6;
+}
+
+.dark .bg-gray-100 {
+  background-color: transparent;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background-color: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #9ca3af;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
 }

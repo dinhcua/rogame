@@ -75,7 +75,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onToggleFavorite, onDelete })
             <h3 className="text-lg font-medium group-hover:text-rog-blue transition-colors">
               {game.title}
             </h3>
-            <div className="flex items-center space-x-1 text-gray-400">
+            <div className="flex items-center space-x-1 text-secondary">
               <Clock className="w-4 h-4" />
               <span className="text-sm">
                 {!game.last_backup_time
@@ -89,13 +89,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, onToggleFavorite, onDelete })
               platform={game.platform}
               className="w-5 h-5 brightness-0 invert opacity-70"
             />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-secondary">
               {game.platform}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <File className="w-5 h-5 text-gray-400" />
+              <File className="w-5 h-5 text-secondary" />
               <span className="text-sm">
                 {t('gameUI.saveCount', { count: game.save_count })}
               </span>

@@ -27,8 +27,8 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
             onClick={() => onCategoryChange(category)}
             className={`${
               selectedCategory === category
-                ? 'bg-rog-blue'
-                : 'bg-white/10 hover:bg-white/20'
+                ? 'bg-rog-blue text-white'
+                : 'bg-game-card border border-theme hover:bg-gray-100 dark:hover:bg-white/10 text-primary'
             } px-4 py-2 rounded-lg transition-colors whitespace-nowrap`}
           >
             {t(category)}
@@ -37,7 +37,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       {categories.length > 6 && (
         <button
           onClick={() => setShowMoreCategories(!showMoreCategories)}
-          className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap flex items-center space-x-1"
+          className="bg-game-card border border-theme px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors whitespace-nowrap flex items-center space-x-1 text-primary"
         >
           <span>
             {showMoreCategories

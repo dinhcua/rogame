@@ -11,7 +11,6 @@ import { useGameActions } from '../hooks/useGameActions';
 import '../i18n/config';
 
 const GameLibrary: React.FC = () => {
-  const { t } = useTranslation();
   const { games } = useGames();
   const {
     filters,
@@ -26,7 +25,7 @@ const GameLibrary: React.FC = () => {
   const [showAddGameModal, setShowAddGameModal] = useState(false);
 
   return (
-    <div className="bg-game-dark text-white font-sans">
+    <div className="bg-game-dark text-primary font-sans">
       <div>
         {/* Game Scanner Section */}
         <GameScanner existingGames={games} />

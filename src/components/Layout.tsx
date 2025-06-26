@@ -12,7 +12,7 @@ export default function Layout({ children }: LayoutProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-game-dark text-white font-sans">
+    <div className="min-h-screen bg-game-dark text-primary font-sans">
       {/* Top Status Bar */}
       {/* <div className="fixed top-0 left-0 right-0 bg-black/30 h-12 flex items-center justify-between pl-4.5 z-50">
         <div className="flex items-center space-x-4">
@@ -36,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
       </div> */}
 
       {/* Left Sidebar */}
-      <div className="fixed left-0 top-0 bottom-0 w-16 bg-sidebar flex flex-col items-center py-10 space-y-8 z-40">
+      <div className="fixed left-0 top-0 bottom-0 w-16 bg-sidebar border-r border-theme flex flex-col items-center py-10 space-y-8 z-40">
         {/* Profile */}
         <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
           <User className="w-6 h-6" />
@@ -81,7 +81,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="ml-16 pt-12 px-8 pb-8">{children}</div>
+      <div className="ml-16 px-8 pb-8">{children}</div>
     </div>
   );
 }

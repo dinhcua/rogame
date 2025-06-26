@@ -16,14 +16,14 @@ const ScanProgress: React.FC<ScanProgressProps> = ({ progress }) => {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-secondary">
           {t('gameUI.scanner.scanning')}
         </span>
-        <span className="text-sm text-gray-400">{progress.percentage}%</span>
+        <span className="text-sm text-secondary">{progress.percentage}%</span>
       </div>
-      <div className="w-full bg-white/10 rounded-full h-2">
+      <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
         <div
-          className="bg-rog-blue h-2 rounded-full transition-all duration-300"
+          className="bg-rog-blue h-2 rounded-full transition-all duration-150"
           style={{ width: `${progress.percentage}%` }}
         />
       </div>
@@ -40,7 +40,7 @@ const ScanProgress: React.FC<ScanProgressProps> = ({ progress }) => {
             {t('gameUI.scanner.epicFound', { count: progress.epicGamesCount })}
           </span>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 text-secondary">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span className="text-sm">
             {t('gameUI.scanner.scanningGog')}
