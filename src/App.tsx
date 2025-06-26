@@ -1,6 +1,6 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import GameUI from "./pages/GameUI";
+import GameLibrary from "./pages/GameLibrary";
 import GameDetail from "./pages/GameDetail";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
@@ -12,7 +12,7 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<GameUI />} />
+          <Route path="/" element={<GameLibrary />} />
           <Route path="/game/:id" element={<GameDetail />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/history" element={<History />} />
