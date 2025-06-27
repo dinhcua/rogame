@@ -47,7 +47,7 @@ impl Default for BackupSettings {
 }
 
 impl SaveFile {
-    pub fn new(game_id: String, file_name: String, size_bytes: u64, backup_location: String) -> Self {
+    pub fn new(id: String, game_id: String, file_name: String, size_bytes: u64, backup_location: String) -> Self {
         let now = Utc::now().to_rfc3339();
         let expanded_path = expand_tilde(&backup_location);
 
@@ -66,7 +66,7 @@ impl SaveFile {
         };
 
         Self {
-            id: file_name.clone(),
+            id,
             game_id,
             file_name,
             created_at: now.clone(),

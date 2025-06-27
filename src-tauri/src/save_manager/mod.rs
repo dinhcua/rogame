@@ -54,6 +54,7 @@ impl<R: GameRepository> SaveManager<R> {
                 let file_name = entry.file_name().to_string_lossy().to_string();
                 let backup_location = entry.path().to_string_lossy().into_owned();
                 saves.push(SaveFile::new(
+                    file_name.clone(),
                     game_id.clone(),
                     file_name,
                     metadata.len(),

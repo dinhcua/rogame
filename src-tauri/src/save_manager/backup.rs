@@ -64,6 +64,7 @@ impl BackupHandler {
 
         Ok(BackupResponse {
             save_file: SaveFile::new(
+                save_file_name.clone(),
                 game.id.clone(),
                 save_file_name,
                 metadata.len(),
@@ -96,6 +97,7 @@ impl BackupHandler {
         let metadata = fs::metadata(&backup_file)?;
 
         Ok(SaveFile::new(
+            save_id.to_string(),
             game.id.clone(),
             save_id.to_string(),
             metadata.len(),
