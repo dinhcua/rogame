@@ -38,6 +38,8 @@ struct GameSaveInfo {
     patterns: Vec<String>,
     cover_image: String,
     category: String,
+    #[serde(default)]
+    steam_id: String,
 }
 
 // Common game installation directories
@@ -51,6 +53,14 @@ const EPIC_PATHS: &[&str] = &[
     "~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests", // macOS
     "~/.config/Epic/EpicGamesLauncher/Data/Manifests",                     // Linux
     "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests",           // Windows
+];
+
+// Steam userdata directories
+const STEAM_USERDATA_PATHS: &[&str] = &[
+    "~/Library/Application Support/Steam/userdata", // macOS
+    "~/.steam/steam/userdata",                      // Linux
+    "~/.local/share/Steam/userdata",                // Linux alternative
+    "C:\\Program Files (x86)\\Steam\\userdata",     // Windows
 ];
 
 fn expand_tilde(path: &str) -> PathBuf {
@@ -87,49 +97,93 @@ fn format_size(size: u64) -> String {
     }
 }
 
+// Function to find Steam user IDs
+fn get_steam_user_ids() -> Vec<String> {
+    let mut user_ids = Vec::new();
+
+    for steam_path in STEAM_USERDATA_PATHS {
+        let path = expand_tilde(steam_path);
+        if path.exists() {
+            if let Ok(entries) = fs::read_dir(&path) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    if entry.path().is_dir() {
+                        if let Ok(user_id) = entry.file_name().into_string() {
+                            // Only add if it looks like a Steam user ID (numeric)
+                            if user_id.chars().all(|c| c.is_digit(10)) {
+                                user_ids.push(user_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    user_ids
+}
+
+// Function to replace {{uid}} placeholders in paths
+fn replace_placeholders(path: &str, user_ids: &[String]) -> Vec<String> {
+    if path.contains("{{uid}}") {
+        user_ids
+            .iter()
+            .map(|uid| path.replace("{{uid}}", uid))
+            .collect()
+    } else {
+        vec![path.to_string()]
+    }
+}
+
 fn scan_save_locations(game_title: &str, save_config: &SaveGameConfig) -> Vec<SaveLocation> {
     let mut save_locations = Vec::new();
+    let steam_user_ids = get_steam_user_ids();
 
     if let Some(game_info) = save_config.games.get(game_title) {
         for location in &game_info.locations {
-            let expanded_path = expand_tilde(location);
-            if expanded_path.exists() {
-                let mut total_size = 0u64;
-                let mut file_count = 0;
-                let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
+            // Expand the location with possible user IDs
+            let expanded_locations = replace_placeholders(location, &steam_user_ids);
 
-                for pattern in &game_info.patterns {
-                    let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
-                    if let Ok(entries) = glob(&glob_pattern) {
-                        for entry in entries.filter_map(Result::ok) {
-                            if let Ok(metadata) = entry.metadata() {
-                                total_size += metadata.len();
-                                file_count += 1;
-                                if let Ok(modified) = metadata.modified() {
-                                    if modified > latest_modified {
-                                        latest_modified = modified;
+            for expanded_location in expanded_locations {
+                let expanded_path = expand_tilde(&expanded_location);
+                if expanded_path.exists() {
+                    let mut total_size = 0u64;
+                    let mut file_count = 0;
+                    let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
+
+                    for pattern in &game_info.patterns {
+                        let glob_pattern =
+                            expanded_path.join(pattern).to_string_lossy().into_owned();
+                        if let Ok(entries) = glob(&glob_pattern) {
+                            for entry in entries.filter_map(Result::ok) {
+                                if let Ok(metadata) = entry.metadata() {
+                                    total_size += metadata.len();
+                                    file_count += 1;
+                                    if let Ok(modified) = metadata.modified() {
+                                        if modified > latest_modified {
+                                            latest_modified = modified;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                if file_count > 0 {
-                    let last_modified = if latest_modified > std::time::SystemTime::UNIX_EPOCH {
-                        chrono::DateTime::<chrono::Local>::from(latest_modified)
-                            .format("%Y-%m-%d %H:%M:%S")
-                            .to_string()
-                    } else {
-                        "Unknown".to_string()
-                    };
+                    if file_count > 0 {
+                        let last_modified = if latest_modified > std::time::SystemTime::UNIX_EPOCH {
+                            chrono::DateTime::<chrono::Local>::from(latest_modified)
+                                .format("%Y-%m-%d %H:%M:%S")
+                                .to_string()
+                        } else {
+                            "Unknown".to_string()
+                        };
 
-                    save_locations.push(SaveLocation {
-                        path: expanded_path.to_string_lossy().into_owned(),
-                        file_count,
-                        total_size: format_size(total_size),
-                        last_modified,
-                    });
+                        save_locations.push(SaveLocation {
+                            path: expanded_path.to_string_lossy().into_owned(),
+                            file_count,
+                            total_size: format_size(total_size),
+                            last_modified,
+                        });
+                    }
                 }
             }
         }
@@ -304,31 +358,38 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
         .map(|(_, info)| info)
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
+    let steam_user_ids = get_steam_user_ids();
+
     // Delete from original save locations
     for location in &game_info.locations {
-        let expanded_path = expand_tilde(location);
-        if expanded_path.exists() {
-            // First try exact match
-            let exact_path = expanded_path.join(&save_id);
-            if exact_path.exists() {
-                match fs::remove_file(&exact_path) {
-                    Ok(_) => found = true,
-                    Err(e) => last_error = Some(e.to_string()),
-                }
-                continue; // If we found an exact match, no need to check patterns
-            }
+        // Expand the location with possible user IDs
+        let expanded_locations = replace_placeholders(location, &steam_user_ids);
 
-            // Try patterns only if exact match wasn't found
-            for pattern in &game_info.patterns {
-                let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
-                if let Ok(entries) = glob(&glob_pattern) {
-                    for entry in entries.filter_map(Result::ok) {
-                        if let Some(file_name) = entry.file_name() {
-                            // Only delete if the file name matches exactly
-                            if file_name.to_string_lossy() == save_id {
-                                match fs::remove_file(&entry) {
-                                    Ok(_) => found = true,
-                                    Err(e) => last_error = Some(e.to_string()),
+        for expanded_location in expanded_locations {
+            let expanded_path = expand_tilde(&expanded_location);
+            if expanded_path.exists() {
+                // First try exact match
+                let exact_path = expanded_path.join(&save_id);
+                if exact_path.exists() {
+                    match fs::remove_file(&exact_path) {
+                        Ok(_) => found = true,
+                        Err(e) => last_error = Some(e.to_string()),
+                    }
+                    continue; // If we found an exact match, no need to check patterns
+                }
+
+                // Try patterns only if exact match wasn't found
+                for pattern in &game_info.patterns {
+                    let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
+                    if let Ok(entries) = glob(&glob_pattern) {
+                        for entry in entries.filter_map(Result::ok) {
+                            if let Some(file_name) = entry.file_name() {
+                                // Only delete if the file name matches exactly
+                                if file_name.to_string_lossy() == save_id {
+                                    match fs::remove_file(&entry) {
+                                        Ok(_) => found = true,
+                                        Err(e) => last_error = Some(e.to_string()),
+                                    }
                                 }
                             }
                         }
@@ -376,16 +437,22 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
     let mut save_files = Vec::new();
+    let steam_user_ids = get_steam_user_ids();
 
     for location in &game_info.locations {
-        let expanded_path = expand_tilde(location);
-        if expanded_path.exists() {
-            for pattern in &game_info.patterns {
-                let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
-                if let Ok(entries) = glob(&glob_pattern) {
-                    for entry in entries.filter_map(Result::ok) {
-                        if let Some(file_name) = entry.file_name() {
-                            save_files.push(file_name.to_string_lossy().into_owned());
+        // Expand the location with possible user IDs
+        let expanded_locations = replace_placeholders(location, &steam_user_ids);
+
+        for expanded_location in expanded_locations {
+            let expanded_path = expand_tilde(&expanded_location);
+            if expanded_path.exists() {
+                for pattern in &game_info.patterns {
+                    let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
+                    if let Ok(entries) = glob(&glob_pattern) {
+                        for entry in entries.filter_map(Result::ok) {
+                            if let Some(file_name) = entry.file_name() {
+                                save_files.push(file_name.to_string_lossy().into_owned());
+                            }
                         }
                     }
                 }
@@ -415,57 +482,66 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
     println!("Found game info: {:?}", game_info);
+    let steam_user_ids = get_steam_user_ids();
 
     // Delete from original save locations
     for location in &game_info.locations {
-        let expanded_path = expand_tilde(location);
-        println!("Checking location: {:?}", expanded_path);
+        // Expand the location with possible user IDs
+        let expanded_locations = replace_placeholders(location, &steam_user_ids);
 
-        if expanded_path.exists() {
-            for pattern in &game_info.patterns {
-                let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
-                println!("Checking pattern: {}", glob_pattern);
+        for expanded_location in expanded_locations {
+            let expanded_path = expand_tilde(&expanded_location);
+            println!("Checking location: {:?}", expanded_path);
 
-                if let Ok(entries) = glob(&glob_pattern) {
-                    for entry in entries.filter_map(Result::ok) {
-                        println!("Deleting file: {:?}", entry);
-                        if let Err(e) = fs::remove_file(&entry) {
-                            let error_msg =
-                                format!("Failed to delete save file {}: {}", entry.display(), e);
-                            println!("Error: {}", error_msg);
-                            errors.push(error_msg);
-                        } else {
-                            println!("Successfully deleted: {:?}", entry);
-                        }
-                    }
-                }
-            }
-
-            // Try to remove the directory if it's empty
             if expanded_path.exists() {
-                match fs::read_dir(&expanded_path) {
-                    Ok(mut dir) => {
-                        if dir.next().is_none() {
-                            // Directory is empty
-                            if let Err(e) = fs::remove_dir(&expanded_path) {
-                                println!(
-                                    "Failed to remove empty directory {}: {}",
-                                    expanded_path.display(),
+                for pattern in &game_info.patterns {
+                    let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
+                    println!("Checking pattern: {}", glob_pattern);
+
+                    if let Ok(entries) = glob(&glob_pattern) {
+                        for entry in entries.filter_map(Result::ok) {
+                            println!("Deleting file: {:?}", entry);
+                            if let Err(e) = fs::remove_file(&entry) {
+                                let error_msg = format!(
+                                    "Failed to delete save file {}: {}",
+                                    entry.display(),
                                     e
                                 );
+                                println!("Error: {}", error_msg);
+                                errors.push(error_msg);
                             } else {
-                                println!(
-                                    "Successfully removed empty directory: {:?}",
-                                    expanded_path
-                                );
+                                println!("Successfully deleted: {:?}", entry);
                             }
                         }
                     }
-                    Err(e) => println!(
-                        "Failed to read directory {}: {}",
-                        expanded_path.display(),
-                        e
-                    ),
+                }
+
+                // Try to remove the directory if it's empty
+                if expanded_path.exists() {
+                    match fs::read_dir(&expanded_path) {
+                        Ok(mut dir) => {
+                            if dir.next().is_none() {
+                                // Directory is empty
+                                if let Err(e) = fs::remove_dir(&expanded_path) {
+                                    println!(
+                                        "Failed to remove empty directory {}: {}",
+                                        expanded_path.display(),
+                                        e
+                                    );
+                                } else {
+                                    println!(
+                                        "Successfully removed empty directory: {:?}",
+                                        expanded_path
+                                    );
+                                }
+                            }
+                        }
+                        Err(e) => println!(
+                            "Failed to read directory {}: {}",
+                            expanded_path.display(),
+                            e
+                        ),
+                    }
                 }
             }
         }
