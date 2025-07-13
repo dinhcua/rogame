@@ -1,4 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod db;
 mod game_scanner;
 mod save_manager;
 
@@ -14,7 +15,13 @@ pub fn run() {
             save_manager::restore_save,
             save_manager::list_saves,
             save_manager::save_backup_settings,
-            save_manager::load_backup_settings
+            save_manager::load_backup_settings,
+            save_manager::get_all_games,
+            save_manager::get_game_by_id,
+            save_manager::add_game,
+            save_manager::update_game,
+            save_manager::delete_game,
+            save_manager::toggle_favorite
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

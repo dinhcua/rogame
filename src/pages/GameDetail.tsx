@@ -79,9 +79,8 @@ const GameDetail: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // Load game details
-        const result = await invoke<Record<string, Game>>("scan_games");
-        const game = result[gameId];
+        // Load game details from SQLite database
+        const game = await invoke<Game>("get_game_by_id", { id: gameId });
 
         if (game) {
           // Load save files
@@ -176,6 +175,15 @@ const GameDetail: React.FC = () => {
       setIsRestoreModalOpen(false);
       const successMessage = `Successfully restored save file: ${result.file_name}`;
       setError(successMessage);
+
+      // Refresh game details to get updated last_played time
+      if (gameId) {
+        const updatedGame = await invoke<Game>("get_game_by_id", {
+          id: gameId,
+        });
+        setGameDetails(updatedGame);
+        await useGameStore.getState().updateGame(updatedGame);
+      }
     } catch (err) {
       console.error("Restore failed:", err);
       setError(
@@ -192,12 +200,6 @@ const GameDetail: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      // console.log("Deleting game:", {
-      //   gameId,
-      //   title: gameDetails.title,
-      //   includeSaveFiles,
-      // });
 
       const gameTitle = gameDetails.title;
 
@@ -236,10 +238,17 @@ const GameDetail: React.FC = () => {
 
       // Update game details if needed
       if (gameDetails) {
-        setGameDetails({
+        const updatedGame = {
           ...gameDetails,
           save_count: gameDetails.save_count - 1,
-        });
+        };
+        setGameDetails(updatedGame);
+
+        // Update the game in the database
+        await invoke("update_game", { game: updatedGame });
+
+        // Update the game in the store
+        await useGameStore.getState().updateGame(updatedGame);
       }
     } catch (err) {
       console.error("Failed to delete save file:", err);

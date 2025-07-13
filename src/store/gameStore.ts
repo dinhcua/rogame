@@ -1,22 +1,6 @@
 import { create } from "zustand";
 import { Game } from "../types/game";
-import { openDB } from "idb";
 import { invoke } from "@tauri-apps/api/core";
-
-const DB_NAME = "rogame-db";
-const STORE_NAME = "games";
-
-// Initialize the database
-const initDB = async () => {
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
-      // Create the games object store if it doesn't exist
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-    },
-  });
-};
 
 // Interface for our store state
 interface GameState {
@@ -51,8 +35,8 @@ const useGameStore = create<GameState>((set, get) => ({
   loadGames: async () => {
     try {
       set({ isLoading: true, error: null });
-      const db = await initDB();
-      const games = await db.getAll(STORE_NAME);
+      // Use Rust backend to get all games
+      const games = await invoke<Game[]>("get_all_games");
       set({ games, isLoading: false });
     } catch (error) {
       console.error("Failed to load games:", error);
@@ -62,8 +46,10 @@ const useGameStore = create<GameState>((set, get) => ({
 
   addGame: async (game) => {
     try {
-      const db = await initDB();
-      await db.put(STORE_NAME, game);
+      console.log(game);
+
+      // Use Rust backend to add a game
+      await invoke("add_game", { game });
       const games = [...get().games, game];
       set({ games });
     } catch (error) {
@@ -74,25 +60,27 @@ const useGameStore = create<GameState>((set, get) => ({
 
   updateGame: async (updatedGame) => {
     try {
-      const db = await initDB();
-      await db.put(STORE_NAME, updatedGame);
+      // Use Rust backend to update a game
+      await invoke("update_game", { game: updatedGame });
       const games = get().games.map((game) =>
         game.id === updatedGame.id ? updatedGame : game
       );
       set({ games });
     } catch (error) {
       set({ error: "Failed to update game" });
+      throw error;
     }
   },
 
   removeGame: async (gameId) => {
     try {
-      const db = await initDB();
-      await db.delete(STORE_NAME, gameId);
+      // Use Rust backend to delete a game
+      await invoke("delete_game", { id: gameId });
       const games = get().games.filter((game) => game.id !== gameId);
       set({ games });
     } catch (error) {
       set({ error: "Failed to remove game" });
+      throw error;
     }
   },
 
@@ -124,19 +112,22 @@ const useGameStore = create<GameState>((set, get) => ({
         await invoke("delete_game_saves", { gameId: gameTitle });
       }
 
-      // Then delete from IndexedDB
-      const db = await initDB();
-      await db.delete(STORE_NAME, gameId);
+      // Delete from SQLite database
+      await invoke("delete_game", { id: gameId });
 
       // Update state after successful deletion
       const games = get().games.filter((g) => g.id !== gameId);
       set({ games });
 
-      // If the game was in foundGames, remove it from there too
-      const foundGames = get().foundGames.filter((g) => g.id !== gameId);
-      if (foundGames.length !== get().foundGames.length) {
-        set({ foundGames });
-      }
+      // Update foundGames if the game exists there
+      const foundGames = get().foundGames.map((g) => {
+        if (g.id === gameId) {
+          return { ...g, status: "not_synced" as const };
+        }
+        return g;
+      });
+
+      set({ foundGames });
     } catch (error) {
       console.error("Failed to delete game:", error);
       throw error; // Re-throw the error to be handled by the UI
@@ -145,11 +136,12 @@ const useGameStore = create<GameState>((set, get) => ({
 
   toggleFavorite: async (gameId) => {
     try {
-      const game = get().games.find((g) => g.id === gameId);
-      if (!game) return;
+      // Use Rust backend to toggle favorite status
+      const updatedGame = await invoke<Game>("toggle_favorite", { id: gameId });
 
-      const updatedGame = { ...game, is_favorite: !game.is_favorite };
-      await get().updateGame(updatedGame);
+      // Update state with the returned game
+      const games = get().games.map((g) => (g.id === gameId ? updatedGame : g));
+      set({ games });
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
       throw error;
