@@ -1,9 +1,8 @@
 use chrono::prelude::*;
-use rusqlite::{params, Result as SqlResult};
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all};
 use std::path::PathBuf;
-use tokio;
 
 use crate::db;
 

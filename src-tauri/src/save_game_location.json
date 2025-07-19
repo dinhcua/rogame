@@ -151,6 +151,18 @@
       "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/3017860/header.jpg",
       "category": "FPS",
       "steam_id": "3017860"
+    },
+    "StellarBlade": {
+      "locations": [
+        "~/AppData/Local/ProjectEve/Saved/SaveGames",
+        "~/Documents/My Games/StellarBlade/SaveData",
+        "~/.local/share/Steam/userdata/{{uid}}/3489700/remote",
+        "~/Library/Application Support/Steam/userdata/{{uid}}/3489700/remote"
+      ],
+      "patterns": ["*.sav", "*.dat"],
+      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/3489700/header.jpg",
+      "category": "Action RPG",
+      "steam_id": "3489700"
     }
   }
 }
