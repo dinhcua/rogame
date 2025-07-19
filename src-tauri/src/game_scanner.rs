@@ -4,6 +4,35 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::PathBuf};
 use walkdir::WalkDir;
 
+// Helper function to get save game config path
+fn get_save_config_path() -> PathBuf {
+    if cfg!(debug_assertions) {
+        // During development, use the source file
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json")
+    } else {
+        // In production, load from resources
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                // Try multiple possible locations
+                let resource_paths = vec![
+                    exe_dir.join("resources").join("save_game_location.json"),
+                    exe_dir.join("save_game_location.json"),
+                    exe_dir.join("_up_").join("resources").join("save_game_location.json"),
+                ];
+                
+                for path in resource_paths {
+                    if path.exists() {
+                        return path;
+                    }
+                }
+            }
+        }
+        
+        // Fallback
+        PathBuf::from("save_game_location.json")
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct GameInfo {
     id: String,
@@ -49,6 +78,15 @@ const STEAM_PATHS: &[&str] = &[
     "C:\\Program Files (x86)\\Steam\\steamapps\\common",    // Windows
 ];
 
+// Steam installation paths (for finding libraryfolders.vdf)
+const STEAM_ROOT_PATHS: &[&str] = &[
+    "~/Library/Application Support/Steam",              // macOS
+    "~/.steam/steam",                                  // Linux
+    "~/.local/share/Steam",                            // Linux alternative
+    "C:\\Program Files (x86)\\Steam",                  // Windows
+    "C:\\Program Files\\Steam",                        // Windows alternative
+];
+
 const EPIC_PATHS: &[&str] = &[
     "~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests", // macOS
     "~/.config/Epic/EpicGamesLauncher/Data/Manifests",                     // Linux
@@ -64,12 +102,103 @@ const STEAM_USERDATA_PATHS: &[&str] = &[
 ];
 
 fn expand_tilde(path: &str) -> PathBuf {
+    // Handle tilde expansion for Unix-like paths
     if path.starts_with("~/") {
         if let Some(home) = dirs::home_dir() {
             return home.join(&path[2..]);
         }
     }
+    
+    // For Windows absolute paths, return as-is
+    if cfg!(windows) {
+        // Check if it's already an absolute Windows path
+        if path.len() >= 3 && path.chars().nth(1) == Some(':') && path.chars().nth(2) == Some('\\') {
+            return PathBuf::from(path);
+        }
+    }
+    
     PathBuf::from(path)
+}
+
+// Parse Steam's libraryfolders.vdf to find all Steam library locations
+fn get_steam_library_folders() -> Vec<PathBuf> {
+    let mut library_folders = Vec::new();
+    
+    // Always include default paths
+    for path in STEAM_PATHS {
+        let expanded = expand_tilde(path);
+        if expanded.exists() {
+            library_folders.push(expanded);
+        }
+    }
+    
+    // Try to find and parse libraryfolders.vdf
+    for steam_root in STEAM_ROOT_PATHS {
+        let steam_path = expand_tilde(steam_root);
+        let vdf_path = steam_path.join("steamapps").join("libraryfolders.vdf");
+        
+        println!("Checking for Steam library config at: {:?}", vdf_path);
+        
+        if vdf_path.exists() {
+            println!("Found libraryfolders.vdf at: {:?}", vdf_path);
+            if let Ok(content) = fs::read_to_string(&vdf_path) {
+                // Parse VDF format (simple parser for "path" values)
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.contains("\"path\"") && trimmed.contains("\"") {
+                        // Find the value after "path"
+                        if let Some(path_start) = trimmed.rfind("\"") {
+                            if let Some(value_start) = trimmed[..path_start].rfind("\"") {
+                                let path_str = &trimmed[value_start + 1..path_start];
+                                // Replace double backslashes with single ones for Windows paths
+                                let cleaned_path = path_str.replace("\\\\", "\\");
+                                let library_path = PathBuf::from(cleaned_path).join("steamapps").join("common");
+                                
+                                println!("Checking library path: {:?}", library_path);
+                                
+                                if library_path.exists() && !library_folders.contains(&library_path) {
+                                    println!("Found valid Steam library: {:?}", library_path);
+                                    library_folders.push(library_path);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                println!("Failed to read libraryfolders.vdf");
+            }
+            break; // Found one valid libraryfolders.vdf, no need to check others
+        }
+    }
+    
+    println!("Total Steam libraries found: {}", library_folders.len());
+    
+    // Additional fallback: Check common drive letters on Windows
+    if cfg!(windows) && library_folders.is_empty() {
+        println!("No Steam libraries found via VDF, checking common locations...");
+        
+        // Check common drive letters for Steam installations
+        let common_drives = vec!["C:", "D:", "E:", "F:", "G:", "H:"];
+        let common_steam_paths = vec![
+            "\\SteamLibrary\\steamapps\\common",
+            "\\Steam\\steamapps\\common",
+            "\\Games\\Steam\\steamapps\\common",
+            "\\Program Files\\Steam\\steamapps\\common",
+            "\\Program Files (x86)\\Steam\\steamapps\\common",
+        ];
+        
+        for drive in &common_drives {
+            for steam_path in &common_steam_paths {
+                let full_path = PathBuf::from(format!("{}{}", drive, steam_path));
+                if full_path.exists() && !library_folders.contains(&full_path) {
+                    println!("Found Steam library at: {:?}", full_path);
+                    library_folders.push(full_path);
+                }
+            }
+        }
+    }
+    
+    library_folders
 }
 
 fn get_directory_size(path: &PathBuf) -> u64 {
@@ -194,25 +323,40 @@ fn scan_save_locations(game_title: &str, save_config: &SaveGameConfig) -> Vec<Sa
 
 #[tauri::command]
 pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
+    println!("Starting game scan...");
+    println!("Operating System: {}", std::env::consts::OS);
+    
     let mut games = HashMap::new();
     let mut game_id = 0;
 
     // Load save game configuration
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
+    let config_path = get_save_config_path();
+    println!("Loading save game config from: {:?}", config_path);
+    
     let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
-        Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
+        Err(e) => {
+            println!("Error reading config: {}", e);
+            // Return empty config as fallback
+            SaveGameConfig {
+                games: HashMap::new()
+            }
+        },
     };
 
-    // Scan Steam games
-    for steam_path in STEAM_PATHS {
-        let path = expand_tilde(steam_path);
-        if path.exists() {
-            if let Ok(entries) = fs::read_dir(&path) {
+    // Scan Steam games from all library folders
+    let steam_libraries = get_steam_library_folders();
+    println!("Found {} Steam library folders", steam_libraries.len());
+    
+    for library_path in steam_libraries {
+        println!("Scanning Steam library: {:?}", library_path);
+        if library_path.exists() {
+            if let Ok(entries) = fs::read_dir(&library_path) {
                 for entry in entries.filter_map(|e| e.ok()) {
                     if entry.path().is_dir() {
                         if let Ok(game_name) = entry.file_name().into_string() {
                             let game_path = entry.path();
+                            println!("Found game: {} at {:?}", game_name, game_path);
                             let size = get_directory_size(&game_path);
                             let save_locations = scan_save_locations(&game_name, &save_config);
                             let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
@@ -345,7 +489,7 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
     let mut last_error = None;
 
     // 1. Delete from original save locations
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
+    let config_path = get_save_config_path();
     let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
         Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
@@ -423,7 +567,7 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
 
 // Helper function to list all save files for a game
 fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
+    let config_path = get_save_config_path();
     let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
         Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
@@ -469,7 +613,7 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     let mut errors = Vec::new();
 
     // 1. Delete from original save locations
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/save_game_location.json");
+    let config_path = get_save_config_path();
     let save_config: SaveGameConfig = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
         Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
