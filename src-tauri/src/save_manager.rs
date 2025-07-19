@@ -366,6 +366,8 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
+    println!("=== Starting backup for game: {} ===", game_id);
+    
     // Load backup settings
     let settings = load_backup_settings().await?;
 
@@ -379,10 +381,14 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 
     // Get the game from database to get the actual save location
     let game = get_game_by_id(game_id.clone()).await?;
+    println!("Game info: {:?}", game);
     
     // Get the origin path from the game's save_location
     let origin_path = if !game.save_location.is_empty() {
-        expand_tilde(&game.save_location)
+        let path = expand_tilde(&game.save_location);
+        println!("Save location from database: {}", game.save_location);
+        println!("Expanded save location: {:?}", path);
+        path
     } else {
         return Err(SaveFileError {
             message: "Game has no save location configured".to_string(),
@@ -396,24 +402,63 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 
     // Find and copy the first available save file from origin
     let mut found_save = false;
-    if let Ok(entries) = fs::read_dir(&origin_path) {
-        for entry in entries.filter_map(Result::ok) {
-            if entry.path().extension().map_or(false, |ext| ext == "sav") {
-                // Copy the first .sav file we find
-                if let Err(e) = fs::copy(&entry.path(), &save_path) {
-                    return Err(SaveFileError {
-                        message: format!("Failed to copy save file: {}", e),
-                    });
+    println!("Checking for save files in: {:?}", origin_path);
+    
+    if origin_path.exists() {
+        println!("Directory exists, scanning for save files...");
+        if let Ok(entries) = fs::read_dir(&origin_path) {
+            for entry in entries.filter_map(Result::ok) {
+                let entry_path = entry.path();
+                println!("Found file: {:?}", entry_path);
+                
+                if entry_path.is_file() {
+                    // For Stellar Blade and other games, check various save file patterns
+                    let file_name = entry_path.file_name().unwrap_or_default().to_string_lossy();
+                    let file_name_lower = file_name.to_lowercase();
+                    
+                    // Check if this is a save file
+                    let is_save_file = entry_path.extension().map_or(false, |ext| {
+                        let ext_str = ext.to_string_lossy().to_lowercase();
+                        ext_str == "sav" || ext_str == "dat" || ext_str == "sl2" || ext_str == "save"
+                    }) || file_name_lower.starts_with("save") 
+                       || file_name_lower.contains("slot")
+                       || (file_name.len() > 0 && !file_name.contains(".")); // Files without extension
+                    
+                    if is_save_file {
+                        println!("Copying save file: {:?} to {:?}", entry_path, save_path);
+                        
+                        // Update the save file name to preserve original extension
+                        let original_extension = entry_path.extension()
+                            .map(|ext| format!(".{}", ext.to_string_lossy()))
+                            .unwrap_or_default();
+                        let save_file_name_with_ext = format!("save_{}{}", timestamp, original_extension);
+                        let save_path_with_ext = game_saves_dir.join(&save_file_name_with_ext);
+                        
+                        if let Err(e) = fs::copy(&entry_path, &save_path_with_ext) {
+                            return Err(SaveFileError {
+                                message: format!("Failed to copy save file: {}", e),
+                            });
+                        }
+                        found_save = true;
+                        break;
+                    }
                 }
-                found_save = true;
-                break;
             }
+        } else {
+            println!("Failed to read directory: {:?}", origin_path);
         }
+    } else {
+        println!("Save directory does not exist: {:?}", origin_path);
     }
 
     if !found_save {
+        let error_msg = format!(
+            "No save files found in directory: {:?}. Looking for patterns: .sav, .dat, or files starting with 'save'",
+            origin_path
+        );
+        println!("{}", error_msg);
         return Err(SaveFileError {
-            message: "No save files found in origin directory".to_string(),
+            message: error_msg,
         });
     }
 
