@@ -15,11 +15,7 @@ interface GameState {
   removeGame: (gameId: string) => Promise<void>;
   setFoundGames: (games: Game[]) => void;
   addFoundGameToLibrary: (gameId: string) => Promise<void>;
-  deleteGame: (
-    gameId: string,
-    gameTitle: string,
-    includeSaveFiles: boolean
-  ) => Promise<void>;
+  deleteGame: (gameId: string, includeSaveFiles: boolean) => Promise<void>;
   toggleFavorite: (gameId: string) => Promise<void>;
 }
 
@@ -60,11 +56,14 @@ const useGameStore = create<GameState>((set, get) => ({
         status: game.status,
         category: game.category,
         is_favorite: game.is_favorite,
-        save_location: (game as any).save_location || (game as any).save_locations?.[0]?.path || "",
+        save_location:
+          (game as any).save_location ||
+          (game as any).save_locations?.[0]?.path ||
+          "",
         backup_location: game.backup_location || null,
         last_backup_time: game.last_backup_time || null,
       };
-      
+
       // Use Rust backend to add a game
       await invoke("add_game", { game: gameForRust });
       const games = [...get().games, game];
@@ -115,10 +114,10 @@ const useGameStore = create<GameState>((set, get) => ({
         backup_location: null,
         last_backup_time: null,
       };
-      
+
       // Remove save_locations from the object to match Rust struct
       const { save_locations, ...gameForRust } = transformedGame;
-      
+
       await get().addGame(gameForRust as Game);
       const foundGames = get().foundGames.map((g) =>
         g.id === gameId ? { ...g, status: "added" as const } : g
@@ -130,11 +129,7 @@ const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  deleteGame: async (
-    gameId: string,
-    gameTitle: string,
-    includeSaveFiles: boolean
-  ) => {
+  deleteGame: async (gameId: string, includeSaveFiles: boolean) => {
     try {
       if (includeSaveFiles) {
         await invoke("delete_game_saves", { gameId: gameId });

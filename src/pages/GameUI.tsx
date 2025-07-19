@@ -239,7 +239,7 @@ const GameUI = () => {
         includeSaveFiles,
       });
 
-      await deleteGame(gameToDelete.id, gameToDelete.title, includeSaveFiles);
+      await deleteGame(gameToDelete.id, includeSaveFiles);
       setShowDeleteModal(false);
       setGameToDelete(null);
       setIncludeSaveFiles(false);
