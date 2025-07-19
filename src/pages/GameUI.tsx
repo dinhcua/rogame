@@ -141,7 +141,7 @@ const GameUI = () => {
   const fetchBackupCount = async (game: Game) => {
     try {
       const saveFiles = await invoke<any[]>("list_saves", {
-        gameId: game.title,
+        gameId: game.id,
       });
 
       // Update the game with the actual backup count

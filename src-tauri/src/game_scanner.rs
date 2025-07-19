@@ -53,7 +53,7 @@ const EPIC_PATHS: &[&str] = &[
     "~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests", // macOS
     "~/.config/Epic/EpicGamesLauncher/Data/Manifests",                     // Linux
     "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests",           // Windows
-];
+];ưw
 
 // Steam userdata directories
 const STEAM_USERDATA_PATHS: &[&str] = &[

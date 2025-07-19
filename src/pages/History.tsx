@@ -228,7 +228,7 @@ export default function History() {
       let allBackups: BackupHistoryItem[] = [];
       for (const game of allGames) {
         const saveFiles = await invoke<SaveFile[]>("list_saves", {
-          gameId: game.title,
+          gameId: game.id,
         });
         const gameBackups = saveFiles.map((save) => ({
           id: `${game.title}-${save.id}`,
@@ -298,7 +298,7 @@ export default function History() {
       });
 
       await invoke("restore_save", {
-        gameId: backup.game.title,
+        gameId: backup.game.id,
         saveId: backup.save_file.id,
       });
 

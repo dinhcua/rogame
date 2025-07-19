@@ -79,13 +79,17 @@ const GameDetail: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
+        console.log("Loading game details for ID:", gameId);
+
         // Load game details from SQLite database
         const game = await invoke<Game>("get_game_by_id", { id: gameId });
+
+        console.log("Game loaded:", game);
 
         if (game) {
           // Load save files
           const files = await invoke<SaveFile[]>("list_saves", {
-            gameId: game.title,
+            gameId: game.id,
           });
 
           // Update game with correct save count
@@ -103,6 +107,7 @@ const GameDetail: React.FC = () => {
           setError("Game not found");
         }
       } catch (err) {
+        console.error("Error loading game details:", err);
         setError(
           err instanceof Error ? err.message : "Failed to load game details"
         );
@@ -121,7 +126,7 @@ const GameDetail: React.FC = () => {
       setIsLoading(true);
       setError(null);
       const response = await invoke<BackupResponse>("backup_save", {
-        gameId: gameDetails.title,
+        gameId: gameDetails.id,
       });
 
       // Update save files list
@@ -167,7 +172,7 @@ const GameDetail: React.FC = () => {
       });
 
       const result = await invoke<SaveFile>("restore_save", {
-        gameId: gameDetails.title,
+        gameId: gameDetails.id,
         saveId: saveFile.id,
       });
 

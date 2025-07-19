@@ -48,8 +48,25 @@ const useGameStore = create<GameState>((set, get) => ({
     try {
       console.log(game);
 
+      // Ensure proper structure for Rust backend
+      const gameForRust = {
+        id: game.id,
+        title: game.title,
+        cover_image: game.cover_image,
+        platform: game.platform,
+        last_played: game.last_played,
+        save_count: game.save_count,
+        size: game.size,
+        status: game.status,
+        category: game.category,
+        is_favorite: game.is_favorite,
+        save_location: (game as any).save_location || (game as any).save_locations?.[0]?.path || "",
+        backup_location: game.backup_location || null,
+        last_backup_time: game.last_backup_time || null,
+      };
+      
       // Use Rust backend to add a game
-      await invoke("add_game", { game });
+      await invoke("add_game", { game: gameForRust });
       const games = [...get().games, game];
       set({ games });
     } catch (error) {
@@ -91,7 +108,18 @@ const useGameStore = create<GameState>((set, get) => ({
     if (!gameToAdd) return;
 
     try {
-      await get().addGame(gameToAdd);
+      // Transform save_locations array to save_location string
+      const transformedGame = {
+        ...gameToAdd,
+        save_location: gameToAdd.save_locations?.[0]?.path || "",
+        backup_location: null,
+        last_backup_time: null,
+      };
+      
+      // Remove save_locations from the object to match Rust struct
+      const { save_locations, ...gameForRust } = transformedGame;
+      
+      await get().addGame(gameForRust as Game);
       const foundGames = get().foundGames.map((g) =>
         g.id === gameId ? { ...g, status: "added" as const } : g
       );
@@ -109,7 +137,7 @@ const useGameStore = create<GameState>((set, get) => ({
   ) => {
     try {
       if (includeSaveFiles) {
-        await invoke("delete_game_saves", { gameId: gameTitle });
+        await invoke("delete_game_saves", { gameId: gameId });
       }
 
       // Delete from SQLite database

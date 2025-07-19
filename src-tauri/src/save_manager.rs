@@ -69,24 +69,10 @@ impl Default for BackupSettings {
 }
 
 impl SaveFile {
-    pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String) -> Self {
+    pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String, origin_path: String) -> Self {
         let now = Utc::now().to_rfc3339();
         let expanded_path = expand_tilde(&file_path);
-
-        // For mock saves, set origin_path to the Steam saves directory
-        let origin_path = if let Some(home) = dirs::home_dir() {
-            let mock_saves_path = home
-                .join("Library/Application Support/Steam/steamapps/common")
-                .join(&game_id)
-                .join("saves");
-            if mock_saves_path.exists() {
-                mock_saves_path
-            } else {
-                expanded_path.clone()
-            }
-        } else {
-            expanded_path.clone()
-        };
+        let expanded_origin_path = expand_tilde(&origin_path);
 
         Self {
             id: file_name.clone(),
@@ -97,7 +83,7 @@ impl SaveFile {
             size_bytes,
             tags: Vec::new(),
             file_path: expanded_path.to_string_lossy().into_owned(),
-            origin_path: origin_path.to_string_lossy().into_owned(),
+            origin_path: expanded_origin_path.to_string_lossy().into_owned(),
         }
     }
 }
@@ -318,13 +304,13 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         });
     }
 
+    // Get the game from database to get the actual save location
+    let game = get_game_by_id(game_id.clone()).await?;
+    
     // Get the origin path (where to restore the save)
-    let origin_path = if let Some(home) = dirs::home_dir() {
-        let path = home
-            .join("Library/Application Support/Steam/steamapps/common")
-            .join(&game_id)
-            .join("saves")
-            .join("save1.sav"); // For test purposes, always restore to save1.sav
+    let origin_path = if !game.save_location.is_empty() {
+        let save_location_path = expand_tilde(&game.save_location);
+        let path = save_location_path.join(&save_id);
 
         // Create the directory if it doesn't exist
         if let Some(parent) = path.parent() {
@@ -336,7 +322,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         path
     } else {
         return Err(SaveFileError {
-            message: "Failed to get home directory".to_string(),
+            message: "Game has no save location configured".to_string(),
         });
     };
 
@@ -375,6 +361,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         save_id,
         metadata.len(),
         save_path.to_string_lossy().into_owned(),
+        origin_path.to_string_lossy().into_owned(),
     ))
 }
 
@@ -391,14 +378,15 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         message: format!("Failed to create saves directory: {}", e),
     })?;
 
-    // Get the origin path (mock saves directory)
-    let origin_path = if let Some(home) = dirs::home_dir() {
-        home.join("Library/Application Support/Steam/steamapps/common")
-            .join(&game_id)
-            .join("saves")
+    // Get the game from database to get the actual save location
+    let game = get_game_by_id(game_id.clone()).await?;
+    
+    // Get the origin path from the game's save_location
+    let origin_path = if !game.save_location.is_empty() {
+        expand_tilde(&game.save_location)
     } else {
         return Err(SaveFileError {
-            message: "Failed to get home directory".to_string(),
+            message: "Game has no save location configured".to_string(),
         });
     };
 
@@ -472,7 +460,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 
     db::execute_blocking(move |conn| {
         conn.execute(
-            "UPDATE games SET save_count = ?1, last_backup_time = ?2 WHERE title = ?3",
+            "UPDATE games SET save_count = ?1, last_backup_time = ?2 WHERE id = ?3",
             params![save_count, backup_time, game_id_clone],
         )
         .map_err(|e| format!("Failed to update game info: {}", e))?;
@@ -488,6 +476,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
             save_file_name,
             metadata.len(),
             save_path.to_string_lossy().into_owned(),
+            origin_path.to_string_lossy().into_owned(),
         ),
         backup_time,
         save_count: save_files.len() as i32,
@@ -502,6 +491,15 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
     if !game_saves_dir.exists() {
         return Ok(Vec::new());
     }
+
+    // Get the game from database to get the actual save location
+    let game = get_game_by_id(game_id.clone()).await?;
+    let origin_path = if !game.save_location.is_empty() {
+        game.save_location
+    } else {
+        // Fallback to empty string if no save location configured
+        String::new()
+    };
 
     let mut saves = Vec::new();
     for entry in fs::read_dir(&game_saves_dir).map_err(|e| SaveFileError {
@@ -523,6 +521,7 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
                 file_name,
                 metadata.len(),
                 file_path,
+                origin_path.clone(),
             ));
         }
     }
