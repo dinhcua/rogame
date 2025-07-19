@@ -5,6 +5,10 @@
 'rog-blue': '#00b4d8',
 'sidebar': '#141414', */
 
+button {
+  cursor: pointer;
+}
+
 @theme {
   /* Light theme colors */
   --color-game-dark: #0a0a0a;

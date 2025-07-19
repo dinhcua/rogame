@@ -1,0 +1,395 @@
+{
+  "settings": {
+    "general": {
+      "title": "Cài Đặt Chung",
+      "darkMode": {
+        "label": "Chế Độ Tối",
+        "description": "Bật chế độ tối cho ứng dụng"
+      },
+      "notifications": {
+        "label": "Thông Báo Desktop",
+        "description": "Hiển thị thông báo cho các sự kiện sao lưu"
+      },
+      "startup": {
+        "label": "Khởi Động Cùng Hệ Thống",
+        "description": "Khởi chạy ứng dụng khi hệ thống khởi động"
+      }
+    },
+    "backup": {
+      "title": "Cài Đặt Sao Lưu",
+      "location": {
+        "label": "Vị Trí Sao Lưu Mặc Định",
+        "browse": "Duyệt"
+      },
+      "compression": {
+        "label": "Mức Độ Nén Mặc Định",
+        "none": "Không",
+        "low": "Thấp",
+        "medium": "Trung bình",
+        "high": "Cao"
+      },
+      "schedule": {
+        "label": "Lịch Sao Lưu",
+        "automatic": {
+          "title": "Sao Lưu Tự Động",
+          "description": "Tạo bản sao lưu theo lịch"
+        },
+        "frequency": {
+          "label": "Tần Suất",
+          "everySave": "Mỗi lần lưu",
+          "hourly": "Mỗi giờ",
+          "daily": "Mỗi ngày",
+          "weekly": "Mỗi tuần",
+          "custom": "Tùy chỉnh"
+        },
+        "timeOfDay": "Thời Gian Trong Ngày"
+      }
+    },
+    "cloud": {
+      "title": "Tích Hợp Đám Mây",
+      "connected": "Đã kết nối với {{email}}",
+      "notConnected": "Chưa kết nối",
+      "connect": "Kết nối",
+      "disconnect": "Ngắt kết nối",
+      "autoSync": {
+        "title": "Cài Đặt Đồng Bộ Tự Động",
+        "enabled": "Bật đồng bộ tự động",
+        "frequency": {
+          "label": "Tần suất đồng bộ",
+          "everySave": "Mỗi lần lưu",
+          "hourly": "Mỗi giờ",
+          "daily": "Mỗi ngày",
+          "manual": "Thủ công"
+        }
+      }
+    },
+    "danger": {
+      "title": "Vùng Nguy Hiểm",
+      "clearData": {
+        "title": "Xóa Tất Cả Dữ Liệu",
+        "description": "Xóa tất cả trò chơi đã lưu và cài đặt",
+        "button": "Xóa Dữ Liệu"
+      },
+      "reset": {
+        "title": "Đặt Lại Mặc Định",
+        "description": "Đặt lại tất cả cài đặt về giá trị mặc định",
+        "button": "Đặt Lại Cài Đặt"
+      }
+    },
+    "language": {
+      "label": "Ngôn Ngữ",
+      "en": "Tiếng Anh",
+      "vi": "Tiếng Việt"
+    }
+  },
+  "gameUI": {
+    "scanner": {
+      "title": "Quét Game",
+      "description": "Tự động phát hiện và nhập game từ hệ thống của bạn",
+      "scanButton": "Quét Game",
+      "scanning": "Đang quét thư mục game...",
+      "steamFound": "Thư viện Steam: Tìm thấy {{count}} game",
+      "epicFound": "Epic Games: Tìm thấy {{count}} game",
+      "scanningGog": "Đang quét GOG Galaxy..."
+    },
+    "foundGames": {
+      "title": "Game Vừa Tìm Thấy",
+      "importAll": "Nhập Tất Cả",
+      "addToLibrary": "Thêm vào Thư Viện",
+      "added": "Đã Thêm"
+    },
+    "filters": {
+      "search": "Tìm kiếm game...",
+      "platform": "Chọn Nền Tảng",
+      "sortBy": "Sắp Xếp Theo"
+    },
+    "status": {
+      "synced": "Đã Đồng Bộ",
+      "syncing": "Đang Đồng Bộ..."
+    },
+    "saveCount": "{{count}} bản lưu",
+    "platforms": {
+      "all": "Tất Cả Nền Tảng",
+      "steam": "Steam",
+      "epic": "Epic Games",
+      "gog": "GOG",
+      "origin": "Origin"
+    },
+    "sort": {
+      "byName": "Sắp Xếp Theo Tên",
+      "byLastPlayed": "Sắp Xếp Theo Lần Chơi Gần Đây",
+      "bySaveCount": "Sắp Xếp Theo Số Lượng Save",
+      "bySize": "Sắp Xếp Theo Kích Thước"
+    },
+    "categories": {
+      "allGames": "Tất Cả Game",
+      "recentlyPlayed": "Chơi Gần Đây",
+      "favorites": "Yêu Thích",
+      "actionRPG": "Action RPG",
+      "rpg": "RPG",
+      "strategy": "Chiến Thuật",
+      "action": "Hành Động",
+      "adventure": "Phiêu Lưu",
+      "jrpg": "JRPG",
+      "survivalHorror": "Kinh Dị Sinh Tồn",
+      "more": "Xem Thêm",
+      "less": "Thu Gọn"
+    },
+    "addGame": {
+      "title": "Thêm Game",
+      "description": "Thêm game mới vào thư viện"
+    },
+    "backup": {
+      "never": "Chưa bao giờ",
+      "justNow": "Vừa xong",
+      "minutesAgo": "{{count}} phút trước",
+      "hoursAgo": "{{count}} giờ trước",
+      "daysAgo": "{{count}} ngày trước",
+      "weeksAgo": "{{count}} tuần trước",
+      "monthsAgo": "{{count}} tháng trước",
+      "timeAgo": {
+        "lessThanAMinute": "chưa đến một phút",
+        "minutes": "{{count}} phút trước",
+        "hours": "{{count}} giờ trước",
+        "days": "{{count}} ngày trước",
+        "weeks": "{{count}} tuần trước",
+        "months": "{{count}} tháng trước"
+      }
+    },
+    "status": {
+      "synced": "Đã đồng bộ",
+      "syncing": "Đang đồng bộ"
+    },
+    "filters": {
+      "search": "Tìm kiếm game...",
+      "platform": "Nền tảng",
+      "sortBy": "Sắp xếp theo"
+    },
+    "platforms": {
+      "all": "Tất Cả Nền Tảng",
+      "steam": "Steam",
+      "epic": "Epic Games",
+      "gog": "GOG",
+      "origin": "Origin"
+    },
+    "sort": {
+      "byName": "Tên",
+      "byLastPlayed": "Lần chơi cuối",
+      "bySaveCount": "Số bản lưu",
+      "bySize": "Kích thước"
+    },
+    "categories": {
+      "allGames": "Tất Cả Game",
+      "recentlyPlayed": "Chơi Gần Đây",
+      "favorites": "Yêu Thích",
+      "actionRPG": "Action RPG",
+      "rpg": "RPG",
+      "strategy": "Chiến Thuật",
+      "action": "Hành Động",
+      "adventure": "Phiêu Lưu",
+      "jrpg": "JRPG",
+      "survivalHorror": "Sinh Tồn Kinh Dị",
+      "more": "Xem thêm",
+      "less": "Thu gọn"
+    }
+  },
+  "gameDetail": {
+    "title": "Chi tiết trò chơi",
+    "actions": {
+      "backup": "Sao lưu",
+      "backingUp": "Đang sao lưu...",
+      "restore": "Khôi phục",
+      "deleteGame": "Xóa trò chơi"
+    },
+    "saveDetails": {
+      "title": "Thông tin sao lưu",
+      "totalSaves": "Tổng số bản sao lưu",
+      "saveFiles": "bản sao lưu",
+      "platform": "Nền tảng",
+      "lastPlayed": "Lần lưu cuối",
+      "category": "Thể loại",
+      "unknown": "Không xác định",
+      "never": "Chưa bao giờ"
+    },
+    "saveFiles": {
+      "title": "Danh sách bản sao lưu",
+      "manageAll": "Quản lý tất cả",
+      "loading": "Đang tải...",
+      "noSaves": "Chưa có bản sao lưu nào"
+    }
+  },
+  "history": {
+    "filters": {
+      "search": "Tìm kiếm bản sao lưu...",
+      "allGames": "Tất cả trò chơi",
+      "selectGame": "Chọn trò chơi",
+      "timeRange": {
+        "title": "Khoảng thời gian",
+        "allTime": "Tất cả",
+        "last24h": "24 giờ qua",
+        "lastWeek": "Tuần qua",
+        "lastMonth": "Tháng qua"
+      }
+    },
+    "actions": {
+      "export": "Xuất",
+      "filter": "Lọc"
+    },
+    "backup": {
+      "created": "Đã tạo {{time}}",
+      "backupFor": "Sao lưu cho {{game}}",
+      "restore": "Khôi phục",
+      "status": {
+        "synced": "Đã đồng bộ",
+        "syncing": "Đang đồng bộ",
+        "not_synced": "Chưa đồng bộ"
+      },
+      "timeAgo": {
+        "lessThanAMinute": "chưa đến một phút",
+        "minutes": "{{count}} phút trước",
+        "hours": "{{count}} giờ trước",
+        "days": "{{count}} ngày trước",
+        "weeks": "{{count}} tuần trước",
+        "months": "{{count}} tháng trước"
+      }
+    },
+    "fileSize": {
+      "bytes": "{{size}} bytes",
+      "kb": "{{size}} KB",
+      "mb": "{{size}} MB",
+      "gb": "{{size}} GB"
+    },
+    "loading": "Đang tải bản sao lưu...",
+    "noBackups": "Không có bản sao lưu nào",
+    "notifications": {
+      "restoreSuccess": "Khôi phục bản sao lưu thành công",
+      "restoreError": "Không thể khôi phục bản sao lưu"
+    },
+    "pagination": {
+      "showing": "Hiển thị {{start}}-{{end}} trong tổng số {{total}} bản sao lưu",
+      "previous": "Trước",
+      "next": "Sau"
+    }
+  },
+  "saveFile": {
+    "actions": {
+      "restore": "Khôi phục",
+      "delete": "Xóa file save",
+      "openBackupLocation": "Mở thư mục sao lưu",
+      "openOriginalLocation": "Mở thư mục save gốc"
+    },
+    "info": {
+      "lastModified": "Lần sửa cuối",
+      "size": "Kích thước"
+    }
+  },
+  "deleteGameModal": {
+    "title": "Xóa Game",
+    "confirmation": "Bạn có chắc chắn muốn xóa \"{gameTitle}\"? Hành động này không thể hoàn tác.",
+    "includeSaveFiles": "Đồng thời xóa tất cả các tệp lưu liên quan đến game này",
+    "deleting": "Đang xóa...",
+    "deleteButton": "Xóa Game"
+  },
+  "restoreModal": {
+    "title": "Khôi phục tệp lưu",
+    "created": "Tạo lúc",
+    "ago": "trước",
+    "size": "Kích thước",
+    "restoreButton": "Khôi phục",
+    "warning": "Khôi phục tệp lưu sẽ ghi đè lên tiến trình hiện tại của bạn",
+    "cancelButton": "Hủy"
+  },
+  "addGameModal": {
+    "title": "Thêm Game Thủ Công",
+    "gameInfo": {
+      "title": "Tên Game",
+      "titlePlaceholder": "Nhập tên game",
+      "platform": "Nền Tảng",
+      "platformPlaceholder": "Chọn nền tảng",
+      "version": "Phiên Bản Game",
+      "versionPlaceholder": "vd: 1.0.5"
+    },
+    "platforms": {
+      "epic": "Epic Games",
+      "other": "Khác"
+    },
+    "saveLocation": {
+      "title": "Vị Trí File Save",
+      "pathPlaceholder": "Đường dẫn đến thư mục file save",
+      "browse": "Duyệt",
+      "commonLocations": "Vị trí thường gặp: %USERPROFILE%/Documents/My Games, %APPDATA%/Local"
+    },
+    "savePattern": {
+      "title": "Mẫu File Save",
+      "placeholder": "vd: *.sav, save*.dat",
+      "hint": "Sử dụng ký tự đại diện (*) để khớp nhiều file"
+    },
+    "options": {
+      "monitorChanges": "Theo dõi thay đổi thư mục save",
+      "autoBackup": "Tự động tạo bản sao lưu",
+      "cloudSync": "Bật đồng bộ đám mây"
+    },
+    "actions": {
+      "add": "Thêm Game"
+    }
+  },
+  "backupSettings": {
+    "title": "Cài Đặt Sao Lưu",
+    "autoBackup": "Tự động sao lưu",
+    "interval": "Khoảng thời gian",
+    "maxBackups": "Số lượng sao lưu tối đa",
+    "compression": "Nén tệp tin",
+    "comingSoon": "Sắp ra mắt",
+    "intervals": {
+      "15min": "15 phút",
+      "30min": "30 phút",
+      "1hour": "1 giờ"
+    },
+    "maxBackups_options": {
+      "3saves": "3 bản sao lưu",
+      "5saves": "5 bản sao lưu",
+      "10saves": "10 bản sao lưu"
+    }
+  },
+  "cloudStorage": {
+    "title": "Lưu Trữ Đám Mây",
+    "connectedAs": "Đã kết nối với {{email}}",
+    "status": {
+      "notConnected": "Chưa kết nối"
+    },
+    "actions": {
+      "connect": "Kết Nối",
+      "disconnect": "Ngắt Kết Nối"
+    },
+    "frequency": {
+      "everySave": "Mỗi lần save",
+      "hourly": "Mỗi giờ",
+      "daily": "Mỗi ngày",
+      "manual": "Thủ công"
+    },
+    "autoSync": {
+      "title": "Cài Đặt Tự Động Đồng Bộ",
+      "enabled": "Bật tự động đồng bộ",
+      "frequency": "Tần suất đồng bộ",
+      "keepLocal": "Giữ bản sao cục bộ"
+    }
+  },
+  "common": {
+    "cancel": "Hủy",
+    "close": "Đóng"
+  },
+  "storageInfo": {
+    "title": "Bộ nhớ",
+    "usedSpace": "Dung lượng đã dùng",
+    "availableSpace": "Dung lượng còn trống"
+  },
+  "navigation": {
+    "home": "Trang Chủ",
+    "history": "Lịch Sử",
+    "settings": "Cài Đặt"
+  },
+  "dropdown": {
+    "searchPlaceholder": "Tìm kiếm...",
+    "noOptions": "Không tìm thấy kết quả"
+  }
+}
