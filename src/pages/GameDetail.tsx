@@ -1,32 +1,337 @@
-import React, { useState } from "react";
-import DropdownSelect from "../components/DropdownSelect";
+import React, { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
-import StorageInfo from "../components/StorageInfo";
+// import StorageInfo from "../components/StorageInfo";
+import RestoreModal from "../components/RestoreModal";
+import DeleteGameModal from "../components/DeleteGameModal";
+import { Settings } from "lucide-react";
+import { Game } from "../types/game";
+import useGameStore from "../store/gameStore";
+import "../i18n/config";
 
-interface GameDetailProps {
-  // Add props as needed
+interface SaveFile {
+  id: string;
+  game_id: string;
+  file_name: string;
+  created_at: string;
+  modified_at: string;
+  size_bytes: number;
+  tags: string[];
 }
 
-const GameDetail: React.FC<GameDetailProps> = () => {
-  const [selectedTag, setSelectedTag] = useState("all");
+interface BackupResponse {
+  save_file: SaveFile;
+  backup_time: number;
+  save_count: number;
+}
 
-  const tagOptions = [
-    { value: "all", label: "All Files" },
-    { value: "boss_fight", label: "Boss Fight (3)" },
-    { value: "achievement", label: "Achievement (5)" },
-    { value: "story", label: "Story (2)" },
-    { value: "checkpoint", label: "Checkpoint (4)" },
-  ];
+interface GameBackupSettings {
+  auto_backup: boolean;
+  backup_interval: string;
+  max_backups: number;
+  compression_enabled: boolean;
+}
+
+const GameDetail: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const { id: gameId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { deleteGame } = useGameStore();
+  const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSaveId, setSelectedSaveId] = useState<string | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [gameDetails, setGameDetails] = useState<Game | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
+  const [isDeletingSave, setIsDeletingSave] = useState(false);
+  const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
+
+  // Initialize language from localStorage
+  useEffect(() => {
+    const storedLanguage = localStorage.getItem("language");
+    if (storedLanguage && i18n.language !== storedLanguage) {
+      i18n.changeLanguage(storedLanguage);
+    }
+  }, []);
+
+  // const tagOptions = [
+  //   { value: "all", label: "All Files" },
+  //   { value: "boss_fight", label: "Boss Fight" },
+  //   { value: "achievement", label: "Achievement" },
+  //   { value: "story", label: "Story" },
+  //   { value: "checkpoint", label: "Checkpoint" },
+  // ];
+
+  // Load game details and save files
+  useEffect(() => {
+    const initializeGameData = async () => {
+      if (!gameId) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log("Loading game details for ID:", gameId);
+
+        // Load game details from SQLite database
+        const game = await invoke<Game>("get_game_by_id", { id: gameId });
+
+        console.log("Game loaded:", game);
+
+        if (game) {
+          // Load save files
+          const files = await invoke<SaveFile[]>("list_saves", {
+            gameId: game.id,
+          });
+
+          // Update game with correct save count
+          const updatedGame = {
+            ...game,
+            save_count: files.length,
+          };
+
+          setGameDetails(updatedGame);
+          setSaveFiles(files);
+
+          // Update the game in the store
+          await useGameStore.getState().updateGame(updatedGame);
+        } else {
+          setError("Game not found");
+        }
+      } catch (err) {
+        console.error("Error loading game details:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load game details"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeGameData();
+  }, [gameId]);
+
+  const handleBackup = async () => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await invoke<BackupResponse>("backup_save", {
+        gameId: gameDetails.id,
+      });
+
+      // Update save files list
+      setSaveFiles((prev) => [...prev, response.save_file]);
+
+      // Update game details with new backup time and save count from response
+      setGameDetails((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          last_backup_time: response.backup_time,
+          save_count: response.save_count,
+        };
+      });
+
+      // Update the game in the store
+      if (gameDetails) {
+        const updatedGame = {
+          ...gameDetails,
+          last_backup_time: response.backup_time,
+          save_count: response.save_count,
+        };
+        await useGameStore.getState().updateGame(updatedGame);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to backup save file"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestore = async (saveFile: SaveFile) => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log("Attempting to restore save:", {
+        gameId: gameDetails.title,
+        saveId: saveFile.id,
+      });
+
+      const result = await invoke<SaveFile>("restore_save", {
+        gameId: gameDetails.id,
+        saveId: saveFile.id,
+      });
+
+      console.log("Restore successful:", result);
+      setIsRestoreModalOpen(false);
+      const successMessage = `Successfully restored save file: ${result.file_name}`;
+      setError(successMessage);
+
+      // Refresh game details to get updated last_played time
+      if (gameId) {
+        const updatedGame = await invoke<Game>("get_game_by_id", {
+          id: gameId,
+        });
+        setGameDetails(updatedGame);
+        await useGameStore.getState().updateGame(updatedGame);
+      }
+    } catch (err) {
+      console.error("Restore failed:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to restore save file"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const gameTitle = gameDetails.title;
+
+      await deleteGame(gameId, gameTitle, includeSaveFiles);
+      navigate("/"); // Navigate back to game list after deletion
+    } catch (error) {
+      console.error("Delete game error:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete game"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSave = async (saveFile: SaveFile) => {
+    if (!gameId || !gameDetails) return;
+
+    try {
+      setIsDeletingSave(true);
+      setError(null);
+
+      console.log("Deleting save file:", {
+        gameId: gameDetails.title,
+        saveId: saveFile.file_name,
+      });
+
+      // Delete the save file using the Tauri command
+      await invoke("delete_save_file", {
+        gameId: gameDetails.title,
+        saveId: saveFile.file_name,
+      });
+
+      // Remove the deleted save from the state
+      setSaveFiles((prev) => prev.filter((file) => file.id !== saveFile.id));
+
+      // Update game details if needed
+      if (gameDetails) {
+        const updatedGame = {
+          ...gameDetails,
+          save_count: gameDetails.save_count - 1,
+        };
+        setGameDetails(updatedGame);
+
+        // Update the game in the database
+        await invoke("update_game", { game: updatedGame });
+
+        // Update the game in the store
+        await useGameStore.getState().updateGame(updatedGame);
+      }
+    } catch (err) {
+      console.error("Failed to delete save file:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to delete save file"
+      );
+    } finally {
+      setIsDeletingSave(false);
+    }
+  };
+
+  // Load backup settings and setup auto-backup
+  useEffect(() => {
+    const setupAutoBackup = async () => {
+      try {
+        const settings = await invoke<GameBackupSettings>(
+          "load_backup_settings"
+        );
+        if (settings.auto_backup && gameId && gameDetails) {
+          // Convert interval to milliseconds
+          const intervalMs =
+            settings.backup_interval === "15min"
+              ? 15 * 60 * 1000
+              : settings.backup_interval === "30min"
+              ? 30 * 60 * 1000
+              : 60 * 60 * 1000; // 1hour
+
+          const interval = setInterval(async () => {
+            await handleBackup();
+          }, intervalMs);
+
+          setAutoBackupInterval(interval);
+        }
+      } catch (error) {
+        console.error("Failed to setup auto-backup:", error);
+      }
+    };
+
+    setupAutoBackup();
+
+    // Cleanup interval on unmount
+    return () => {
+      if (autoBackupInterval) {
+        clearInterval(autoBackupInterval);
+      }
+    };
+  }, [gameId, gameDetails]);
+
+  const getLastSaveTime = () => {
+    if (saveFiles.length === 0) {
+      return t("gameDetail.saveDetails.never");
+    }
+
+    // Sort save files by modified time (newest first)
+    const sortedSaves = [...saveFiles].sort(
+      (a, b) =>
+        new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime()
+    );
+
+    // Format the date of the most recent save
+    const lastSave = new Date(sortedSaves[0].modified_at);
+    return lastSave.toLocaleString(i18n.language, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
 
   return (
     <div>
       {/* Game Header */}
       <div className="relative h-[500px]">
         <img
-          src="https://images.igdb.com/igdb/image/upload/t_1080p/sc8bj6.jpg"
-          alt="Game Banner"
+          src={gameDetails?.cover_image || ""}
+          alt={`${gameDetails?.title || "Game"} Banner`}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-game-dark via-game-dark/50 to-transparent"></div>
@@ -34,27 +339,58 @@ const GameDetail: React.FC<GameDetailProps> = () => {
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center">
               <img
-                src="https://images.igdb.com/igdb/image/upload/t_cover_big/co5nng.jpg"
-                alt="Game Cover"
-                className="w-40 h-52 rounded-lg mr-8 shadow-2xl"
+                src={gameDetails?.cover_image || ""}
+                alt={`${gameDetails?.title || "Game"} Cover`}
+                className="w-40 h-52 rounded-lg mr-8 shadow-2xl object-cover"
               />
               <div>
-                <h1 className="text-5xl font-bold mb-2">Hollow Knight</h1>
-                <p className="text-xl text-gray-300 mb-6">Save Files Manager</p>
+                <h1 className="text-5xl font-bold mb-2">
+                  {gameDetails?.title || "Loading..."}
+                </h1>
+                <p className="text-xl text-gray-300 mb-6">
+                  {t("gameDetail.title")}
+                </p>
                 <div className="flex items-center space-x-4">
                   <button
-                    onClick={() => {}}
-                    className="bg-green-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-500 transition-colors"
+                    onClick={handleBackup}
+                    disabled={isLoading}
+                    className={`bg-green-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-500 transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
-                    Backup Save
+                    {isLoading
+                      ? t("gameDetail.actions.backingUp")
+                      : t("gameDetail.actions.backup")}
                   </button>
                   <button
-                    onClick={() => {}}
-                    className="bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-500 transition-colors"
+                    onClick={() => setIsRestoreModalOpen(true)}
+                    disabled={isLoading || saveFiles.length === 0}
+                    className={`bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-500 transition-colors ${
+                      isLoading || saveFiles.length === 0
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
                   >
-                    Restore Save
+                    {t("gameDetail.actions.restore")}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="bg-red-600/20 px-8 py-3 rounded-lg text-lg font-medium hover:bg-red-500/30 transition-colors flex items-center space-x-2"
+                  >
+                    <span>{t("gameDetail.actions.deleteGame")}</span>
                   </button>
                 </div>
+                {error && (
+                  <p
+                    className={`mt-2 ${
+                      error.includes("Successfully")
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {error}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -68,23 +404,42 @@ const GameDetail: React.FC<GameDetailProps> = () => {
           <div className="col-span-8 space-y-8">
             {/* Save Details Section */}
             <div className="bg-game-card rounded-lg p-8">
-              <h2 className="text-2xl font-bold mb-4">Save Details</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                {t("gameDetail.saveDetails.title")}
+              </h2>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-gray-400 mb-2">Last Backup</h3>
-                  <p>March 15, 2024 - 14:30</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.totalSaves")}
+                  </h3>
+                  <p>
+                    {gameDetails?.save_count || 0}{" "}
+                    {t("gameDetail.saveDetails.saveFiles")}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Save Location</h3>
-                  <p>C:/Users/AppData/Hollow Knight/Saves</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.platform")}
+                  </h3>
+                  <p>
+                    {gameDetails?.platform ||
+                      t("gameDetail.saveDetails.unknown")}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Total Saves</h3>
-                  <p>3 Save Files</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.lastPlayed")}
+                  </h3>
+                  <p>{getLastSaveTime()}</p>
                 </div>
                 <div>
-                  <h3 className="text-gray-400 mb-2">Auto-Backup</h3>
-                  <p>Enabled (Every 30 mins)</p>
+                  <h3 className="text-gray-400 mb-2">
+                    {t("gameDetail.saveDetails.category")}
+                  </h3>
+                  <p>
+                    {gameDetails?.category ||
+                      t("gameDetail.saveDetails.unknown")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -92,73 +447,41 @@ const GameDetail: React.FC<GameDetailProps> = () => {
             {/* Save Files Section */}
             <div className="bg-game-card rounded-lg p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Save Files</h2>
+                <h2 className="text-2xl font-bold">
+                  {t("gameDetail.saveFiles.title")}
+                </h2>
                 <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => {}}
-                    className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>Manage Tags</span>
-                  </button>
                   <button
                     onClick={() => {}}
                     className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 transition-colors flex items-center space-x-2"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>Manage All</span>
+                    <Settings className="w-5 h-5" />
+                    <span>{t("gameDetail.saveFiles.manageAll")}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Tag Filters */}
-              <div className="mb-6">
-                <DropdownSelect
-                  options={tagOptions}
-                  value={selectedTag}
-                  onChange={setSelectedTag}
-                  placeholder="Filter by tag"
-                  className="w-48"
-                  icon={
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  }
-                />
-              </div>
-
               {/* Save Files List */}
               <div className="space-y-4">
-                <SaveFileItem />
-                <SaveFileItem />
+                {isLoading ? (
+                  <div className="text-center py-8 text-gray-400">
+                    {t("gameDetail.saveFiles.loading")}
+                  </div>
+                ) : saveFiles.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    {t("gameDetail.saveFiles.noSaves")}
+                  </div>
+                ) : (
+                  saveFiles.map((saveFile) => (
+                    <SaveFileItem
+                      key={saveFile.id}
+                      saveFile={saveFile}
+                      onRestore={handleRestore}
+                      onDelete={handleDeleteSave}
+                      isDeleting={isDeletingSave}
+                    />
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -167,10 +490,33 @@ const GameDetail: React.FC<GameDetailProps> = () => {
           <div className="col-span-4 space-y-8">
             <BackupSettings />
             <CloudStorage />
-            <StorageInfo />
+            {/* <StorageInfo /> */}
           </div>
         </div>
       </div>
+
+      {/* Restore Modal */}
+      <RestoreModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        onRestore={handleRestore}
+        saveFiles={saveFiles}
+        selectedSaveId={selectedSaveId}
+        onSelectSave={setSelectedSaveId}
+      />
+
+      {/* Delete Game Modal */}
+      <DeleteGameModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setIncludeSaveFiles(false);
+        }}
+        onDelete={handleDeleteGame}
+        gameTitle={gameDetails?.title || ""}
+        includeSaveFiles={includeSaveFiles}
+        setIncludeSaveFiles={setIncludeSaveFiles}
+      />
     </div>
   );
 };

@@ -1,12 +1,21 @@
 export interface Game {
   id: string;
   title: string;
-  coverImage: string;
+  cover_image: string;
   platform: string;
-  lastPlayed: string;
-  saveCount: number;
+  last_played: string;
+  last_backup_time: number | null; // Unix timestamp in milliseconds
+  save_count: number;
   size: string;
-  status: "synced" | "syncing" | "added";
+  status: "added" | "synced" | "syncing" | "not_synced";
   category: string;
-  isFavorite: boolean;
+  is_favorite: boolean;
+  save_locations?: SaveLocation[];
+}
+
+export interface SaveLocation {
+  path: string;
+  file_count: number;
+  total_size: string;
+  last_modified: string;
 }

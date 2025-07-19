@@ -1,51 +1,149 @@
-import React from "react";
+import React, { useState } from "react";
+import {
+  Clock,
+  HardDrive,
+  Trash2,
+  FolderOpen,
+  FolderInput,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import "../i18n/config";
 
-interface SaveFileItemProps {
-  // Add props as needed
+interface SaveFile {
+  id: string;
+  game_id: string;
+  file_name: string;
+  created_at: string;
+  modified_at: string;
+  size_bytes: number;
+  tags: string[];
+  file_path?: string;
+  origin_path?: string; // Add origin path
 }
 
-const SaveFileItem: React.FC<SaveFileItemProps> = () => {
+interface SaveFileItemProps {
+  saveFile: SaveFile;
+  onRestore: (saveFile: SaveFile) => void;
+  onDelete: (saveFile: SaveFile) => void;
+  isDeleting?: boolean;
+}
+
+const SaveFileItem: React.FC<SaveFileItemProps> = ({
+  saveFile,
+  onRestore,
+  onDelete,
+  isDeleting = false,
+}) => {
+  const { t } = useTranslation();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const formatSize = (bytes: number) => {
+    const sizes = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let size = bytes;
+
+    while (size >= 1024 && i < sizes.length - 1) {
+      size /= 1024;
+      i++;
+    }
+
+    return `${size.toFixed(1)} ${sizes[i]}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+
+  const handleOpenOriginalLocation = async () => {
+    if (!saveFile.origin_path) return;
+    try {
+      // For mock saves, this will open the Steam saves directory
+      await revealItemInDir(saveFile.origin_path);
+    } catch (error) {
+      console.error("Failed to open original save location:", error);
+    }
+  };
+
+  const handleOpenLocation = async () => {
+    if (!saveFile.file_path) return;
+    try {
+      await revealItemInDir(saveFile.file_path);
+    } catch (error) {
+      console.error("Failed to open backup location:", error);
+    }
+  };
+
   return (
-    <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <h3 className="font-medium">Save File 1</h3>
-            <div className="flex items-center space-x-2">
-              <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs">
-                Boss Fight
-              </span>
-              <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">
-                Achievement
-              </span>
-            </div>
-          </div>
-          <p className="text-sm text-gray-400">
-            Last modified: March 15, 2024 - 14:30
-          </p>
-          <p className="text-sm text-gray-400 mt-1">Size: 1.2 MB</p>
+    <div
+      className="bg-black/20 rounded-lg p-4 hover:bg-black/30 transition-colors"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-medium">{saveFile.file_name}</h4>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onRestore(saveFile)}
+            className={`${
+              isHovered ? "opacity-100" : "opacity-0"
+            } bg-blue-500/20 p-2 rounded hover:bg-blue-500/30 transition-all`}
+          >
+            {t("saveFile.actions.restore")}
+          </button>
+          {saveFile.origin_path && (
+            <button
+              onClick={handleOpenOriginalLocation}
+              className={`${
+                isHovered ? "opacity-100" : "opacity-0"
+              } bg-purple-500/20 p-2 rounded hover:bg-purple-500/30 transition-all`}
+              title={t("saveFile.actions.openOriginalLocation")}
+            >
+              <FolderInput className="w-5 h-5 text-purple-400" />
+            </button>
+          )}
+          {saveFile.file_path && (
+            <button
+              onClick={handleOpenLocation}
+              className={`${
+                isHovered ? "opacity-100" : "opacity-0"
+              } bg-gray-500/20 p-2 rounded hover:bg-gray-500/30 transition-all`}
+              title={t("saveFile.actions.openBackupLocation")}
+            >
+              <FolderOpen className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(saveFile)}
+            disabled={isDeleting}
+            className={`${
+              isHovered ? "opacity-100" : "opacity-0"
+            } bg-red-500/20 p-2 rounded hover:bg-red-500/30 transition-all ${
+              isDeleting ? "cursor-not-allowed opacity-50" : ""
+            }`}
+            title={t("saveFile.actions.delete")}
+          >
+            <Trash2 className="w-5 h-5 text-red-500" />
+          </button>
         </div>
-        <div className="flex items-start space-x-2">
-          <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Manage Tags
-            </span>
-          </button>
-          <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 group relative">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-            </svg>
-            <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Share
-            </span>
-          </button>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
+        <div className="flex items-center space-x-2">
+          <Clock className="w-4 h-4" />
+          <span>{formatDate(saveFile.modified_at)}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <HardDrive className="w-4 h-4" />
+          <span>{formatSize(saveFile.size_bytes)}</span>
         </div>
       </div>
     </div>
