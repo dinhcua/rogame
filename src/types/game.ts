@@ -10,6 +10,8 @@ export interface Game {
   status: "added" | "synced" | "syncing" | "not_synced";
   category: string;
   is_favorite: boolean;
+  save_location: string;
+  backup_location: string | null;
   save_locations?: SaveLocation[];
 }
 

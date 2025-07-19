@@ -206,9 +206,7 @@ const GameDetail: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const gameTitle = gameDetails.title;
-
-      await deleteGame(gameId, gameTitle, includeSaveFiles);
+      await deleteGame(gameId, includeSaveFiles);
       navigate("/"); // Navigate back to game list after deletion
     } catch (error) {
       console.error("Delete game error:", error);
