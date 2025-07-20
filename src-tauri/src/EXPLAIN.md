@@ -1,5 +1,71 @@
 # EXPLAIN.md
 
+## Cập nhật hỗ trợ JSON structure mới (2025-01-20)
+
+### Thay đổi cấu trúc JSON
+File `save_game_location.json` đã được cập nhật với cấu trúc mới:
+
+**Cấu trúc cũ:**
+```json
+{
+  "games": {
+    "Game Name": {
+      "locations": ["path1", "path2"],
+      "patterns": ["*.sav"],
+      "cover_image": "url",
+      "category": "Action"
+    }
+  }
+}
+```
+
+**Cấu trúc mới:**
+```json
+{
+  "3489700": {
+    "steam_id": "3489700",
+    "name": "Stellar Blade",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/3489700/remote",
+      "windows": "~/AppData/Local/SB/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/3489700/remote"
+    },
+    "save_pattern": ["*"]
+  }
+}
+```
+
+### Các thay đổi trong code
+
+#### 1. game_scanner.rs
+- **Struct mới**: `GameEntry` với `SaveLocations` chứa path cho từng OS
+- **Hàm mới**: `get_platform_save_location()` tự động chọn path theo OS hiện tại
+- **Update**: Các hàm scan, delete, list giờ sử dụng steam_id làm key và platform-specific paths
+
+#### 2. Cross-platform support
+Sử dụng conditional compilation để chọn đúng path:
+```rust
+#[cfg(target_os = "macos")]
+return &locations.macos;
+
+#[cfg(target_os = "windows")]
+return &locations.windows;
+
+#[cfg(target_os = "linux")]
+return &locations.linux;
+```
+
+#### 3. Không cần thay đổi save_manager.rs
+- `sync_game_to_db` vẫn hoạt động với SaveLocation array
+- Backup/restore sử dụng save_location từ database (đã platform-specific)
+
+### Lợi ích:
+- **Đa nền tảng thực sự**: Mỗi OS có path riêng phù hợp
+- **Đơn giản hóa**: Không cần array locations, chỉ cần 1 path/OS
+- **Tương thích ngược**: Frontend không cần thay đổi
+
+---
+
 ## Cấu trúc file libraryfolders.vdf
 
 File `libraryfolders.vdf` là file cấu hình của Steam chứa thông tin về các thư viện game.
