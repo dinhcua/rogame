@@ -395,90 +395,84 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         });
     };
 
-    // Create a new save file with timestamp
+    // Create a new backup with timestamp
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let save_file_name = format!("save_{}.sav", timestamp);
-    let save_path = game_saves_dir.join(&save_file_name);
+    let backup_name = format!("backup_{}", timestamp);
+    let backup_path = game_saves_dir.join(&backup_name);
 
-    // Find and copy the first available save file from origin
+    let mut total_size = 0u64;
     let mut found_save = false;
+    
     println!("Checking for save files in: {:?}", origin_path);
     
     if origin_path.exists() {
-        println!("Directory exists, scanning for save files...");
-        if let Ok(entries) = fs::read_dir(&origin_path) {
-            for entry in entries.filter_map(Result::ok) {
-                let entry_path = entry.path();
-                println!("Found file: {:?}", entry_path);
-                
-                if entry_path.is_file() {
-                    // For Stellar Blade and other games, check various save file patterns
-                    let file_name = entry_path.file_name().unwrap_or_default().to_string_lossy();
-                    let file_name_lower = file_name.to_lowercase();
-                    
-                    // Check if this is a save file
-                    let is_save_file = entry_path.extension().map_or(false, |ext| {
-                        let ext_str = ext.to_string_lossy().to_lowercase();
-                        ext_str == "sav" || ext_str == "dat" || ext_str == "sl2" || ext_str == "save"
-                    }) || file_name_lower.starts_with("save") 
-                       || file_name_lower.contains("slot")
-                       || (file_name.len() > 0 && !file_name.contains(".")); // Files without extension
-                    
-                    if is_save_file {
-                        println!("Copying save file: {:?} to {:?}", entry_path, save_path);
-                        
-                        // Update the save file name to preserve original extension
-                        let original_extension = entry_path.extension()
-                            .map(|ext| format!(".{}", ext.to_string_lossy()))
-                            .unwrap_or_default();
-                        let save_file_name_with_ext = format!("save_{}{}", timestamp, original_extension);
-                        let save_path_with_ext = game_saves_dir.join(&save_file_name_with_ext);
-                        
-                        if let Err(e) = fs::copy(&entry_path, &save_path_with_ext) {
-                            return Err(SaveFileError {
-                                message: format!("Failed to copy save file: {}", e),
-                            });
-                        }
-                        found_save = true;
-                        break;
-                    }
+        println!("Directory exists, creating backup...");
+        
+        // For pattern "*", backup the entire directory
+        if origin_path.is_dir() {
+            println!("Backing up entire directory: {:?} to {:?}", origin_path, backup_path);
+            
+            match copy_dir_recursive(&origin_path, &backup_path) {
+                Ok(size) => {
+                    total_size = size;
+                    found_save = true;
+                    println!("Successfully backed up directory, total size: {} bytes", total_size);
+                }
+                Err(e) => {
+                    return Err(SaveFileError {
+                        message: format!("Failed to backup directory: {}", e),
+                    });
                 }
             }
-        } else {
-            println!("Failed to read directory: {:?}", origin_path);
+        } else if origin_path.is_file() {
+            // If it's a single file, just copy it
+            println!("Backing up single file: {:?}", origin_path);
+            let file_name = origin_path.file_name().unwrap_or_default();
+            let save_path = backup_path.join(file_name);
+            
+            create_dir_all(&backup_path).map_err(|e| SaveFileError {
+                message: format!("Failed to create backup directory: {}", e),
+            })?;
+            
+            if let Ok(metadata) = fs::metadata(&origin_path) {
+                total_size = metadata.len();
+            }
+            
+            if let Err(e) = fs::copy(&origin_path, &save_path) {
+                return Err(SaveFileError {
+                    message: format!("Failed to copy save file: {}", e),
+                });
+            }
+            found_save = true;
         }
     } else {
-        println!("Save directory does not exist: {:?}", origin_path);
+        println!("Save location does not exist: {:?}", origin_path);
     }
 
     if !found_save {
-        let error_msg = format!(
-            "No save files found in directory: {:?}. Looking for patterns: .sav, .dat, or files starting with 'save'",
-            origin_path
-        );
+        let error_msg = format!("No save data found at: {:?}", origin_path);
         println!("{}", error_msg);
         return Err(SaveFileError {
             message: error_msg,
         });
     }
 
-    let metadata = fs::metadata(&save_path).map_err(|e| SaveFileError {
-        message: format!("Failed to get file metadata: {}", e),
-    })?;
-
     let backup_time = Utc::now().timestamp_millis();
 
-    // Count total number of save files
-    let mut save_files: Vec<_> = fs::read_dir(&game_saves_dir)
+    // Count total number of backups (directories starting with "backup_")
+    let mut backup_entries: Vec<_> = fs::read_dir(&game_saves_dir)
         .map_err(|e| SaveFileError {
             message: format!("Failed to read saves directory: {}", e),
         })?
         .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+        .filter(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            name.starts_with("backup_") && entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
+        })
         .collect();
 
-    // Sort files by creation time (newest first)
-    save_files.sort_by(|a, b| {
+    // Sort backups by creation time (newest first)
+    backup_entries.sort_by(|a, b| {
         b.metadata()
             .and_then(|m| m.created())
             .unwrap_or_else(|_| std::time::SystemTime::UNIX_EPOCH)
@@ -490,17 +484,20 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     });
 
     // Remove old backups if we exceed max_backups
-    if save_files.len() > settings.max_backups as usize {
-        for old_file in save_files.iter().skip(settings.max_backups as usize) {
-            if let Err(e) = fs::remove_file(old_file.path()) {
-                println!("Failed to remove old backup: {}", e);
+    if backup_entries.len() > settings.max_backups as usize {
+        for old_backup in backup_entries.iter().skip(settings.max_backups as usize) {
+            let backup_path = old_backup.path();
+            if backup_path.is_dir() {
+                if let Err(e) = fs::remove_dir_all(&backup_path) {
+                    println!("Failed to remove old backup directory: {}", e);
+                }
             }
         }
     }
 
     // Update the game's save_count and last_backup_time in the database
     let game_id_clone = game_id.clone();
-    let save_count = save_files.len() as i32;
+    let save_count = backup_entries.len() as i32;
 
     db::execute_blocking(move |conn| {
         conn.execute(
@@ -517,13 +514,13 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     Ok(BackupResponse {
         save_file: SaveFile::new(
             game_id,
-            save_file_name,
-            metadata.len(),
-            save_path.to_string_lossy().into_owned(),
+            backup_name.clone(),
+            total_size,
+            backup_path.to_string_lossy().into_owned(),
             origin_path.to_string_lossy().into_owned(),
         ),
         backup_time,
-        save_count: save_files.len() as i32,
+        save_count: backup_entries.len() as i32,
     })
 }
 
@@ -626,4 +623,101 @@ fn get_saves_directory() -> Result<PathBuf, SaveFileError> {
     })?;
 
     Ok(app_data_dir.join("rogame").join("saves"))
+}
+
+// Sync scanned game to database
+#[tauri::command]
+pub async fn sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFileError> {
+    let game_id = game_info["id"].as_str().unwrap_or("").to_string();
+    let title = game_info["title"].as_str().unwrap_or("").to_string();
+    let cover_image = game_info["cover_image"].as_str().unwrap_or("").to_string();
+    let platform = game_info["platform"].as_str().unwrap_or("").to_string();
+    let last_played = game_info["last_played"].as_str().unwrap_or("Never").to_string();
+    let save_count = game_info["save_count"].as_i64().unwrap_or(0) as i32;
+    let size = game_info["size"].as_str().unwrap_or("0B").to_string();
+    let status = game_info["status"].as_str().unwrap_or("no_saves").to_string();
+    let category = game_info["category"].as_str().unwrap_or("Unknown").to_string();
+    let is_favorite = game_info["is_favorite"].as_bool().unwrap_or(false);
+    
+    // Get first save location if available
+    let save_location = if let Some(locations) = game_info["save_locations"].as_array() {
+        if let Some(first_location) = locations.first() {
+            first_location["path"].as_str().unwrap_or("").to_string()
+        } else {
+            String::new()
+        }
+    } else {
+        String::new()
+    };
+
+    db::execute_blocking(move |conn| {
+        // Check if game exists
+        let exists: bool = conn
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM games WHERE id = ?1)",
+                params![&game_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+
+        if exists {
+            // Update existing game
+            conn.execute(
+                "UPDATE games SET 
+                    title = ?2, cover_image = ?3, platform = ?4, last_played = ?5,
+                    save_count = ?6, size = ?7, status = ?8, category = ?9,
+                    is_favorite = ?10, save_location = ?11
+                WHERE id = ?1",
+                params![
+                    game_id, title, cover_image, platform, last_played,
+                    save_count, size, status, category, is_favorite, save_location
+                ],
+            )
+            .map_err(|e| format!("Failed to update game: {}", e))?;
+        } else {
+            // Insert new game
+            conn.execute(
+                "INSERT INTO games (
+                    id, title, cover_image, platform, last_played, save_count,
+                    size, status, category, is_favorite, save_location,
+                    backup_location, last_backup_time
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, NULL)",
+                params![
+                    game_id, title, cover_image, platform, last_played,
+                    save_count, size, status, category, is_favorite, save_location
+                ],
+            )
+            .map_err(|e| format!("Failed to insert game: {}", e))?;
+        }
+
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+// Helper function to copy directory recursively
+fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<u64, std::io::Error> {
+    let mut total_size = 0u64;
+    
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = entry.file_name();
+        let dst_path = dst.join(&file_name);
+        
+        if path.is_dir() {
+            total_size += copy_dir_recursive(&path, &dst_path)?;
+        } else {
+            let metadata = entry.metadata()?;
+            total_size += metadata.len();
+            fs::copy(&path, &dst_path)?;
+        }
+    }
+    
+    Ok(total_size)
 }

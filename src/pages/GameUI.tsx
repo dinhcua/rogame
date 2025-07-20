@@ -193,7 +193,7 @@ const GameUI = () => {
     }, 500);
 
     invoke<Record<string, Game>>("scan_games")
-      .then((result) => {
+      .then(async (result) => {
         const games = Object.values(result);
 
         // Count games by platform
@@ -204,7 +204,20 @@ const GameUI = () => {
 
         setSteamGamesCount(steamGames.length);
         setEpicGamesCount(epicGames.length);
+        
+        // Sync all games to database
+        for (const [gameId, gameInfo] of Object.entries(result)) {
+          try {
+            await invoke("sync_game_to_db", { gameInfo });
+          } catch (error) {
+            console.error(`Failed to sync game ${gameId}:`, error);
+          }
+        }
+        
         setFoundGames(games);
+        
+        // Reload games from database to show in UI
+        await loadGames();
 
         // Ensure we reach 100%
         setScanPercentage(100);

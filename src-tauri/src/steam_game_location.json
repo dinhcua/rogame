@@ -1,0 +1,132 @@
+{
+  "3489700": {
+    "steam_id": "3489700",
+    "name": "Stellar Blade",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/3489700/remote",
+      "windows": "~/AppData/Local/SB/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/3489700/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "2358720": {
+    "steam_id": "2358720",
+    "name": "Black Myth: Wukong",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2358720/remote",
+      "windows": "~/AppData/Local/Black Myth Wukong/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2358720/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "3017860": {
+    "steam_id": "3017860",
+    "name": "Doom: The Dark Ages",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/3017860/remote",
+      "windows": "~/AppData/Local/Doom The Dark Ages/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/3017860/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "292030": {
+    "steam_id": "292030",
+    "name": "The Witcher 3",
+    "save_locations": {
+      "macos": "~/Documents/The Witcher 3/gamesaves",
+      "windows": "~/Documents/The Witcher 3/gamesaves",
+      "linux": "~/.local/share/Steam/userdata/*/292030/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "1091500": {
+    "steam_id": "1091500",
+    "name": "Cyberpunk 2077",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/1091500/remote",
+      "windows": "~/AppData/Local/CD Projekt Red/Cyberpunk 2077",
+      "linux": "~/.local/share/Steam/userdata/*/1091500/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "1174180": {
+    "steam_id": "1174180",
+    "name": "Red Dead Redemption 2",
+    "save_locations": {
+      "macos": "~/Documents/Rockstar Games/Red Dead Redemption 2/Settings",
+      "windows": "~/Documents/Rockstar Games/Red Dead Redemption 2/Profiles",
+      "linux": "~/.local/share/Steam/userdata/*/292030/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "2322010": {
+    "steam_id": "2322010",
+    "name": "God of War Ragnarök",
+    "save_locations": {
+      "macos": "~/Documents/God of War/SaveGames",
+      "windows": "~/Documents/God of War/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2322010/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "582010": {
+    "steam_id": "582010",
+    "name": "Monster Hunter: World",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/582010/remote",
+      "windows": "~/Steam/userdata/*/582010/remote",
+      "linux": "~/.local/share/Steam/userdata/*/582010/remote"
+    },
+    "save_pattern": ["*.sl2", "SAVEDATA1000"]
+  },
+  "2050650": {
+    "steam_id": "2050650",
+    "name": "Resident Evil 4",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2050650/remote",
+      "windows": "~/AppData/Roaming/RE4/Steam/*/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2050650/remote"
+    },
+    "save_pattern": ["*.sav"]
+  },
+  "1086940": {
+    "steam_id": "1086940",
+    "name": "Baldur's Gate 3",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+      "windows": "~/AppData/Local/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+      "linux": "~/.local/share/Steam/userdata/*/1086940/remote"
+    },
+    "save_pattern": ["*.lsv"]
+  },
+  "1325200": {
+    "steam_id": "1325200",
+    "name": "Nioh 2",
+    "save_locations": {
+      "macos": "~/Documents/KoeiTecmo/NIOH2",
+      "windows": "~/Documents/KoeiTecmo/NIOH2",
+      "linux": "~/.local/share/Steam/userdata/*/1325200/remote"
+    },
+    "save_pattern": ["*.dat", "SAVEDATA.BIN"]
+  },
+  "814380": {
+    "steam_id": "814380",
+    "name": "Sekiro Shadows Die Twice",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Sekiro",
+      "windows": "~/AppData/Roaming/Sekiro",
+      "linux": "~/.local/share/Steam/userdata/*/1325200/remote"
+    },
+    "save_pattern": ["*.sl2", "S0000.sl2"]
+  },
+  "1627720": {
+    "steam_id": "1627720",
+    "name": "Lies of P",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/1627720/remote",
+      "windows": "~/AppData/Local/LiesofP/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/1627720/remote"
+    },
+    "save_pattern": ["*.sav"]
+  }
+}
