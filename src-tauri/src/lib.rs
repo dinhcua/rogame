@@ -21,7 +21,8 @@ pub fn run() {
             save_manager::add_game,
             save_manager::update_game,
             save_manager::delete_game,
-            save_manager::toggle_favorite
+            save_manager::toggle_favorite,
+            save_manager::sync_game_to_db
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
