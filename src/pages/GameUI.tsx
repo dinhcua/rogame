@@ -205,19 +205,10 @@ const GameUI = () => {
         setSteamGamesCount(steamGames.length);
         setEpicGamesCount(epicGames.length);
         
-        // Sync all games to database
-        for (const [gameId, gameInfo] of Object.entries(result)) {
-          try {
-            await invoke("sync_game_to_db", { gameInfo });
-          } catch (error) {
-            console.error(`Failed to sync game ${gameId}:`, error);
-          }
-        }
-        
+        // Store found games without adding to database
         setFoundGames(games);
         
-        // Reload games from database to show in UI
-        await loadGames();
+        // Don't reload from database - just show the found games
 
         // Ensure we reach 100%
         setScanPercentage(100);

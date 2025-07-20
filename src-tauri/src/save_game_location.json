@@ -1,169 +1,132 @@
 {
-  "games": {
-    "Bloodborne": {
-      "locations": [
-        "~/AppData/Roaming/Bloodborne",
-        "~/Library/Application Support/Bloodborne",
-        "~/.local/share/Steam/userdata/*/1399750/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1399750/header.jpg",
-      "category": "Action RPG"
+  "3489700": {
+    "steam_id": "3489700",
+    "name": "Stellar Blade",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/3489700/remote",
+      "windows": "~/AppData/Local/SB/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/3489700/remote"
     },
-    "Elden Ring": {
-      "locations": [
-        "~/AppData/Roaming/EldenRing",
-        "~/Library/Application Support/EldenRing",
-        "~/.local/share/EldenRing"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*"]
+  },
+  "2358720": {
+    "steam_id": "2358720",
+    "name": "Black Myth: Wukong",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2358720/remote",
+      "windows": "~/AppData/Local/Black Myth Wukong/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2358720/remote"
     },
-    "Dark Souls III": {
-      "locations": [
-        "~/AppData/Roaming/DarkSoulsIII",
-        "~/Library/Application Support/Dark Souls III",
-        "~/.local/share/Steam/userdata/*/374320"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/374320/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*"]
+  },
+  "3017860": {
+    "steam_id": "3017860",
+    "name": "Doom: The Dark Ages",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/3017860/remote",
+      "windows": "~/AppData/Local/Doom The Dark Ages/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/3017860/remote"
     },
-    "The Witcher 3": {
-      "locations": [
-        "~/Documents/The Witcher 3/gamesaves",
-        "~/Library/Application Support/The Witcher 3/saves",
-        "~/.local/share/Steam/userdata/*/292030/remote/SaveGames"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*"]
+  },
+  "292030": {
+    "steam_id": "292030",
+    "name": "The Witcher 3",
+    "save_locations": {
+      "macos": "~/Documents/The Witcher 3/gamesaves",
+      "windows": "~/Documents/The Witcher 3/gamesaves",
+      "linux": "~/.local/share/Steam/userdata/*/292030/remote"
     },
-    "Cyberpunk 2077": {
-      "locations": [
-        "~/Saved Games/CD Projekt Red/Cyberpunk 2077",
-        "~/Library/Application Support/Steam/steamapps/common/Cyberpunk 2077/saves",
-        "~/.local/share/Steam/steamapps/compatdata/1091500/pfx/drive_c/users/steamuser/Saved Games/CD Projekt Red/Cyberpunk 2077"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*"]
+  },
+  "1091500": {
+    "steam_id": "1091500",
+    "name": "Cyberpunk 2077",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/1091500/remote",
+      "windows": "~/AppData/Local/CD Projekt Red/Cyberpunk 2077",
+      "linux": "~/.local/share/Steam/userdata/*/1091500/remote"
     },
-    "Red Dead Redemption 2": {
-      "locations": [
-        "~/Documents/Rockstar Games/Red Dead Redemption 2/Profiles",
-        "~/Library/Application Support/Rockstar Games/Red Dead Redemption 2/Profiles",
-        "~/.local/share/Steam/userdata/*/1174180/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/header.jpg",
-      "category": "Action Adventure"
+    "save_pattern": ["*"]
+  },
+  "1174180": {
+    "steam_id": "1174180",
+    "name": "Red Dead Redemption 2",
+    "save_locations": {
+      "macos": "~/Documents/Rockstar Games/Red Dead Redemption 2/Settings",
+      "windows": "~/Documents/Rockstar Games/Red Dead Redemption 2/Profiles",
+      "linux": "~/.local/share/Steam/userdata/*/292030/remote"
     },
-    "God of War": {
-      "locations": [
-        "~/Documents/God of War/SaveGames",
-        "~/Library/Application Support/Steam/userdata/*/1593500/remote",
-        "~/.local/share/Steam/userdata/*/1593500/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1593500/header.jpg",
-      "category": "Action Adventure"
+    "save_pattern": ["*"]
+  },
+  "2322010": {
+    "steam_id": "2322010",
+    "name": "God of War Ragnarök",
+    "save_locations": {
+      "macos": "~/Documents/God of War/SaveGames",
+      "windows": "~/Documents/God of War/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2322010/remote"
     },
-    "Final Fantasy VII Remake": {
-      "locations": [
-        "~/Documents/My Games/FINAL FANTASY VII REMAKE/Steam/*/SaveGames",
-        "~/Library/Application Support/Steam/userdata/*/1462040/remote",
-        "~/.local/share/Steam/userdata/*/1462040/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1462040/header.jpg",
-      "category": "JRPG"
+    "save_pattern": ["*"]
+  },
+  "582010": {
+    "steam_id": "582010",
+    "name": "Monster Hunter: World",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/582010/remote",
+      "windows": "~/Steam/userdata/*/582010/remote",
+      "linux": "~/.local/share/Steam/userdata/*/582010/remote"
     },
-    "Monster Hunter: World": {
-      "locations": [
-        "~/Steam/userdata/*/582010/remote",
-        "~/Library/Application Support/Steam/userdata/*/582010/remote",
-        "~/.local/share/Steam/userdata/*/582010/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/582010/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*.sl2", "SAVEDATA1000"]
+  },
+  "2050650": {
+    "steam_id": "2050650",
+    "name": "Resident Evil 4",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2050650/remote",
+      "windows": "~/AppData/Roaming/RE4/Steam/*/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2050650/remote"
     },
-    "Resident Evil 4": {
-      "locations": [
-        "~/AppData/Roaming/RE4/Steam/*/SaveGames",
-        "~/Library/Application Support/Steam/userdata/*/2050650/remote",
-        "~/.local/share/Steam/userdata/*/2050650/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/header.jpg",
-      "category": "Survival Horror"
+    "save_pattern": ["*.sav"]
+  },
+  "1086940": {
+    "steam_id": "1086940",
+    "name": "Baldur's Gate 3",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+      "windows": "~/AppData/Local/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
+      "linux": "~/.local/share/Steam/userdata/*/1086940/remote"
     },
-    "Baldur's Gate 3": {
-      "locations": [
-        "~/AppData/Local/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
-        "~/Library/Application Support/Larian Studios/Baldur's Gate 3/PlayerProfiles/*/Savegames",
-        "~/.local/share/Steam/userdata/*/1086940/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg",
-      "category": "RPG"
+    "save_pattern": ["*.lsv"]
+  },
+  "1325200": {
+    "steam_id": "1325200",
+    "name": "Nioh 2",
+    "save_locations": {
+      "macos": "~/Documents/KoeiTecmo/NIOH2",
+      "windows": "~/Documents/KoeiTecmo/NIOH2",
+      "linux": "~/.local/share/Steam/userdata/*/1325200/remote"
     },
-    "Nioh 2": {
-      "locations": [
-        "~/Documents/KoeiTecmo/NIOH2",
-        "~/Library/Application Support/Steam/userdata/*/1325200/remote",
-        "~/.local/share/Steam/userdata/*/1325200/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1325200/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*.dat", "SAVEDATA.BIN"]
+  },
+  "814380": {
+    "steam_id": "814380",
+    "name": "Sekiro Shadows Die Twice",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Sekiro",
+      "windows": "~/AppData/Roaming/Sekiro",
+      "linux": "~/.local/share/Steam/userdata/*/1325200/remote"
     },
-    "Sekiro Shadows Die Twice": {
-      "locations": [
-        "~/AppData/Roaming/Sekiro",
-        "~/Library/Application Support/Sekiro",
-        "~/.local/share/Steam/userdata/*/814380/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/814380/header.jpg",
-      "category": "Action RPG"
+    "save_pattern": ["*.sl2", "S0000.sl2"]
+  },
+  "1627720": {
+    "steam_id": "1627720",
+    "name": "Lies of P",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/1627720/remote",
+      "windows": "~/AppData/Local/LiesofP/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/1627720/remote"
     },
-    "Lies of P": {
-      "locations": [
-        "~/AppData/Local/LiesofP/Saved/SaveGames",
-        "~/Library/Application Support/Steam/userdata/*/1627720/remote",
-        "~/.local/share/Steam/userdata/*/1627720/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1627720/header.jpg",
-      "category": "Action RPG"
-    },
-    "Doom: The Dark Ages": {
-      "locations": [
-        "~/Saved Games/id Software/DOOMTheDarkAges/base",
-        "~/Library/Application Support/DOOMTheDarkAges/base",
-        "~/.local/share/Steam/userdata/*/3017860/remote",
-        "~/AppData/Local/Packages/BethesdaSoftworks.ProjectTitan_3275kfvn8vcwc/SystemAppData/wgs"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/3017860/header.jpg",
-      "category": "FPS",
-      "steam_id": "3017860"
-    },
-    "StellarBlade": {
-      "locations": [
-        "~/AppData/Local/SB/Saved/SaveGames",
-        "~/AppData/Local/ProjectEve/Saved/SaveGames",
-        "~/Documents/My Games/StellarBlade/SaveData",
-        "~/.local/share/Steam/userdata/*/3489700/remote",
-        "~/Library/Application Support/Steam/userdata/*/3489700/remote"
-      ],
-      "patterns": ["*"],
-      "cover_image": "https://cdn.cloudflare.steamstatic.com/steam/apps/3489700/header.jpg",
-      "category": "Action RPG",
-      "steam_id": "3489700"
-    }
+    "save_pattern": ["*.sav"]
   }
 }

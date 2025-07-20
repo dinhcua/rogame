@@ -286,7 +286,7 @@
   "deleteGameModal": {
     "title": "Xóa Game",
     "confirmation": "Bạn có chắc chắn muốn xóa \"{gameTitle}\"? Hành động này không thể hoàn tác.",
-    "includeSaveFiles": "Đồng thời xóa tất cả các tệp lưu liên quan đến game này",
+    "includeSaveFiles": "Đồng thời xóa tất cả các bản sao lưu (backup) của game này",
     "deleting": "Đang xóa...",
     "deleteButton": "Xóa Game"
   },
