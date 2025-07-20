@@ -251,7 +251,7 @@
   "deleteGameModal": {
     "title": "Delete Game",
     "confirmation": "Are you sure you want to delete \"{{gameTitle}}\"? This action cannot be undone.",
-    "includeSaveFiles": "Also delete all save files associated with this game",
+    "includeSaveFiles": "Also delete all backup files associated with this game",
     "deleting": "Deleting...",
     "deleteButton": "Delete Game"
   },
