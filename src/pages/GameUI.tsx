@@ -6,8 +6,10 @@ import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
 import PlatformIcon from "../components/PlatformIcon";
+import ToastContainer from "../components/ToastContainer";
 import { invoke } from "@tauri-apps/api/core";
 import useGameStore from "../store/gameStore";
+import { useToast } from "../hooks/useToast";
 import {
   Search,
   ShoppingBag,
@@ -62,6 +64,7 @@ const getSortOptions = (t: any) => [
 
 const GameUI = () => {
   const { t } = useTranslation();
+  const { toasts, removeToast, success, error: showError } = useToast();
 
   const {
     games,
@@ -217,17 +220,28 @@ const GameUI = () => {
         setTimeout(() => {
           setShowScanProgress(false);
           setShowFoundGames(true);
+          success(t("gameUI.success.scanComplete", { count: games.length }));
         }, 500);
       })
       .catch((error) => {
         console.error("Error scanning games:", error);
         clearInterval(progressInterval);
         setShowScanProgress(false);
+        showError(t("gameUI.errors.scanFailed", { error: error.message || "Unknown error" }));
       });
   };
 
   const addGameToLibrary = async (gameId: string) => {
-    await addFoundGameToLibrary(gameId);
+    try {
+      await addFoundGameToLibrary(gameId);
+      const game = foundGames.find(g => g.id === gameId);
+      if (game) {
+        success(t("gameUI.success.gameAdded", { title: game.title }));
+      }
+    } catch (error) {
+      console.error("Failed to add game:", error);
+      showError(t("gameUI.errors.addGameFailed"));
+    }
   };
 
   const handleDeleteGame = async () => {
@@ -245,13 +259,14 @@ const GameUI = () => {
 
       await deleteGame(gameToDelete.id, includeSaveFiles);
       setShowDeleteModal(false);
+      success(t("gameUI.success.gameDeleted", { title: gameToDelete.title }));
       setGameToDelete(null);
       setIncludeSaveFiles(false);
     } catch (error) {
       console.error("Failed to delete game:", error);
-      setDeleteError(
-        error instanceof Error ? error.message : "Failed to delete game"
-      );
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete game";
+      setDeleteError(errorMessage);
+      showError(t("gameUI.errors.deleteFailed", { error: errorMessage }));
     } finally {
       setIsDeleting(false);
     }
@@ -259,6 +274,7 @@ const GameUI = () => {
 
   return (
     <div className="bg-game-dark text-white font-sans">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Main Content */}
       <div>
         {/* Game Scanner Section */}
@@ -328,9 +344,17 @@ const GameUI = () => {
                 </h3>
                 <div className="flex items-center space-x-4">
                   <button
-                    onClick={() =>
-                      foundGames.forEach((game) => addGameToLibrary(game.id))
-                    }
+                    onClick={async () => {
+                      try {
+                        for (const game of foundGames) {
+                          await addGameToLibrary(game.id);
+                        }
+                        success(t("gameUI.success.allGamesImported", { count: foundGames.length }));
+                      } catch (error) {
+                        console.error("Failed to import all games:", error);
+                        showError(t("gameUI.errors.importAllFailed"));
+                      }
+                    }}
                     className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-5 h-5" />
@@ -487,7 +511,18 @@ const GameUI = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        toggleFavorite(game.id).catch(console.error);
+                        toggleFavorite(game.id)
+                          .then(() => {
+                            if (game.is_favorite) {
+                              success(t("gameUI.success.removedFromFavorites", { title: game.title }));
+                            } else {
+                              success(t("gameUI.success.addedToFavorites", { title: game.title }));
+                            }
+                          })
+                          .catch((error) => {
+                            console.error("Failed to toggle favorite:", error);
+                            showError(t("gameUI.errors.toggleFavoriteFailed"));
+                          });
                       }}
                       className={`bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors ${
                         game.is_favorite ? "text-yellow-500" : "text-white"
@@ -576,9 +611,15 @@ const GameUI = () => {
       <AddGameModal
         isOpen={showAddGameModal}
         onClose={() => setShowAddGameModal(false)}
-        onAdd={(gameData) => {
-          // TODO: Implement adding game to library
-          console.log("Adding game:", gameData);
+        onAdd={async (gameData) => {
+          try {
+            // TODO: Implement adding game to library
+            console.log("Adding game:", gameData);
+            success(t("gameUI.success.gameAddedManually"));
+          } catch (error) {
+            console.error("Failed to add game:", error);
+            showError(t("gameUI.errors.addGameFailed"));
+          }
         }}
       />
 

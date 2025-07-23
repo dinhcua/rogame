@@ -13,8 +13,11 @@
     "windows": [
       {
         "title": "rogame",
-        "width": 800,
-        "height": 600
+        "width": 1000,
+        "height": 700,
+        "resizable": false,
+        "decorations": true,
+        "center": true
       }
     ],
     "security": {
@@ -31,8 +34,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "src/save_game_location.json"
-    ]
+    "resources": ["src/save_game_location.json"]
   }
 }

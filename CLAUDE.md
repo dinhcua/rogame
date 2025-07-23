@@ -190,6 +190,6 @@ Manual testing scripts available:
 - Use Web Workers for CPU-intensive tasks
 - Profile before optimizing
 
-you must alway run !claudepoint every change this is automation then please add "[AUTO]" text in ahead of description
+You must always run `!claudepoint` for every change. This is automation. Therefore, please add "[AUTO]" at the beginning of the description. Include a very detailed explanation of the change in the "details" argument.
 
-run !uv run .claude/hooks/remove_checkpoint.py to remove all checkpoints
+Run `!uv run .claude/hooks/remove_checkpoint.py` to remove all checkpoints.
