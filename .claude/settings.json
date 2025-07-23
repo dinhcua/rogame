@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(cargo check:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/dinhcua/Documents/2025/rogame/rogame/scripts/generate_mock_games.sh:*)",
+      "Bash(ls:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(npm run tauri build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(rustc:*)",
+      "Bash(./test_placeholders)",
+      "Bash(cargo test:*)",
+      "Bash(grep:*)",
+      "Bash(claudepoint)",
+      "Bash(npx:*)",
+      "Bash(claudepoint create:*)",
+      "Bash(node:*)",
+      "mcp__claudepoint__create_checkpoint",
+      "mcp__claudepoint__list_checkpoints"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    // "Stop": [
+    //   {
+    //     "matcher": "Write|Update|Delete|Bash",
+    //     "hooks": [
+    //       {
+    //         "type": "command",
+    //         "command": "uv run .claude/hooks/checkpoint.py"
+    //       }
+    //     ]
+    //   }
+    // ]
+  }
+}
