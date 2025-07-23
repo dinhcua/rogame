@@ -4,7 +4,8 @@ import { invoke } from "@tauri-apps/api/core";
 import DropdownSelect from "../components/DropdownSelect";
 import { RefreshCw, MoreVertical } from "lucide-react";
 import { Game } from "../types/game";
-import NotificationModal from "../components/NotificationModal";
+import { useToast } from "../hooks/useToast";
+import ToastContainer from "../components/ToastContainer";
 import "../i18n/config";
 
 interface SaveFile {
@@ -168,18 +169,10 @@ const BackupCard: React.FC<{
 
 export default function History() {
   const { t } = useTranslation();
+  const { toasts, success, error, info, removeToast } = useToast();
   const [backups, setBackups] = useState<BackupHistoryItem[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-    isOpen: boolean;
-  }>({
-    message: "",
-    type: "success",
-    isOpen: false,
-  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
@@ -203,22 +196,13 @@ export default function History() {
       setGames(Object.values(result));
     } catch (err) {
       console.error("Failed to load games:", err);
-      setNotification({
-        message: "Failed to load games",
-        type: "error",
-        isOpen: true,
-      });
+      error(t("history.notifications.loadGamesError") || "Failed to load games");
     }
   };
 
   const loadBackups = async () => {
     try {
       setLoading(true);
-      setNotification({
-        message: "",
-        type: "success",
-        isOpen: false,
-      });
 
       // First get all games
       const gamesResult = await invoke<Record<string, Game>>("scan_games");
@@ -280,11 +264,7 @@ export default function History() {
       }));
     } catch (err) {
       console.error("Failed to load backups:", err);
-      setNotification({
-        message: "Failed to load backups",
-        type: "error",
-        isOpen: true,
-      });
+      error(t("history.notifications.loadBackupsError") || "Failed to load backups");
     } finally {
       setLoading(false);
     }
@@ -302,18 +282,10 @@ export default function History() {
         saveId: backup.save_file.id,
       });
 
-      setNotification({
-        message: t("history.notifications.restoreSuccess"),
-        type: "success",
-        isOpen: true,
-      });
+      success(t("history.notifications.restoreSuccess"));
     } catch (err) {
       console.error("Failed to restore backup:", err);
-      setNotification({
-        message: t("history.notifications.restoreError"),
-        type: "error",
-        isOpen: true,
-      });
+      error(t("history.notifications.restoreError"));
     }
   };
 
@@ -380,7 +352,9 @@ export default function History() {
           />
         </div>
         <div className="flex items-center space-x-4">
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => info(t("history.notifications.exportFeatureComingSoon") || "Export feature coming soon!")}
+            className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -396,7 +370,9 @@ export default function History() {
             </svg>
             <span>{t("history.actions.export")}</span>
           </button>
-          <button className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => info(t("history.notifications.filterFeatureComingSoon") || "Filter feature coming soon!")}
+            className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -517,12 +493,7 @@ export default function History() {
         </div>
       )}
 
-      <NotificationModal
-        isOpen={notification.isOpen}
-        onClose={() => setNotification((prev) => ({ ...prev, isOpen: false }))}
-        message={notification.message}
-        type={notification.type}
-      />
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }

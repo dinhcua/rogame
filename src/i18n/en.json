@@ -156,6 +156,22 @@
         "weeks": "{{count}} weeks ago",
         "months": "{{count}} months ago"
       }
+    },
+    "success": {
+      "scanComplete": "Found {{count}} games",
+      "gameAdded": "{{title}} added to library",
+      "gameDeleted": "{{title}} deleted successfully",
+      "addedToFavorites": "{{title}} added to favorites",
+      "removedFromFavorites": "{{title}} removed from favorites",
+      "allGamesImported": "Imported {{count}} games successfully",
+      "gameAddedManually": "Game added successfully"
+    },
+    "errors": {
+      "scanFailed": "Failed to scan games: {{error}}",
+      "addGameFailed": "Failed to add game to library",
+      "deleteFailed": "Failed to delete game: {{error}}",
+      "toggleFavoriteFailed": "Failed to update favorites",
+      "importAllFailed": "Failed to import all games"
     }
   },
   "gameDetail": {
@@ -181,6 +197,21 @@
       "manageAll": "Manage All",
       "loading": "Loading...",
       "noSaves": "No backups yet"
+    },
+    "success": {
+      "backupCreated": "Backup created successfully",
+      "saveRestored": "Save file {{fileName}} restored successfully",
+      "gameDeleted": "Game deleted successfully",
+      "saveDeleted": "Save file deleted successfully"
+    },
+    "errors": {
+      "gameNotFound": "Game not found",
+      "loadFailed": "Failed to load game details: {{error}}",
+      "backupFailed": "Failed to backup save file: {{error}}",
+      "restoreFailed": "Failed to restore save file: {{error}}",
+      "deleteFailed": "Failed to delete game: {{error}}",
+      "saveDeleteFailed": "Failed to delete save file: {{error}}",
+      "autoBackupFailed": "Auto-backup failed"
     }
   },
   "history": {
@@ -228,7 +259,11 @@
     "noBackups": "No backups found",
     "notifications": {
       "restoreSuccess": "Backup restored successfully",
-      "restoreError": "Failed to restore backup"
+      "restoreError": "Failed to restore backup",
+      "loadGamesError": "Failed to load games",
+      "loadBackupsError": "Failed to load backups",
+      "exportFeatureComingSoon": "Export feature coming soon!",
+      "filterFeatureComingSoon": "Advanced filtering coming soon!"
     },
     "pagination": {
       "showing": "Showing {{start}}-{{end}} of {{total}} backups",

@@ -108,6 +108,33 @@
       "syncing": "Đang Đồng Bộ..."
     },
     "saveCount": "{{count}} bản lưu",
+    "backup": {
+      "never": "Chưa bao giờ",
+      "timeAgo": {
+        "lessThanAMinute": "ít hơn 1 phút trước",
+        "minutes": "{{count}} phút trước",
+        "hours": "{{count}} giờ trước",
+        "days": "{{count}} ngày trước",
+        "weeks": "{{count}} tuần trước",
+        "months": "{{count}} tháng trước"
+      }
+    },
+    "success": {
+      "scanComplete": "Tìm thấy {{count}} trò chơi",
+      "gameAdded": "{{title}} đã thêm vào thư viện",
+      "gameDeleted": "{{title}} đã xóa thành công",
+      "addedToFavorites": "{{title}} đã thêm vào yêu thích",
+      "removedFromFavorites": "{{title}} đã xóa khỏi yêu thích",
+      "allGamesImported": "Đã nhập {{count}} trò chơi thành công",
+      "gameAddedManually": "Trò chơi đã thêm thành công"
+    },
+    "errors": {
+      "scanFailed": "Không thể quét trò chơi: {{error}}",
+      "addGameFailed": "Không thể thêm trò chơi vào thư viện",
+      "deleteFailed": "Không thể xóa trò chơi: {{error}}",
+      "toggleFavoriteFailed": "Không thể cập nhật yêu thích",
+      "importAllFailed": "Không thể nhập tất cả trò chơi"
+    },
     "platforms": {
       "all": "Tất Cả Nền Tảng",
       "steam": "Steam",
@@ -216,6 +243,21 @@
       "manageAll": "Quản lý tất cả",
       "loading": "Đang tải...",
       "noSaves": "Chưa có bản sao lưu nào"
+    },
+    "success": {
+      "backupCreated": "Tạo bản sao lưu thành công",
+      "saveRestored": "Khôi phục tệp {{fileName}} thành công",
+      "gameDeleted": "Xóa trò chơi thành công",
+      "saveDeleted": "Xóa tệp lưu thành công"
+    },
+    "errors": {
+      "gameNotFound": "Không tìm thấy trò chơi",
+      "loadFailed": "Không thể tải chi tiết trò chơi: {{error}}",
+      "backupFailed": "Không thể sao lưu tệp: {{error}}",
+      "restoreFailed": "Không thể khôi phục tệp: {{error}}",
+      "deleteFailed": "Không thể xóa trò chơi: {{error}}",
+      "saveDeleteFailed": "Không thể xóa tệp lưu: {{error}}",
+      "autoBackupFailed": "Sao lưu tự động thất bại"
     }
   },
   "history": {
@@ -263,7 +305,11 @@
     "noBackups": "Không có bản sao lưu nào",
     "notifications": {
       "restoreSuccess": "Khôi phục bản sao lưu thành công",
-      "restoreError": "Không thể khôi phục bản sao lưu"
+      "restoreError": "Không thể khôi phục bản sao lưu",
+      "loadGamesError": "Không thể tải danh sách trò chơi",
+      "loadBackupsError": "Không thể tải danh sách bản sao lưu",
+      "exportFeatureComingSoon": "Tính năng xuất dữ liệu sắp ra mắt!",
+      "filterFeatureComingSoon": "Tính năng lọc nâng cao sắp ra mắt!"
     },
     "pagination": {
       "showing": "Hiển thị {{start}}-{{end}} trong tổng số {{total}} bản sao lưu",
