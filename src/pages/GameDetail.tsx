@@ -8,7 +8,6 @@ import CloudStorage from "../components/CloudStorage";
 // import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import ToastContainer from "../components/ToastContainer";
 import { Settings } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
@@ -43,7 +42,7 @@ const GameDetail: React.FC = () => {
   const { id: gameId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { deleteGame } = useGameStore();
-  const { toasts, removeToast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +63,8 @@ const GameDetail: React.FC = () => {
       i18n.changeLanguage(storedLanguage);
     }
   }, []);
+
+  console.log("error", error);
 
   // const tagOptions = [
   //   { value: "all", label: "All Files" },
@@ -112,7 +113,8 @@ const GameDetail: React.FC = () => {
         }
       } catch (err) {
         console.error("Error loading game details:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to load game details";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load game details";
         setError(errorMessage);
         showError(t("gameDetail.errors.loadFailed", { error: errorMessage }));
       } finally {
@@ -158,7 +160,8 @@ const GameDetail: React.FC = () => {
 
       success(t("gameDetail.success.backupCreated"));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to backup save file";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to backup save file";
       setError(errorMessage);
       showError(t("gameDetail.errors.backupFailed", { error: errorMessage }));
     } finally {
@@ -184,7 +187,9 @@ const GameDetail: React.FC = () => {
 
       console.log("Restore successful:", result);
       setIsRestoreModalOpen(false);
-      success(t("gameDetail.success.saveRestored", { fileName: result.file_name }));
+      success(
+        t("gameDetail.success.saveRestored", { fileName: result.file_name })
+      );
 
       // Refresh game details to get updated last_played time
       if (gameId) {
@@ -196,7 +201,8 @@ const GameDetail: React.FC = () => {
       }
     } catch (err) {
       console.error("Restore failed:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to restore save file";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to restore save file";
       setError(errorMessage);
       showError(t("gameDetail.errors.restoreFailed", { error: errorMessage }));
     } finally {
@@ -216,7 +222,8 @@ const GameDetail: React.FC = () => {
       navigate("/"); // Navigate back to game list after deletion
     } catch (error) {
       console.error("Delete game error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete game";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete game";
       setError(errorMessage);
       showError(t("gameDetail.errors.deleteFailed", { error: errorMessage }));
     } finally {
@@ -263,9 +270,12 @@ const GameDetail: React.FC = () => {
       success(t("gameDetail.success.saveDeleted"));
     } catch (err) {
       console.error("Failed to delete save file:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete save file";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete save file";
       setError(errorMessage);
-      showError(t("gameDetail.errors.saveDeleteFailed", { error: errorMessage }));
+      showError(
+        t("gameDetail.errors.saveDeleteFailed", { error: errorMessage })
+      );
     } finally {
       setIsDeletingSave(false);
     }
@@ -338,7 +348,6 @@ const GameDetail: React.FC = () => {
 
   return (
     <div>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Game Header */}
       <div className="relative h-[500px]">
         <img

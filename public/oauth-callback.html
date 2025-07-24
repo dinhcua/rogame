@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Callback - Rogame</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Connecting to Cloud Storage...</h2>
+        <div class="spinner"></div>
+        <p id="status">Processing authentication...</p>
+    </div>
+
+    <script>
+        // Parse query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+
+        // Determine provider from URL path or state
+        const path = window.location.pathname;
+        let provider = 'unknown';
+        
+        if (path.includes('google')) {
+            provider = 'google_drive';
+        } else if (path.includes('microsoft')) {
+            provider = 'onedrive';
+        } else if (path.includes('dropbox')) {
+            provider = 'dropbox';
+        }
+
+        if (error) {
+            document.getElementById('status').innerHTML = `<span class="error">Authentication failed: ${error}</span>`;
+            setTimeout(() => window.close(), 3000);
+        } else if (code) {
+            // Send the code back to the parent window
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'auth-callback',
+                    provider: provider,
+                    code: code,
+                    state: state
+                }, '*');
+                
+                document.getElementById('status').textContent = 'Authentication successful! You can close this window.';
+                setTimeout(() => window.close(), 2000);
+            } else {
+                document.getElementById('status').innerHTML = '<span class="error">Unable to communicate with the application. Please close this window and try again.</span>';
+            }
+        } else {
+            document.getElementById('status').innerHTML = '<span class="error">No authorization code received.</span>';
+            setTimeout(() => window.close(), 3000);
+        }
+    </script>
+</body>
+</html>

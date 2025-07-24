@@ -1,10 +1,10 @@
 use chrono::prelude::*;
+use glob::glob;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, create_dir_all};
 use std::path::PathBuf;
-use std::collections::HashMap;
-use glob::glob;
 
 use crate::db;
 
@@ -31,13 +31,13 @@ struct SaveLocations {
 fn get_platform_save_location(locations: &SaveLocations) -> &str {
     #[cfg(target_os = "macos")]
     return &locations.macos;
-    
+
     #[cfg(target_os = "windows")]
     return &locations.windows;
-    
+
     #[cfg(target_os = "linux")]
     return &locations.linux;
-    
+
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     return "";
 }
@@ -55,9 +55,12 @@ fn get_save_config_path() -> PathBuf {
                 let resource_paths = vec![
                     exe_dir.join("resources").join("save_game_location.json"),
                     exe_dir.join("save_game_location.json"),
-                    exe_dir.join("_up_").join("resources").join("save_game_location.json"),
+                    exe_dir
+                        .join("_up_")
+                        .join("resources")
+                        .join("save_game_location.json"),
                 ];
-                
+
                 for path in resource_paths {
                     if path.exists() {
                         return path;
@@ -65,7 +68,7 @@ fn get_save_config_path() -> PathBuf {
                 }
             }
         }
-        
+
         // Fallback
         PathBuf::from("save_game_location.json")
     }
@@ -133,7 +136,13 @@ impl Default for BackupSettings {
 }
 
 impl SaveFile {
-    pub fn new(game_id: String, file_name: String, size_bytes: u64, file_path: String, origin_path: String) -> Self {
+    pub fn new(
+        game_id: String,
+        file_name: String,
+        size_bytes: u64,
+        file_path: String,
+        origin_path: String,
+    ) -> Self {
         let now = Utc::now().to_rfc3339();
         let expanded_path = expand_tilde(&file_path);
         let expanded_origin_path = expand_tilde(&origin_path);
@@ -370,7 +379,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 
     // Get the game from database to get the actual save location
     let game = get_game_by_id(game_id.clone()).await?;
-    
+
     // Get the origin path (where to restore the save)
     let save_location = if !game.save_location.is_empty() {
         game.save_location.clone()
@@ -389,20 +398,23 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
             }
         }
     };
-    
+
     let origin_path = expand_tilde(&save_location);
 
     // Check if the backup is a directory (for pattern "*" backups)
     if save_path.is_dir() {
-        println!("Restoring directory backup from {:?} to {:?}", save_path, origin_path);
-        
+        println!(
+            "Restoring directory backup from {:?} to {:?}",
+            save_path, origin_path
+        );
+
         // Create the origin directory if it doesn't exist
         if !origin_path.exists() {
             fs::create_dir_all(&origin_path).map_err(|e| SaveFileError {
                 message: format!("Failed to create origin directory: {}", e),
             })?;
         }
-        
+
         // Clear existing files in the origin directory (optional, be careful)
         // This is commented out for safety - uncomment if you want to clear before restore
         // if origin_path.exists() {
@@ -413,7 +425,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         //         message: format!("Failed to recreate origin directory: {}", e),
         //     })?;
         // }
-        
+
         // Copy all files from backup to origin
         copy_dir_recursive(&save_path, &origin_path).map_err(|e| SaveFileError {
             message: format!("Failed to restore directory: {}", e),
@@ -423,16 +435,16 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         let file_name = save_path.file_name().ok_or_else(|| SaveFileError {
             message: "Invalid save file name".to_string(),
         })?;
-        
+
         let target_path = origin_path.join(file_name);
-        
+
         // Create parent directory if needed
         if let Some(parent) = target_path.parent() {
             fs::create_dir_all(parent).map_err(|e| SaveFileError {
                 message: format!("Failed to create parent directory: {}", e),
             })?;
         }
-        
+
         // Copy the file
         fs::copy(&save_path, &target_path).map_err(|e| SaveFileError {
             message: format!("Failed to restore save file: {}", e),
@@ -476,28 +488,31 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
 // Helper function to get save location from JSON if not in database
 fn get_save_location_from_config(game_id: &str) -> Result<String, SaveFileError> {
     println!("Looking up save location for game_id: {}", game_id);
-    
+
     let config_path = get_save_config_path();
     println!("Reading config from: {:?}", config_path);
-    
+
     let config_content = fs::read_to_string(&config_path).map_err(|e| SaveFileError {
-        message: format!("Failed to read save game configuration at {:?}: {}", config_path, e),
+        message: format!(
+            "Failed to read save game configuration at {:?}: {}",
+            config_path, e
+        ),
     })?;
-    
-    let game_config: HashMap<String, GameEntry> = serde_json::from_str(&config_content)
-        .map_err(|e| SaveFileError {
+
+    let game_config: HashMap<String, GameEntry> =
+        serde_json::from_str(&config_content).map_err(|e| SaveFileError {
             message: format!("Failed to parse save game configuration: {}", e),
         })?;
-    
+
     // Extract steam_id from game_id (remove epic_ prefix if present)
     let steam_id = if game_id.starts_with("epic_") {
         game_id.strip_prefix("epic_").unwrap_or(game_id)
     } else {
         game_id
     };
-    
+
     println!("Looking for steam_id: {} in config", steam_id);
-    
+
     if let Some(game_entry) = game_config.get(steam_id) {
         println!("Found game entry: {}", game_entry.name);
         let save_location = get_platform_save_location(&game_entry.save_locations);
@@ -506,14 +521,24 @@ fn get_save_location_from_config(game_id: &str) -> Result<String, SaveFileError>
             Ok(save_location.to_string())
         } else {
             Err(SaveFileError {
-                message: format!("No save location configured for current platform for game: {}", game_id),
+                message: format!(
+                    "No save location configured for current platform for game: {}",
+                    game_id
+                ),
             })
         }
     } else {
         // Try to find by name if steam_id lookup fails
-        println!("Game not found by steam_id {}, available keys: {:?}", steam_id, game_config.keys().collect::<Vec<_>>());
+        println!(
+            "Game not found by steam_id {}, available keys: {:?}",
+            steam_id,
+            game_config.keys().collect::<Vec<_>>()
+        );
         Err(SaveFileError {
-            message: format!("Game '{}' not found in configuration (tried steam_id: {})", game_id, steam_id),
+            message: format!(
+                "Game '{}' not found in configuration (tried steam_id: {})",
+                game_id, steam_id
+            ),
         })
     }
 }
@@ -521,7 +546,7 @@ fn get_save_location_from_config(game_id: &str) -> Result<String, SaveFileError>
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
     println!("=== Starting backup for game: {} ===", game_id);
-    
+
     // Load backup settings
     let settings = load_backup_settings().await?;
 
@@ -536,14 +561,17 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     // Get the game from database to get the actual save location
     let game = get_game_by_id(game_id.clone()).await?;
     println!("Game info: {:?}", game);
-    
+
     // Get the origin path from the game's save_location
     let save_location = if !game.save_location.is_empty() {
         println!("Using save location from database: {}", game.save_location);
         game.save_location.clone()
     } else {
         // Try to get from JSON config if not in database
-        println!("No save location in database for game {}, checking JSON config...", game_id);
+        println!(
+            "No save location in database for game {}, checking JSON config...",
+            game_id
+        );
         match get_save_location_from_config(&game_id) {
             Ok(location) => {
                 println!("Found save location in config: {}", location);
@@ -558,7 +586,8 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
                     .map_err(|e| format!("Failed to update save location: {}", e))?;
                     Ok(())
                 })
-                .await {
+                .await
+                {
                     println!("Warning: Failed to update save location in database: {}", e);
                 }
                 location
@@ -571,7 +600,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
             }
         }
     };
-    
+
     // Check if save_location contains wildcard
     let (has_wildcard, pattern_info) = if save_location.contains("*") {
         // For wildcard patterns, we need special handling
@@ -580,7 +609,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     } else {
         (false, None)
     };
-    
+
     let origin_path = expand_tilde(&save_location);
     println!("Save location: {}", save_location);
     println!("Expanded save location: {:?}", origin_path);
@@ -592,33 +621,33 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 
     let mut total_size = 0u64;
     let mut found_save = false;
-    
+
     println!("Checking for save files in: {:?}", origin_path);
-    
+
     if has_wildcard && pattern_info.is_some() {
         // Handle wildcard patterns by using glob
         let pattern = pattern_info.unwrap();
         let expanded_pattern = expand_tilde(&pattern);
         let glob_pattern = expanded_pattern.to_string_lossy();
-        
+
         println!("Using glob pattern: {}", glob_pattern);
-        
+
         if let Ok(paths) = glob::glob(&glob_pattern) {
             let mut files_to_backup = Vec::new();
-            
+
             for path_result in paths {
                 if let Ok(path) = path_result {
                     println!("Found matching path: {:?}", path);
                     files_to_backup.push(path);
                 }
             }
-            
+
             if !files_to_backup.is_empty() {
                 // Create backup directory
                 create_dir_all(&backup_path).map_err(|e| SaveFileError {
                     message: format!("Failed to create backup directory: {}", e),
                 })?;
-                
+
                 // Copy all matching files/directories
                 for path in files_to_backup {
                     if path.is_dir() {
@@ -636,11 +665,11 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
                     } else if path.is_file() {
                         let file_name = path.file_name().unwrap_or_default();
                         let target_file = backup_path.join(file_name);
-                        
+
                         if let Ok(metadata) = fs::metadata(&path) {
                             total_size += metadata.len();
                         }
-                        
+
                         if let Err(e) = fs::copy(&path, &target_file) {
                             println!("Failed to copy file {:?}: {}", path, e);
                         } else {
@@ -648,22 +677,28 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
                         }
                     }
                 }
-                
+
                 println!("Backed up {} bytes from wildcard pattern", total_size);
             }
         }
     } else if origin_path.exists() {
         println!("Directory exists, creating backup...");
-        
+
         // For pattern "*", backup the entire directory
         if origin_path.is_dir() {
-            println!("Backing up entire directory: {:?} to {:?}", origin_path, backup_path);
-            
+            println!(
+                "Backing up entire directory: {:?} to {:?}",
+                origin_path, backup_path
+            );
+
             match copy_dir_recursive(&origin_path, &backup_path) {
                 Ok(size) => {
                     total_size = size;
                     found_save = true;
-                    println!("Successfully backed up directory, total size: {} bytes", total_size);
+                    println!(
+                        "Successfully backed up directory, total size: {} bytes",
+                        total_size
+                    );
                 }
                 Err(e) => {
                     return Err(SaveFileError {
@@ -676,15 +711,15 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
             println!("Backing up single file: {:?}", origin_path);
             let file_name = origin_path.file_name().unwrap_or_default();
             let save_path = backup_path.join(file_name);
-            
+
             create_dir_all(&backup_path).map_err(|e| SaveFileError {
                 message: format!("Failed to create backup directory: {}", e),
             })?;
-            
+
             if let Ok(metadata) = fs::metadata(&origin_path) {
                 total_size = metadata.len();
             }
-            
+
             if let Err(e) = fs::copy(&origin_path, &save_path) {
                 return Err(SaveFileError {
                     message: format!("Failed to copy save file: {}", e),
@@ -699,9 +734,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     if !found_save {
         let error_msg = format!("No save data found at: {:?}", origin_path);
         println!("{}", error_msg);
-        return Err(SaveFileError {
-            message: error_msg,
-        });
+        return Err(SaveFileError { message: error_msg });
     }
 
     let backup_time = Utc::now().timestamp_millis();
@@ -803,7 +836,7 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
 
         let file_name = entry.file_name().to_string_lossy().to_string();
         let file_path = entry.path().to_string_lossy().into_owned();
-        
+
         // Check if it's a backup directory (starts with "backup_")
         if metadata.is_dir() && file_name.starts_with("backup_") {
             // For directory backups, calculate total size
@@ -892,13 +925,22 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
     let title = game_info["title"].as_str().unwrap_or("").to_string();
     let cover_image = game_info["cover_image"].as_str().unwrap_or("").to_string();
     let platform = game_info["platform"].as_str().unwrap_or("").to_string();
-    let last_played = game_info["last_played"].as_str().unwrap_or("Never").to_string();
+    let last_played = game_info["last_played"]
+        .as_str()
+        .unwrap_or("Never")
+        .to_string();
     let save_count = game_info["save_count"].as_i64().unwrap_or(0) as i32;
     let size = game_info["size"].as_str().unwrap_or("0B").to_string();
-    let status = game_info["status"].as_str().unwrap_or("no_saves").to_string();
-    let category = game_info["category"].as_str().unwrap_or("Unknown").to_string();
+    let status = game_info["status"]
+        .as_str()
+        .unwrap_or("no_saves")
+        .to_string();
+    let category = game_info["category"]
+        .as_str()
+        .unwrap_or("Unknown")
+        .to_string();
     let is_favorite = game_info["is_favorite"].as_bool().unwrap_or(false);
-    
+
     // Get first save location if available (from SaveLocation array)
     let save_location = if let Some(locations) = game_info["save_locations"].as_array() {
         if let Some(first_location) = locations.first() {
@@ -934,8 +976,17 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                     is_favorite = ?10, save_location = ?11
                 WHERE id = ?1",
                 params![
-                    game_id, title, cover_image, platform, last_played,
-                    save_count, size, status, category, is_favorite, save_location
+                    game_id,
+                    title,
+                    cover_image,
+                    platform,
+                    last_played,
+                    save_count,
+                    size,
+                    status,
+                    category,
+                    is_favorite,
+                    save_location
                 ],
             )
             .map_err(|e| format!("Failed to update game: {}", e))?;
@@ -948,8 +999,17 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                     backup_location, last_backup_time
                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, NULL)",
                 params![
-                    game_id, title, cover_image, platform, last_played,
-                    save_count, size, status, category, is_favorite, save_location
+                    game_id,
+                    title,
+                    cover_image,
+                    platform,
+                    last_played,
+                    save_count,
+                    size,
+                    status,
+                    category,
+                    is_favorite,
+                    save_location
                 ],
             )
             .map_err(|e| format!("Failed to insert game: {}", e))?;
@@ -971,7 +1031,7 @@ pub async fn sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFil
 // Helper function to get directory size
 fn get_directory_size(path: &PathBuf) -> u64 {
     let mut total_size = 0u64;
-    
+
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.filter_map(Result::ok) {
             if let Ok(metadata) = entry.metadata() {
@@ -983,24 +1043,24 @@ fn get_directory_size(path: &PathBuf) -> u64 {
             }
         }
     }
-    
+
     total_size
 }
 
 // Helper function to copy directory recursively
 fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<u64, std::io::Error> {
     let mut total_size = 0u64;
-    
+
     if !dst.exists() {
         fs::create_dir_all(dst)?;
     }
-    
+
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let path = entry.path();
         let file_name = entry.file_name();
         let dst_path = dst.join(&file_name);
-        
+
         if path.is_dir() {
             total_size += copy_dir_recursive(&path, &dst_path)?;
         } else {
@@ -1009,6 +1069,6 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<u64, std::io::Erro
             fs::copy(&path, &dst_path)?;
         }
     }
-    
+
     Ok(total_size)
 }

@@ -355,6 +355,7 @@
     "title": "Cloud Storage",
     "connectedAs": "Connected as {{email}}",
     "status": {
+      "connected": "Connected",
       "notConnected": "Not connected"
     },
     "actions": {
@@ -391,5 +392,17 @@
   "dropdown": {
     "searchPlaceholder": "Search...",
     "noOptions": "No options found"
+  },
+  "cloudSync": {
+    "disabled": "Cloud sync disabled",
+    "synced": "Synced to cloud",
+    "syncing": "Syncing...",
+    "pending": "Pending sync",
+    "error": "Sync error",
+    "notSynced": "Not synced",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago"
   }
 }

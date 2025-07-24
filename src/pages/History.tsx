@@ -5,7 +5,6 @@ import DropdownSelect from "../components/DropdownSelect";
 import { RefreshCw, MoreVertical } from "lucide-react";
 import { Game } from "../types/game";
 import { useToast } from "../hooks/useToast";
-import ToastContainer from "../components/ToastContainer";
 import "../i18n/config";
 
 interface SaveFile {
@@ -169,7 +168,7 @@ const BackupCard: React.FC<{
 
 export default function History() {
   const { t } = useTranslation();
-  const { toasts, success, error, info, removeToast } = useToast();
+  const { success, error, info } = useToast();
   const [backups, setBackups] = useState<BackupHistoryItem[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -493,7 +492,6 @@ export default function History() {
         </div>
       )}
 
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
