@@ -70,6 +70,20 @@ pub fn initialize_database(conn: &Connection) -> SqlResult<()> {
         [],
     )?;
 
+    // Create cloud_tokens table for OAuth tokens
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS cloud_tokens (
+            provider TEXT PRIMARY KEY,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT,
+            expires_at INTEGER,
+            token_type TEXT,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )",
+        [],
+    )?;
+
     Ok(())
 }
 

@@ -17,9 +17,12 @@ fn get_save_config_path() -> PathBuf {
                 let resource_paths = vec![
                     exe_dir.join("resources").join("save_game_location.json"),
                     exe_dir.join("save_game_location.json"),
-                    exe_dir.join("_up_").join("resources").join("save_game_location.json"),
+                    exe_dir
+                        .join("_up_")
+                        .join("resources")
+                        .join("save_game_location.json"),
                 ];
-                
+
                 for path in resource_paths {
                     if path.exists() {
                         return path;
@@ -27,7 +30,7 @@ fn get_save_config_path() -> PathBuf {
                 }
             }
         }
-        
+
         // Fallback
         PathBuf::from("save_game_location.json")
     }
@@ -78,13 +81,13 @@ struct SaveLocations {
 fn get_platform_save_location(locations: &SaveLocations) -> &str {
     #[cfg(target_os = "macos")]
     return &locations.macos;
-    
+
     #[cfg(target_os = "windows")]
     return &locations.windows;
-    
+
     #[cfg(target_os = "linux")]
     return &locations.linux;
-    
+
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     return "";
 }
@@ -98,11 +101,11 @@ const STEAM_PATHS: &[&str] = &[
 
 // Steam installation paths (for finding libraryfolders.vdf)
 const STEAM_ROOT_PATHS: &[&str] = &[
-    "~/Library/Application Support/Steam",              // macOS
-    "~/.steam/steam",                                  // Linux
-    "~/.local/share/Steam",                            // Linux alternative
-    "C:\\Program Files (x86)\\Steam",                  // Windows
-    "C:\\Program Files\\Steam",                        // Windows alternative
+    "~/Library/Application Support/Steam", // macOS
+    "~/.steam/steam",                      // Linux
+    "~/.local/share/Steam",                // Linux alternative
+    "C:\\Program Files (x86)\\Steam",      // Windows
+    "C:\\Program Files\\Steam",            // Windows alternative
 ];
 
 const EPIC_PATHS: &[&str] = &[
@@ -126,15 +129,16 @@ fn expand_tilde(path: &str) -> PathBuf {
             return home.join(&path[2..]);
         }
     }
-    
+
     // For Windows absolute paths, return as-is
     if cfg!(windows) {
         // Check if it's already an absolute Windows path
-        if path.len() >= 3 && path.chars().nth(1) == Some(':') && path.chars().nth(2) == Some('\\') {
+        if path.len() >= 3 && path.chars().nth(1) == Some(':') && path.chars().nth(2) == Some('\\')
+        {
             return PathBuf::from(path);
         }
     }
-    
+
     PathBuf::from(path)
 }
 
@@ -148,34 +152,34 @@ struct SteamLibrary {
 // Parse Steam's libraryfolders.vdf to find all Steam library locations and installed games
 fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
     let mut libraries = Vec::new();
-    
+
     // Try to find and parse libraryfolders.vdf
     for steam_root in STEAM_ROOT_PATHS {
         let steam_path = expand_tilde(steam_root);
         let vdf_path = steam_path.join("steamapps").join("libraryfolders.vdf");
-        
+
         println!("Checking for Steam library config at: {:?}", vdf_path);
-        
+
         if vdf_path.exists() {
             println!("Found libraryfolders.vdf at: {:?}", vdf_path);
             if let Ok(content) = fs::read_to_string(&vdf_path) {
                 let mut current_library_path: Option<PathBuf> = None;
                 let mut current_apps: Vec<String> = Vec::new();
                 let mut in_apps_section = false;
-                
+
                 for line in content.lines() {
                     let trimmed = line.trim();
-                    
+
                     // Check if we're entering an "apps" section
                     if trimmed == "\"apps\"" {
                         in_apps_section = true;
                         continue;
                     }
-                    
+
                     // Check if we're exiting an apps section
                     if in_apps_section && trimmed == "}" {
                         in_apps_section = false;
-                        
+
                         // Save the library if we have a path and apps
                         if let Some(path) = current_library_path.take() {
                             let library_path = path.join("steamapps").join("common");
@@ -189,7 +193,7 @@ fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
                         current_apps.clear();
                         continue;
                     }
-                    
+
                     // Parse path
                     if trimmed.contains("\"path\"") && trimmed.contains("\"") {
                         if let Some(path_start) = trimmed.rfind("\"") {
@@ -200,13 +204,14 @@ fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
                             }
                         }
                     }
-                    
+
                     // Parse app IDs inside apps section
                     if in_apps_section && trimmed.contains("\"") {
                         // Extract app ID (first quoted value)
                         if let Some(first_quote) = trimmed.find("\"") {
                             if let Some(second_quote) = trimmed[first_quote + 1..].find("\"") {
-                                let app_id = &trimmed[first_quote + 1..first_quote + 1 + second_quote];
+                                let app_id =
+                                    &trimmed[first_quote + 1..first_quote + 1 + second_quote];
                                 if !app_id.is_empty() && app_id.chars().all(|c| c.is_digit(10)) {
                                     current_apps.push(app_id.to_string());
                                 }
@@ -220,12 +225,15 @@ fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
             break; // Found one valid libraryfolders.vdf, no need to check others
         }
     }
-    
+
     println!("Total Steam libraries found: {}", libraries.len());
     for lib in &libraries {
-        println!("Library: {:?}, Games: {:?}", lib.path, lib.installed_app_ids);
+        println!(
+            "Library: {:?}, Games: {:?}",
+            lib.path, lib.installed_app_ids
+        );
     }
-    
+
     // Fallback to default paths if no libraries found
     if libraries.is_empty() {
         for path in STEAM_PATHS {
@@ -238,7 +246,7 @@ fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
             }
         }
     }
-    
+
     libraries
 }
 
@@ -247,7 +255,7 @@ fn get_steam_game_name(library_path: &PathBuf, app_id: &str) -> Option<String> {
     // Go back to steamapps folder from common folder
     if let Some(steamapps_path) = library_path.parent() {
         let manifest_path = steamapps_path.join(format!("appmanifest_{}.acf", app_id));
-        
+
         if manifest_path.exists() {
             if let Ok(content) = fs::read_to_string(&manifest_path) {
                 // Simple parser for "name" field in ACF format
@@ -293,20 +301,22 @@ fn format_size(size: u64) -> String {
     }
 }
 
-
-fn scan_save_locations(steam_id: &str, game_config: &HashMap<String, GameEntry>) -> Vec<SaveLocation> {
+fn scan_save_locations(
+    steam_id: &str,
+    game_config: &HashMap<String, GameEntry>,
+) -> Vec<SaveLocation> {
     let mut save_locations = Vec::new();
-    
+
     // Look up game by steam_id
     if let Some(game_info) = game_config.get(steam_id) {
         // Get platform-specific save location
         let save_location = get_platform_save_location(&game_info.save_locations);
-        
+
         if !save_location.is_empty() {
             // Store the original pattern (before expansion) for proper wildcard handling
             let original_pattern = save_location.to_string();
             let expanded_path = expand_tilde(save_location);
-            
+
             // Check if path contains wildcard *
             if save_location.contains("*") {
                 // Use glob to find all matching paths
@@ -316,7 +326,11 @@ fn scan_save_locations(steam_id: &str, game_config: &HashMap<String, GameEntry>)
                     for path_result in paths {
                         if let Ok(path) = path_result {
                             if path.is_dir() {
-                                scan_location_with_patterns(&path, &game_info.save_pattern, &mut save_locations);
+                                scan_location_with_patterns(
+                                    &path,
+                                    &game_info.save_pattern,
+                                    &mut save_locations,
+                                );
                                 found_any = true;
                             }
                         }
@@ -329,7 +343,11 @@ fn scan_save_locations(steam_id: &str, game_config: &HashMap<String, GameEntry>)
             } else {
                 // No wildcard, check path directly
                 if expanded_path.exists() {
-                    scan_location_with_patterns(&expanded_path, &game_info.save_pattern, &mut save_locations);
+                    scan_location_with_patterns(
+                        &expanded_path,
+                        &game_info.save_pattern,
+                        &mut save_locations,
+                    );
                     // Store the original pattern for consistency
                     if !save_locations.is_empty() {
                         save_locations[0].path = original_pattern;
@@ -343,7 +361,11 @@ fn scan_save_locations(steam_id: &str, game_config: &HashMap<String, GameEntry>)
 }
 
 // Helper function to scan a location with given patterns
-fn scan_location_with_patterns(path: &PathBuf, patterns: &[String], save_locations: &mut Vec<SaveLocation>) {
+fn scan_location_with_patterns(
+    path: &PathBuf,
+    patterns: &[String],
+    save_locations: &mut Vec<SaveLocation>,
+) {
     let mut total_size = 0u64;
     let mut file_count = 0;
     let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
@@ -408,13 +430,13 @@ fn scan_location_with_patterns(path: &PathBuf, patterns: &[String], save_locatio
 pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
     println!("Starting game scan...");
     println!("Operating System: {}", std::env::consts::OS);
-    
+
     let mut games = HashMap::new();
 
     // Load save game configuration
     let config_path = get_save_config_path();
     println!("Loading save game config from: {:?}", config_path);
-    
+
     let game_config: HashMap<String, GameEntry> = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| {
             println!("Error parsing config: {}", e);
@@ -424,16 +446,16 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
             println!("Error reading config: {}", e);
             // Return empty config as fallback
             HashMap::new()
-        },
+        }
     };
 
     // Scan Steam games from all library folders using VDF data
     let steam_libraries = get_steam_libraries_with_games();
     println!("Found {} Steam library folders", steam_libraries.len());
-    
+
     for library in steam_libraries {
         println!("Scanning Steam library: {:?}", library.path);
-        
+
         if library.installed_app_ids.is_empty() {
             // Fallback: scan all directories if no app IDs found
             println!("No app IDs found, scanning all directories in library");
@@ -446,20 +468,25 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                 println!("Found game directory: {} at {:?}", game_name, game_path);
                                 let size = get_directory_size(&game_path);
                                 // Try to find game by name in config
-                                let game_entry = game_config.values().find(|entry| 
-                                    entry.name.eq_ignore_ascii_case(&game_name)
-                                );
-                                
-                                let (game_id, save_locations, category) = if let Some(entry) = game_entry {
-                                    let locations = scan_save_locations(&entry.steam_id, &game_config);
+                                let game_entry = game_config
+                                    .values()
+                                    .find(|entry| entry.name.eq_ignore_ascii_case(&game_name));
+
+                                let (game_id, save_locations, category) = if let Some(entry) =
+                                    game_entry
+                                {
+                                    let locations =
+                                        scan_save_locations(&entry.steam_id, &game_config);
                                     (entry.steam_id.clone(), locations, "Action".to_string())
                                 } else {
                                     // Game not in config, use empty save locations
-                                    let game_id = game_name.to_lowercase().replace(" ", "_").replace(":", "");
+                                    let game_id =
+                                        game_name.to_lowercase().replace(" ", "_").replace(":", "");
                                     (game_id, Vec::new(), "Unknown".to_string())
                                 };
-                                
-                                let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
+
+                                let save_count =
+                                    save_locations.iter().map(|loc| loc.file_count).sum();
                                 let cover_image = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", 
                                     if game_id.chars().all(|c| c.is_numeric()) { &game_id } else { "1245620" });
 
@@ -495,27 +522,36 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
             }
         } else {
             // Use app IDs from VDF to scan only installed games
-            println!("Found {} installed games in library", library.installed_app_ids.len());
+            println!(
+                "Found {} installed games in library",
+                library.installed_app_ids.len()
+            );
             for app_id in &library.installed_app_ids {
                 // Try to get game name from manifest
                 if let Some(game_name) = get_steam_game_name(&library.path, app_id) {
                     let game_path = library.path.join(&game_name);
-                    
+
                     if game_path.exists() {
-                        println!("Found game: {} (App ID: {}) at {:?}", game_name, app_id, game_path);
+                        println!(
+                            "Found game: {} (App ID: {}) at {:?}",
+                            game_name, app_id, game_path
+                        );
                         let size = get_directory_size(&game_path);
                         // Check if game exists in config with this steam_id
                         let save_locations = scan_save_locations(app_id, &game_config);
                         let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
-                        
+
                         // Get game info from config if available
                         let category = if game_config.contains_key(app_id) {
                             "Action".to_string() // Default category for now
                         } else {
                             "Unknown".to_string()
                         };
-                        
-                        let cover_image = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", app_id);
+
+                        let cover_image = format!(
+                            "https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg",
+                            app_id
+                        );
 
                         games.insert(
                             app_id.clone(),
@@ -526,9 +562,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                 platform: "Steam".to_string(),
                                 last_played: save_locations
                                     .first()
-                                    .map_or("Never".to_string(), |loc| {
-                                        loc.last_modified.clone()
-                                    }),
+                                    .map_or("Never".to_string(), |loc| loc.last_modified.clone()),
                                 save_count,
                                 size: format_size(size),
                                 status: if save_count > 0 {
@@ -543,7 +577,10 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                             },
                         );
                     } else {
-                        println!("Game directory not found for: {} (App ID: {})", game_name, app_id);
+                        println!(
+                            "Game directory not found for: {} (App ID: {})",
+                            game_name, app_id
+                        );
                     }
                 } else {
                     println!("Could not get game name for App ID: {}", app_id);
@@ -570,26 +607,41 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                         let size = get_directory_size(&game_path);
                                         // Get Epic App Name (ID) from manifest
                                         let epic_app_name = json["AppName"].as_str().unwrap_or("");
-                                        
+
                                         // Try to find game in config by name
-                                        let game_entry = game_config.values().find(|entry| 
+                                        let game_entry = game_config.values().find(|entry| {
                                             entry.name.eq_ignore_ascii_case(display_name)
-                                        );
-                                        
-                                        let (game_id, save_locations, category) = if let Some(entry) = game_entry {
-                                            let locations = scan_save_locations(&entry.steam_id, &game_config);
-                                            (format!("epic_{}", entry.steam_id), locations, "Action".to_string())
-                                        } else {
-                                            // Game not in config
-                                            let game_id = if !epic_app_name.is_empty() {
-                                                format!("epic_{}", epic_app_name)
+                                        });
+
+                                        let (game_id, save_locations, category) =
+                                            if let Some(entry) = game_entry {
+                                                let locations = scan_save_locations(
+                                                    &entry.steam_id,
+                                                    &game_config,
+                                                );
+                                                (
+                                                    format!("epic_{}", entry.steam_id),
+                                                    locations,
+                                                    "Action".to_string(),
+                                                )
                                             } else {
-                                                format!("epic_{}", display_name.to_lowercase().replace(" ", "_").replace(":", ""))
+                                                // Game not in config
+                                                let game_id = if !epic_app_name.is_empty() {
+                                                    format!("epic_{}", epic_app_name)
+                                                } else {
+                                                    format!(
+                                                        "epic_{}",
+                                                        display_name
+                                                            .to_lowercase()
+                                                            .replace(" ", "_")
+                                                            .replace(":", "")
+                                                    )
+                                                };
+                                                (game_id, Vec::new(), "Unknown".to_string())
                                             };
-                                            (game_id, Vec::new(), "Unknown".to_string())
-                                        };
-                                        
-                                        let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
+
+                                        let save_count =
+                                            save_locations.iter().map(|loc| loc.file_count).sum();
                                         let cover_image = "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg".to_string();
 
                                         games.insert(
@@ -661,10 +713,10 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
 
     // Get platform-specific save location
     let save_location = get_platform_save_location(&game_info.save_locations);
-    
+
     if !save_location.is_empty() {
         let expanded_path = expand_tilde(save_location);
-        
+
         if save_location.contains("*") {
             // Handle wildcard paths
             let glob_path = expanded_path.to_string_lossy().into_owned();
@@ -682,7 +734,8 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
                             } else {
                                 // Try patterns
                                 for pattern in &game_info.save_pattern {
-                                    let glob_pattern = path.join(pattern).to_string_lossy().into_owned();
+                                    let glob_pattern =
+                                        path.join(pattern).to_string_lossy().into_owned();
                                     if let Ok(entries) = glob(&glob_pattern) {
                                         for entry in entries.filter_map(Result::ok) {
                                             if let Some(file_name) = entry.file_name() {
@@ -712,7 +765,8 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
                     }
                 } else {
                     for pattern in &game_info.save_pattern {
-                        let glob_pattern = expanded_path.join(pattern).to_string_lossy().into_owned();
+                        let glob_pattern =
+                            expanded_path.join(pattern).to_string_lossy().into_owned();
                         if let Ok(entries) = glob(&glob_pattern) {
                             for entry in entries.filter_map(Result::ok) {
                                 if let Some(file_name) = entry.file_name() {
@@ -773,13 +827,13 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
         .ok_or_else(|| format!("Game not found: {}", game_id))?;
 
     let mut save_files = Vec::new();
-    
+
     // Get platform-specific save location
     let save_location = get_platform_save_location(&game_info.save_locations);
-    
+
     if !save_location.is_empty() {
         let expanded_path = expand_tilde(save_location);
-        
+
         if save_location.contains("*") {
             // Handle wildcard paths
             let glob_path = expanded_path.to_string_lossy().into_owned();
@@ -788,11 +842,13 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
                     if let Ok(path) = path_result {
                         if path.is_dir() {
                             for pattern in &game_info.save_pattern {
-                                let glob_pattern = path.join(pattern).to_string_lossy().into_owned();
+                                let glob_pattern =
+                                    path.join(pattern).to_string_lossy().into_owned();
                                 if let Ok(entries) = glob(&glob_pattern) {
                                     for entry in entries.filter_map(Result::ok) {
                                         if let Some(file_name) = entry.file_name() {
-                                            save_files.push(file_name.to_string_lossy().into_owned());
+                                            save_files
+                                                .push(file_name.to_string_lossy().into_owned());
                                         }
                                     }
                                 }
@@ -831,11 +887,8 @@ fn delete_saves_in_directory(path: &PathBuf, patterns: &[String], errors: &mut V
             for entry in entries.filter_map(Result::ok) {
                 println!("Deleting file: {:?}", entry);
                 if let Err(e) = fs::remove_file(&entry) {
-                    let error_msg = format!(
-                        "Failed to delete save file {}: {}",
-                        entry.display(),
-                        e
-                    );
+                    let error_msg =
+                        format!("Failed to delete save file {}: {}", entry.display(), e);
                     println!("Error: {}", error_msg);
                     errors.push(error_msg);
                 } else {
@@ -852,24 +905,13 @@ fn delete_saves_in_directory(path: &PathBuf, patterns: &[String], errors: &mut V
                 if dir.next().is_none() {
                     // Directory is empty
                     if let Err(e) = fs::remove_dir(&path) {
-                        println!(
-                            "Failed to remove empty directory {}: {}",
-                            path.display(),
-                            e
-                        );
+                        println!("Failed to remove empty directory {}: {}", path.display(), e);
                     } else {
-                        println!(
-                            "Successfully removed empty directory: {:?}",
-                            path
-                        );
+                        println!("Successfully removed empty directory: {:?}", path);
                     }
                 }
             }
-            Err(e) => println!(
-                "Failed to read directory {}: {}",
-                path.display(),
-                e
-            ),
+            Err(e) => println!("Failed to read directory {}: {}", path.display(), e),
         }
     }
 }
@@ -881,7 +923,7 @@ pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
 
     // IMPORTANT: Only delete backup directory, NOT original save files
     // Original save files should remain untouched
-    
+
     // Delete from backup directory only
     let backup_dir = get_backup_dir().join(&game_id);
     println!("Deleting backup directory: {:?}", backup_dir);

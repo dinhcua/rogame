@@ -6,7 +6,6 @@ import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
 import PlatformIcon from "../components/PlatformIcon";
-import ToastContainer from "../components/ToastContainer";
 import { invoke } from "@tauri-apps/api/core";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
@@ -64,7 +63,7 @@ const getSortOptions = (t: any) => [
 
 const GameUI = () => {
   const { t } = useTranslation();
-  const { toasts, removeToast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
 
   const {
     games,
@@ -274,7 +273,6 @@ const GameUI = () => {
 
   return (
     <div className="bg-game-dark text-white font-sans">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Main Content */}
       <div>
         {/* Game Scanner Section */}

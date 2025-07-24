@@ -401,6 +401,7 @@
     "title": "Lưu Trữ Đám Mây",
     "connectedAs": "Đã kết nối với {{email}}",
     "status": {
+      "connected": "Đã kết nối",
       "notConnected": "Chưa kết nối"
     },
     "actions": {
@@ -437,5 +438,17 @@
   "dropdown": {
     "searchPlaceholder": "Tìm kiếm...",
     "noOptions": "Không tìm thấy kết quả"
+  },
+  "cloudSync": {
+    "disabled": "Đồng bộ đám mây đã tắt",
+    "synced": "Đã đồng bộ lên đám mây",
+    "syncing": "Đang đồng bộ...",
+    "pending": "Chờ đồng bộ",
+    "error": "Lỗi đồng bộ",
+    "notSynced": "Chưa đồng bộ",
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
   }
 }
