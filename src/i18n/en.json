@@ -83,6 +83,10 @@
     }
   },
   "gameUI": {
+    "title": "Library",
+    "subtitle": "Manage your game saves",
+    "lastBackup": "{{time}} ago",
+    "autoBackup": "Auto Backup",
     "scanner": {
       "title": "Game Scanner",
       "description": "Automatically detect and import games from your system",
@@ -155,6 +159,11 @@
         "days": "{{count}} days ago",
         "weeks": "{{count}} weeks ago",
         "months": "{{count}} months ago"
+      },
+      "status": {
+        "synced": "Synced",
+        "syncing": "Syncing",
+        "not_synced": "Not Synced"
       }
     },
     "success": {
@@ -215,6 +224,26 @@
     }
   },
   "history": {
+    "title": "Backup History",
+    "subtitle": "View and manage all your game save backups",
+    "loading": "Loading backups...",
+    "noBackups": "No backups found",
+    "noBackupsDescription": "Start backing up your games to see them here",
+    "actions": {
+      "uploadToServer": "Upload to Server",
+      "uploading": "Uploading...",
+      "openOriginalLocation": "Open Original Save Location",
+      "openBackupLocation": "Open Backup Location",
+      "deleteSaveFile": "Delete Save File",
+      "export": "Export",
+      "filter": "Filter"
+    },
+    "stats": {
+      "totalBackups": "Total Backups",
+      "gamesBackedUp": "Games Backed Up",
+      "lastBackup": "Last Backup",
+      "never": "Never"
+    },
     "filters": {
       "search": "Search backups...",
       "allGames": "All Games",
@@ -226,10 +255,6 @@
         "lastWeek": "Last Week",
         "lastMonth": "Last Month"
       }
-    },
-    "actions": {
-      "export": "Export",
-      "filter": "Filter"
     },
     "backup": {
       "created": "Created {{time}}",
@@ -263,8 +288,15 @@
       "loadGamesError": "Failed to load games",
       "loadBackupsError": "Failed to load backups",
       "exportFeatureComingSoon": "Export feature coming soon!",
-      "filterFeatureComingSoon": "Advanced filtering coming soon!"
+      "filterFeatureComingSoon": "Advanced filtering coming soon!",
+      "uploadComingSoon": "Server upload feature coming soon!",
+      "uploadError": "Failed to upload to server",
+      "openLocationError": "Failed to open location",
+      "deleteSuccess": "Save file deleted successfully",
+      "deleteError": "Failed to delete save file",
+      "uploadSuccess": "Save file uploaded successfully"
     },
+    "confirmDelete": "Are you sure you want to delete this save file?",
     "pagination": {
       "showing": "Showing {{start}}-{{end}} of {{total}} backups",
       "previous": "Previous",
@@ -276,12 +308,29 @@
       "restore": "Restore",
       "delete": "Delete Save File",
       "openBackupLocation": "Open Backup Location",
+      "uploadToServer": "Upload to Server",
       "openOriginalLocation": "Open Original Save Location"
     },
     "info": {
       "lastModified": "Last Modified",
       "size": "Size"
-    }
+    },
+    "restoreConfirm": {
+      "title": "Restore Save File",
+      "message": "Old save data will be overwritten. Are you sure you want to restore this save file?",
+      "fileName": "File name",
+      "created": "Created date",
+      "confirm": "Confirm"
+    },
+    "timeAgo": {
+      "minutes": "{{count}} minutes ago",
+      "hours": "{{count}} hours ago",
+      "days": "{{count}} days ago"
+    },
+    "saveFrom": "Save from {{date}}",
+    "autoBackup": "Auto Backup",
+    "uploading": "Uploading...",
+    "uploaded": "Uploaded!"
   },
   "deleteGameModal": {
     "title": "Delete Game",
@@ -377,7 +426,9 @@
   },
   "common": {
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading..."
   },
   "storageInfo": {
     "title": "Storage",

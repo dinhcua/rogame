@@ -12,6 +12,7 @@ import { Settings } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
+import { useServerUpload } from "../hooks/useServerUpload";
 import "../i18n/config";
 
 interface SaveFile {
@@ -22,6 +23,8 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
+  file_path: string;
+  origin_path: string;
 }
 
 interface BackupResponse {
@@ -43,6 +46,7 @@ const GameDetail: React.FC = () => {
   const navigate = useNavigate();
   const { deleteGame } = useGameStore();
   const { success, error: showError } = useToast();
+  const { uploadFile, isUploading } = useServerUpload();
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,6 +174,10 @@ const GameDetail: React.FC = () => {
   };
 
   const handleRestore = async (saveFile: SaveFile) => {
+    if (!saveFile) {
+      showError("Save file not found");
+      return;
+    }
     if (!gameId || !gameDetails) return;
 
     try {
@@ -281,6 +289,30 @@ const GameDetail: React.FC = () => {
     }
   };
 
+  const handleUploadSave = async (saveFile: SaveFile) => {
+    console.log("handleUploadSave called with saveFile:", saveFile);
+
+    if (!saveFile.file_path) {
+      showError("No file path available for upload");
+      console.error("SaveFile missing file_path:", saveFile);
+      return;
+    }
+
+    try {
+      console.log(
+        `Uploading file: ${saveFile.file_name} from path: ${saveFile.file_path}`
+      );
+      const result = await uploadFile(saveFile.file_path, saveFile.file_name);
+      if (result) {
+        console.log("Upload successful:", result);
+        success(`Successfully uploaded ${saveFile.file_name} to server`);
+      }
+    } catch (error) {
+      console.error("Error uploading save file:", error);
+      showError(`Failed to upload ${saveFile.file_name}`);
+    }
+  };
+
   // Load backup settings and setup auto-backup
   useEffect(() => {
     const setupAutoBackup = async () => {
@@ -347,35 +379,39 @@ const GameDetail: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Game Header */}
-      <div className="relative h-[500px]">
-        <img
-          src={gameDetails?.cover_image || ""}
-          alt={`${gameDetails?.title || "Game"} Banner`}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-game-dark via-game-dark/50 to-transparent"></div>
+    <div className="animate-fade-in">
+      {/* Epic Games Style Header */}
+      <div className="relative h-[350px] mb-8">
+        {/* Background image with blur */}
+        <div className="absolute inset-0 overflow-hidden">
+          <img
+            src={gameDetails?.cover_image || ""}
+            alt=""
+            className="w-full h-full object-cover filter blur-xl scale-110 opacity-40"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-game-dark via-game-dark/90 to-game-dark/50"></div>
+        
         <div className="absolute bottom-0 left-0 right-0 p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center">
+            <div className="flex items-end gap-8">
               <img
                 src={gameDetails?.cover_image || ""}
                 alt={`${gameDetails?.title || "Game"} Cover`}
-                className="w-40 h-52 rounded-lg mr-8 shadow-2xl object-cover"
+                className="w-40 h-52 rounded-xl shadow-2xl object-cover border-2 border-epic-border/50"
               />
-              <div>
-                <h1 className="text-5xl font-bold mb-2">
+              <div className="flex-1 mb-4">
+                <h1 className="text-3xl font-bold mb-2 text-white drop-shadow-lg">
                   {gameDetails?.title || "Loading..."}
                 </h1>
-                <p className="text-xl text-gray-300 mb-6">
+                <p className="text-lg text-gray-300 mb-4">
                   {t("gameDetail.title")}
                 </p>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-4">
                   <button
                     onClick={handleBackup}
                     disabled={isLoading}
-                    className={`bg-green-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-green-500 transition-colors ${
+                    className={`bg-epic-success px-6 py-2.5 rounded-lg text-base font-medium hover:bg-epic-success/90 transition-all duration-200 shadow-lg hover:shadow-epic-success/20 ${
                       isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
@@ -386,7 +422,7 @@ const GameDetail: React.FC = () => {
                   <button
                     onClick={() => setIsRestoreModalOpen(true)}
                     disabled={isLoading || saveFiles.length === 0}
-                    className={`bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-500 transition-colors ${
+                    className={`bg-rog-blue px-6 py-2.5 rounded-lg text-base font-medium hover:bg-epic-accent transition-all duration-200 shadow-lg hover:shadow-rog-blue/20 ${
                       isLoading || saveFiles.length === 0
                         ? "opacity-50 cursor-not-allowed"
                         : ""
@@ -396,9 +432,9 @@ const GameDetail: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="bg-red-600/20 px-8 py-3 rounded-lg text-lg font-medium hover:bg-red-500/30 transition-colors flex items-center space-x-2"
+                    className="bg-epic-danger/20 backdrop-blur-sm px-6 py-2.5 rounded-lg text-base font-medium hover:bg-epic-danger/30 transition-all duration-200 border border-epic-danger/30 hover:border-epic-danger/50"
                   >
-                    <span>{t("gameDetail.actions.deleteGame")}</span>
+                    {t("gameDetail.actions.deleteGame")}
                   </button>
                 </div>
               </div>
@@ -408,71 +444,68 @@ const GameDetail: React.FC = () => {
       </div>
 
       {/* Main Content Sections */}
-      <div className="max-w-7xl mx-auto px-8 py-12">
+      <div className="max-w-7xl mx-auto px-8">
         <div className="grid grid-cols-12 gap-8">
           {/* Left Column */}
-          <div className="col-span-8 space-y-8">
-            {/* Save Details Section */}
-            <div className="bg-game-card rounded-lg p-8">
-              <h2 className="text-2xl font-bold mb-4">
-                {t("gameDetail.saveDetails.title")}
-              </h2>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-gray-400 mb-2">
-                    {t("gameDetail.saveDetails.totalSaves")}
-                  </h3>
-                  <p>
-                    {gameDetails?.save_count || 0}{" "}
-                    {t("gameDetail.saveDetails.saveFiles")}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-gray-400 mb-2">
-                    {t("gameDetail.saveDetails.platform")}
-                  </h3>
-                  <p>
-                    {gameDetails?.platform ||
-                      t("gameDetail.saveDetails.unknown")}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-gray-400 mb-2">
-                    {t("gameDetail.saveDetails.lastPlayed")}
-                  </h3>
-                  <p>{getLastSaveTime()}</p>
-                </div>
-                <div>
-                  <h3 className="text-gray-400 mb-2">
-                    {t("gameDetail.saveDetails.category")}
-                  </h3>
-                  <p>
-                    {gameDetails?.category ||
-                      t("gameDetail.saveDetails.unknown")}
-                  </p>
-                </div>
+          <div className="col-span-8 space-y-6">
+            {/* Save Info Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-4 border border-epic-border/50">
+                <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+                  {t("gameDetail.saveDetails.totalSaves")}
+                </h3>
+                <p className="text-2xl font-bold text-white">
+                  {gameDetails?.save_count || 0}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {t("gameDetail.saveDetails.saveFiles")}
+                </p>
+              </div>
+              <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-4 border border-epic-border/50">
+                <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+                  {t("gameDetail.saveDetails.platform")}
+                </h3>
+                <p className="text-2xl font-bold text-white">
+                  {gameDetails?.platform || t("gameDetail.saveDetails.unknown")}
+                </p>
+              </div>
+              <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-4 border border-epic-border/50">
+                <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+                  {t("gameDetail.saveDetails.lastPlayed")}
+                </h3>
+                <p className="text-base font-semibold text-white">
+                  {getLastSaveTime()}
+                </p>
+              </div>
+              <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-4 border border-epic-border/50">
+                <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+                  {t("gameDetail.saveDetails.category")}
+                </h3>
+                <p className="text-base font-semibold text-white">
+                  {gameDetails?.category || t("gameDetail.saveDetails.unknown")}
+                </p>
               </div>
             </div>
 
             {/* Save Files Section */}
-            <div className="bg-game-card rounded-lg p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">
+            <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">
                   {t("gameDetail.saveFiles.title")}
                 </h2>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => {}}
-                    className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 transition-colors flex items-center space-x-2"
+                    className="bg-epic-hover/50 backdrop-blur-sm border border-epic-border px-4 py-2 rounded-lg hover:bg-epic-hover hover:border-gray-600 transition-all duration-200 flex items-center space-x-2 text-sm font-medium"
                   >
-                    <Settings className="w-5 h-5" />
+                    <Settings className="w-4 h-4" />
                     <span>{t("gameDetail.saveFiles.manageAll")}</span>
                   </button>
                 </div>
               </div>
 
               {/* Save Files List */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {isLoading ? (
                   <div className="text-center py-8 text-gray-400">
                     {t("gameDetail.saveFiles.loading")}
@@ -488,7 +521,9 @@ const GameDetail: React.FC = () => {
                       saveFile={saveFile}
                       onRestore={handleRestore}
                       onDelete={handleDeleteSave}
+                      onUpload={handleUploadSave}
                       isDeleting={isDeletingSave}
+                      isUploading={isUploading}
                     />
                   ))
                 )}

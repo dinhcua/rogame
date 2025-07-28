@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import DropdownSelect from "../components/DropdownSelect";
-import { RefreshCw, MoreVertical } from "lucide-react";
+import {
+  RefreshCw,
+  MoreVertical,
+  Upload,
+  FolderOpen,
+  FolderInput,
+  Trash2,
+} from "lucide-react";
 import { Game } from "../types/game";
 import { useToast } from "../hooks/useToast";
+import { useServerUpload } from "../hooks/useServerUpload";
 import "../i18n/config";
 
 interface SaveFile {
@@ -15,6 +23,7 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
+  file_path: string;
 }
 
 interface BackupHistoryItem {
@@ -35,8 +44,14 @@ interface PaginationInfo {
 const BackupCard: React.FC<{
   backup: BackupHistoryItem;
   onRestore: (backup: BackupHistoryItem) => void;
-}> = ({ backup, onRestore }) => {
-  const { t } = useTranslation();
+  isDropdownOpen: boolean;
+  onDropdownToggle: () => void;
+}> = ({ backup, onRestore, isDropdownOpen, onDropdownToggle }) => {
+  const { t, i18n } = useTranslation();
+  const showDropdown = isDropdownOpen;
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { uploadFile, isUploading } = useServerUpload();
+  const { error, success } = useToast();
 
   const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
     switch (status) {
@@ -68,6 +83,35 @@ const BackupCard: React.FC<{
     return t(`history.fileSize.${units[unitIndex]}`, {
       size: size.toFixed(1),
     });
+  };
+
+  const getDisplayName = (fileName: string) => {
+    // Extract timestamp from backup filename
+    const match = fileName.match(/backup_(\d{8})_(\d{6})/);
+    if (match) {
+      const dateStr = match[1];
+      const timeStr = match[2];
+      const year = dateStr.slice(0, 4);
+      const month = dateStr.slice(4, 6);
+      const day = dateStr.slice(6, 8);
+      const hour = timeStr.slice(0, 2);
+      const minute = timeStr.slice(2, 4);
+
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+      
+      // Format date based on current locale
+      const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+      const formattedDate = new Intl.DateTimeFormat(locale, {
+        day: 'numeric',
+        month: i18n.language === 'vi' ? 'numeric' : 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(date);
+      
+      return t("saveFile.saveFrom", { date: formattedDate });
+    }
+    return fileName;
   };
 
   const formatTimeAgo = (date: string) => {
@@ -104,77 +148,249 @@ const BackupCard: React.FC<{
   };
 
   return (
-    <div className="bg-game-card rounded-lg p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <img
-            src={backup.game.cover_image}
-            alt={backup.game.title}
-            className="w-16 h-20 rounded-lg object-cover"
-          />
-          <div>
-            <h3 className="text-xl font-bold">
-              {backup.game.title} - {backup.save_file.file_name}
+    <div className="relative bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50 hover:border-rog-blue/30 transition-all duration-200 group">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center space-x-4 flex-1 min-w-0">
+          <div className="relative">
+            <img
+              src={backup.game.cover_image}
+              alt={backup.game.title}
+              className="w-20 h-24 rounded-md object-cover shadow-lg"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-white mb-1 truncate">
+              {backup.game.title}
             </h3>
-            <p className="text-gray-400">
-              {t("history.backup.created", {
-                time: formatTimeAgo(backup.save_file.created_at),
-              })}
+            <p className="text-sm text-gray-400 mb-2">
+              {getDisplayName(backup.save_file.file_name)}
             </p>
-            <p className="text-sm text-gray-400 mt-1">
-              {t("history.backup.backupFor", { game: backup.game.title })}
-            </p>
-            <div className="flex items-center space-x-4 mt-2">
-              <span className="text-sm text-gray-400">
-                {formatFileSize(backup.save_file.size_bytes)}
-              </span>
-              <span className="text-sm text-gray-400">•</span>
-              <span
-                className={`text-sm ${getSyncStatusColor(backup.sync_status)}`}
-              >
-                {getSyncStatusText(backup.sync_status)}
-              </span>
+            <div className="flex items-center flex-wrap gap-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <svg
+                  className="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="text-gray-300">
+                  {formatTimeAgo(backup.save_file.created_at)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg
+                  className="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
+                </svg>
+                <span className="text-gray-300">
+                  {formatFileSize(backup.save_file.size_bytes)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    backup.sync_status === "synced"
+                      ? "bg-epic-success"
+                      : backup.sync_status === "syncing"
+                      ? "bg-epic-warning animate-pulse"
+                      : "bg-epic-danger"
+                  }`}
+                />
+                <span className={`${getSyncStatusColor(backup.sync_status)}`}>
+                  {getSyncStatusText(backup.sync_status)}
+                </span>
+              </div>
             </div>
+            {backup.save_file.tags.length > 0 && (
+              <div className="flex items-center gap-2 mt-3">
+                {backup.save_file.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="bg-rog-blue/20 text-rog-blue px-2 py-0.5 rounded text-xs font-medium"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => onRestore(backup)}
-            className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
+            className="bg-rog-blue px-2 py-2 rounded-lg hover:bg-epic-accent transition-all duration-200 flex items-center gap-2 font-medium shadow-lg hover:shadow-rog-blue/20 whitespace-nowrap"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
             <span>{t("history.backup.restore")}</span>
           </button>
-          <button className="bg-white/10 p-2 rounded-lg hover:bg-white/20 transition-colors">
-            <MoreVertical className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-      <div className="mt-4 text-gray-400">
-        <div className="flex items-center space-x-2 mb-2">
-          {backup.save_file.tags.map((tag, index) => (
-            <span
-              key={index}
-              className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full text-xs"
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => {
+                onDropdownToggle();
+              }}
+              className="p-3 rounded-lg hover:bg-epic-hover transition-colors flex-shrink-0"
             >
-              {tag}
-            </span>
-          ))}
+              <MoreVertical className="w-4 h-4 text-gray-400" />
+            </button>
+            {showDropdown && (
+              <div
+                className="absolute right-0 top-full mt-2 w-64 bg-game-card/95 backdrop-blur-sm rounded-xl border border-epic-border/50 shadow-2xl overflow-hidden z-[200]"
+              >
+                <button
+                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
+                  onClick={async () => {
+                    onDropdownToggle();
+                    try {
+                      const result = await uploadFile(
+                        backup.save_file.file_path,
+                        backup.save_file.file_name
+                      );
+                      if (result) {
+                        success(
+                          t("history.notifications.uploadSuccess") ||
+                            "Save file uploaded successfully"
+                        );
+                      }
+                    } catch (err) {
+                      error(
+                        t("history.notifications.uploadError") ||
+                          "Failed to upload to server"
+                      );
+                    }
+                  }}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-gray-300">
+                        {t("history.actions.uploading") || "Uploading..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-300">
+                        {t("history.actions.uploadToServer")}
+                      </span>
+                    </>
+                  )}
+                </button>
+                <button
+                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
+                  onClick={async () => {
+                    onDropdownToggle();
+                    try {
+                      await invoke("open_save_location", {
+                        gameId: backup.game.id,
+                        backup: false,
+                      });
+                    } catch (err) {
+                      error(
+                        t("history.notifications.openLocationError") ||
+                          "Failed to open save location"
+                      );
+                    }
+                  }}
+                >
+                  <FolderInput className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-300">
+                    {t("history.actions.openOriginalLocation")}
+                  </span>
+                </button>
+                <button
+                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                  onClick={async () => {
+                    onDropdownToggle();
+                    try {
+                      await invoke("open_save_location", {
+                        gameId: backup.game.id,
+                        backup: true,
+                      });
+                    } catch (err) {
+                      error(
+                        t("history.notifications.openLocationError") ||
+                          "Failed to open backup location"
+                      );
+                    }
+                  }}
+                >
+                  <FolderOpen className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-300">
+                    {t("history.actions.openBackupLocation")}
+                  </span>
+                </button>
+                <button
+                  className="w-full px-4 py-3 text-left hover:bg-epic-danger/20 transition-colors flex items-center gap-3 text-sm text-epic-danger"
+                  onClick={async () => {
+                    onDropdownToggle();
+                    if (
+                      confirm(
+                        t("history.confirmDelete") ||
+                          "Are you sure you want to delete this save file?"
+                      )
+                    ) {
+                      try {
+                        await invoke("delete_save_file", {
+                          gameId: backup.game.id,
+                          saveId: backup.save_file.id,
+                        });
+                        success(
+                          t("history.notifications.deleteSuccess") ||
+                            "Save file deleted successfully"
+                        );
+                        window.location.reload(); // Refresh to update the list
+                      } catch (err) {
+                        error(
+                          t("history.notifications.deleteError") ||
+                            "Failed to delete save file"
+                        );
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{t("history.actions.deleteSaveFile")}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {/* Click outside to close dropdown */}
+      {showDropdown && (
+        <div className="fixed inset-0 z-[90]" onClick={onDropdownToggle} />
+      )}
     </div>
   );
 };
 
 export default function History() {
   const { t } = useTranslation();
-  const { success, error, info } = useToast();
+  const { success, error } = useToast();
   const [backups, setBackups] = useState<BackupHistoryItem[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     current_page: 1,
     total_pages: 1,
@@ -195,7 +411,9 @@ export default function History() {
       setGames(Object.values(result));
     } catch (err) {
       console.error("Failed to load games:", err);
-      error(t("history.notifications.loadGamesError") || "Failed to load games");
+      error(
+        t("history.notifications.loadGamesError") || "Failed to load games"
+      );
     }
   };
 
@@ -263,7 +481,9 @@ export default function History() {
       }));
     } catch (err) {
       console.error("Failed to load backups:", err);
-      error(t("history.notifications.loadBackupsError") || "Failed to load backups");
+      error(
+        t("history.notifications.loadBackupsError") || "Failed to load backups"
+      );
     } finally {
       setLoading(false);
     }
@@ -288,10 +508,6 @@ export default function History() {
     }
   };
 
-  const handlePageChange = (page: number) => {
-    setPagination((prev) => ({ ...prev, current_page: page }));
-  };
-
   useEffect(() => {
     loadGames();
   }, []);
@@ -299,6 +515,51 @@ export default function History() {
   useEffect(() => {
     loadBackups();
   }, [pagination.current_page, selectedGame, selectedTime, searchQuery]);
+
+  const handlePageChange = (page: number) => {
+    setPagination((prev) => ({ ...prev, current_page: page }));
+  };
+
+  const formatTimeAgo = (date: string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diffInMinutes = Math.floor(
+      (now.getTime() - then.getTime()) / (1000 * 60)
+    );
+
+    if (diffInMinutes < 1) {
+      return t("history.backup.timeAgo.lessThanAMinute");
+    } else if (diffInMinutes < 60) {
+      return t("history.backup.timeAgo.minutes", { count: diffInMinutes });
+    } else if (diffInMinutes < 1440) {
+      return t("history.backup.timeAgo.hours", {
+        count: Math.floor(diffInMinutes / 60),
+      });
+    } else if (diffInMinutes < 10080) {
+      return t("history.backup.timeAgo.days", {
+        count: Math.floor(diffInMinutes / 1440),
+      });
+    } else if (diffInMinutes < 43200) {
+      return t("history.backup.timeAgo.weeks", {
+        count: Math.floor(diffInMinutes / 10080),
+      });
+    } else {
+      return t("history.backup.timeAgo.months", {
+        count: Math.floor(diffInMinutes / 43200),
+      });
+    }
+  };
+
+  // Close dropdown when clicking escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpenDropdownId(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   const gameOptions = [
     { value: "all", label: t("history.filters.allGames") },
@@ -309,9 +570,42 @@ export default function History() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto p-8">
+    <div className="text-white font-sans animate-fade-in p-8">
+      {/* Header Section */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">{t("history.title")}</h1>
+        <p className="text-gray-400 text-lg">{t("history.subtitle")}</p>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-6 border border-epic-border/50">
+          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-2">
+            {t("history.stats.totalBackups")}
+          </h3>
+          <p className="text-3xl font-bold text-white">
+            {pagination.total_items}
+          </p>
+        </div>
+        <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-6 border border-epic-border/50">
+          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-2">
+            {t("history.stats.gamesBackedUp")}
+          </h3>
+          <p className="text-3xl font-bold text-white">{games.length}</p>
+        </div>
+        <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-6 border border-epic-border/50">
+          <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-2">
+            {t("history.stats.lastBackup")}
+          </h3>
+          <p className="text-xl font-semibold text-white">
+            {backups.length > 0
+              ? formatTimeAgo(backups[0].save_file.created_at)
+              : t("history.stats.never")}
+          </p>
+        </div>
+      </div>
       {/* Filters and Search */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="relative">
             <input
@@ -319,10 +613,10 @@ export default function History() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("history.filters.search")}
-              className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
+              className="bg-epic-hover border border-epic-border rounded-lg pl-10 pr-2 py-2 w-80 focus:outline-none focus:ring-2 focus:ring-rog-blue focus:border-transparent transition-all duration-200 hover:bg-epic-hover/80"
             />
             <svg
-              className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
+              className="w-5 h-5 text-gray-400 absolute left-3 top-3.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -350,56 +644,41 @@ export default function History() {
             className="w-48"
           />
         </div>
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => info(t("history.notifications.exportFeatureComingSoon") || "Export feature coming soon!")}
-            className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span>{t("history.actions.export")}</span>
-          </button>
-          <button 
-            onClick={() => info(t("history.notifications.filterFeatureComingSoon") || "Filter feature coming soon!")}
-            className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors flex items-center space-x-2">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            <span>{t("history.actions.filter")}</span>
-          </button>
-        </div>
       </div>
 
       {/* Backup List */}
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-visible">
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rog-blue mx-auto"></div>
-            <p className="mt-4 text-gray-400">{t("history.loading")}</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-epic-border rounded-full animate-spin border-t-rog-blue"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-rog-blue/20"></div>
+            </div>
+            <p className="mt-6 text-gray-400 text-lg animate-pulse">
+              {t("history.loading")}
+            </p>
           </div>
         ) : backups.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            {t("history.noBackups")}
+          <div className="bg-game-card/30 backdrop-blur-sm rounded-xl p-12 border border-epic-border/30 text-center">
+            <div className="w-20 h-20 bg-epic-hover rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-10 h-10 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {t("history.noBackups")}
+            </h3>
+            <p className="text-gray-400">{t("history.noBackupsDescription")}</p>
           </div>
         ) : (
           backups.map((backup) => (
@@ -407,6 +686,12 @@ export default function History() {
               key={backup.id}
               backup={backup}
               onRestore={handleRestore}
+              isDropdownOpen={openDropdownId === backup.id}
+              onDropdownToggle={() => {
+                setOpenDropdownId(
+                  openDropdownId === backup.id ? null : backup.id
+                );
+              }}
             />
           ))
         )}
@@ -414,84 +699,109 @@ export default function History() {
 
       {/* Pagination */}
       {!loading && backups.length > 0 && (
-        <div className="mt-8 flex items-center justify-between">
-          <div className="text-gray-400">
-            {t("history.pagination.showing", {
-              start:
-                (pagination.current_page - 1) * pagination.items_per_page + 1,
-              end: Math.min(
-                pagination.current_page * pagination.items_per_page,
-                pagination.total_items
-              ),
-              total: pagination.total_items,
-            })}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePageChange(pagination.current_page - 1)}
-              disabled={pagination.current_page === 1}
-              className={`bg-white/10 px-4 py-2 rounded-lg transition-colors ${
-                pagination.current_page === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-white/20"
-              }`}
-            >
-              {t("history.pagination.previous")}
-            </button>
-            {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
-              .filter(
-                (page) =>
-                  page === 1 ||
-                  page === pagination.total_pages ||
-                  Math.abs(page - pagination.current_page) <= 1
-              )
-              .map((page, index, array) => {
-                if (index > 0 && array[index - 1] !== page - 1) {
-                  return (
-                    <React.Fragment key={`ellipsis-${page}`}>
-                      <span className="px-2">...</span>
-                      <button
-                        onClick={() => handlePageChange(page)}
-                        className={`px-4 py-2 rounded-lg ${
-                          pagination.current_page === page
-                            ? "bg-rog-blue"
-                            : "bg-white/10 hover:bg-white/20"
-                        } transition-colors`}
-                      >
-                        {page}
-                      </button>
-                    </React.Fragment>
-                  );
-                }
-                return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded-lg ${
-                      pagination.current_page === page
-                        ? "bg-rog-blue"
-                        : "bg-white/10 hover:bg-white/20"
-                    } transition-colors`}
-                  >
-                    {page}
-                  </button>
-                );
+        <div className="mt-8 bg-game-card/30 backdrop-blur-sm rounded-xl p-4 border border-epic-border/30">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-400">
+              {t("history.pagination.showing", {
+                start:
+                  (pagination.current_page - 1) * pagination.items_per_page + 1,
+                end: Math.min(
+                  pagination.current_page * pagination.items_per_page,
+                  pagination.total_items
+                ),
+                total: pagination.total_items,
               })}
-            <button
-              onClick={() => handlePageChange(pagination.current_page + 1)}
-              disabled={pagination.current_page === pagination.total_pages}
-              className={`bg-white/10 px-4 py-2 rounded-lg transition-colors ${
-                pagination.current_page === pagination.total_pages
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-white/20"
-              }`}
-            >
-              {t("history.pagination.next")}
-            </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handlePageChange(pagination.current_page - 1)}
+                disabled={pagination.current_page === 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  pagination.current_page === 1
+                    ? "opacity-50 cursor-not-allowed bg-epic-hover/50"
+                    : "bg-epic-hover hover:bg-epic-hover/80 hover:text-white"
+                }`}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
+                .filter(
+                  (page) =>
+                    page === 1 ||
+                    page === pagination.total_pages ||
+                    Math.abs(page - pagination.current_page) <= 1
+                )
+                .map((page, index, array) => {
+                  if (index > 0 && array[index - 1] !== page - 1) {
+                    return (
+                      <React.Fragment key={`ellipsis-${page}`}>
+                        <span className="px-2 text-gray-500">•••</span>
+                        <button
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                            pagination.current_page === page
+                              ? "bg-rog-blue text-white shadow-lg shadow-rog-blue/20"
+                              : "bg-epic-hover hover:bg-epic-hover/80 hover:text-white"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    );
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                        pagination.current_page === page
+                          ? "bg-rog-blue text-white shadow-lg shadow-rog-blue/20"
+                          : "bg-epic-hover hover:bg-epic-hover/80 hover:text-white"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              <button
+                onClick={() => handlePageChange(pagination.current_page + 1)}
+                disabled={pagination.current_page === pagination.total_pages}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  pagination.current_page === pagination.total_pages
+                    ? "opacity-50 cursor-not-allowed bg-epic-hover/50"
+                    : "bg-epic-hover hover:bg-epic-hover/80 hover:text-white"
+                }`}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -1028,6 +1028,39 @@ pub async fn sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFil
     add_game_to_library(game_info).await
 }
 
+#[tauri::command]
+pub async fn read_file_as_bytes(file_path: String) -> Result<Vec<u8>, SaveFileError> {
+    use tokio::fs;
+    
+    println!("read_file_as_bytes called with path: {}", &file_path);
+    
+    // Check if file exists first
+    match fs::metadata(&file_path).await {
+        Ok(metadata) => {
+            println!("File exists. Size: {} bytes", metadata.len());
+        }
+        Err(e) => {
+            eprintln!("File not found or inaccessible: {} - Error: {}", &file_path, e);
+            return Err(SaveFileError {
+                message: format!("File not found or inaccessible: {} - {}", &file_path, e),
+            });
+        }
+    }
+    
+    match fs::read(&file_path).await {
+        Ok(bytes) => {
+            println!("Successfully read {} bytes from {}", bytes.len(), &file_path);
+            Ok(bytes)
+        }
+        Err(e) => {
+            eprintln!("Failed to read file: {} - Error: {}", &file_path, e);
+            Err(SaveFileError {
+                message: format!("Failed to read file '{}': {}", &file_path, e),
+            })
+        }
+    }
+}
+
 // Helper function to get directory size
 fn get_directory_size(path: &PathBuf) -> u64 {
     let mut total_size = 0u64;
@@ -1071,4 +1104,91 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<u64, std::io::Erro
     }
 
     Ok(total_size)
+}
+
+#[tauri::command]
+pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), SaveFileError> {
+    if backup {
+        // Open backup location
+        let saves_dir = get_saves_directory()?;
+        let game_saves_dir = saves_dir.join(&game_id);
+        
+        if !game_saves_dir.exists() {
+            return Err(SaveFileError {
+                message: "Backup directory does not exist".to_string(),
+            });
+        }
+        
+        #[cfg(target_os = "windows")]
+        {
+            std::process::Command::new("explorer")
+                .arg(&game_saves_dir)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+        
+        #[cfg(target_os = "macos")]
+        {
+            std::process::Command::new("open")
+                .arg(&game_saves_dir)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+        
+        #[cfg(target_os = "linux")]
+        {
+            std::process::Command::new("xdg-open")
+                .arg(&game_saves_dir)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+    } else {
+        // Open original save location
+        let game = get_game_by_id(game_id).await?;
+        let save_location = PathBuf::from(&game.save_location);
+        
+        if !save_location.exists() {
+            return Err(SaveFileError {
+                message: "Save location does not exist".to_string(),
+            });
+        }
+        
+        #[cfg(target_os = "windows")]
+        {
+            std::process::Command::new("explorer")
+                .arg(&save_location)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+        
+        #[cfg(target_os = "macos")]
+        {
+            std::process::Command::new("open")
+                .arg(&save_location)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+        
+        #[cfg(target_os = "linux")]
+        {
+            std::process::Command::new("xdg-open")
+                .arg(&save_location)
+                .spawn()
+                .map_err(|e| SaveFileError {
+                    message: format!("Failed to open directory: {}", e),
+                })?;
+        }
+    }
+    
+    Ok(())
 }

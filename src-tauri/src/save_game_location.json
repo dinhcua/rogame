@@ -9,6 +9,26 @@
     },
     "save_pattern": ["*"]
   },
+  "2680010": {
+    "steam_id": "2680010",
+    "name": "The First Berserker: Khazan",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2680010/remote",
+      "windows": "~/AppData/Local/The First Berserker Khazan/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/2680010/remote"
+    },
+    "save_pattern": ["*"]
+  },
+  "2277560": {
+    "steam_id": "2277560",
+    "name": "WUCHANG: Fallen Feathers",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/2277560/remote",
+      "windows": "~/AppData/Local/Project_Plague/Saved/",
+      "linux": "~/.local/share/Steam/userdata/*/2277560/remote"
+    },
+    "save_pattern": ["*"]
+  },
   "2358720": {
     "steam_id": "2358720",
     "name": "Black Myth: Wukong",

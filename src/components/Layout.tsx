@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { User, Home, History, Settings } from "lucide-react";
+import { User, Home, History, Settings, Gamepad2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import "../i18n/config";
 
@@ -12,76 +12,81 @@ export default function Layout({ children }: LayoutProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-game-dark text-white font-sans">
-      {/* Top Status Bar */}
-      {/* <div className="fixed top-0 left-0 right-0 bg-black/30 h-12 flex items-center justify-between pl-4.5 z-50">
-        <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex items-center space-x-4 mr-4">
-          <button className="flex items-center space-x-2 bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors">
-            <Plus className="w-5 h-5" />
-            <span>Add Game</span>
-          </button>
-          <User className="w-5 h-5" />
-          <span>
-            {new Date().toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </span>
-        </div>
-      </div> */}
-
-      {/* Left Sidebar */}
-      <div className="fixed left-0 top-0 bottom-0 w-16 bg-sidebar flex flex-col items-center py-10 space-y-8 z-40">
-        {/* Profile */}
-        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-          <User className="w-6 h-6" />
+    <div className="min-h-screen bg-game-dark text-white font-sans overflow-hidden">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-0 bottom-0 w-14 bg-sidebar flex flex-col z-40">
+        {/* Logo */}
+        <div className="flex justify-center p-2">
+          <div className="size-12 flex items-center justify-center">
+            <Gamepad2 className="w-8 h-8" />
+          </div>
         </div>
 
-        {/* Navigation Icons */}
-        <nav className="flex flex-col items-center space-y-6">
+        {/* Navigation */}
+        <nav className="flex-1 p-1">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
+              `relative flex items-center justify-center py-3 rounded-lg transition-all duration-200 group ${
+                isActive
+                  ? "bg-rog-blue text-white"
+                  : "hover:bg-epic-hover text-gray-300 hover:text-white"
               }`
             }
-            title={t("navigation.home")}
           >
-            <Home className="w-6 h-6" />
+            <Home className="w-5 h-5" />
+            <span className="absolute left-full ml-2 px-2 py-1 bg-black/90 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              {t("navigation.home")}
+            </span>
           </NavLink>
           <NavLink
             to="/history"
             className={({ isActive }) =>
-              `w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
+              `relative flex items-center justify-center py-3 rounded-lg transition-all duration-200 group mt-2 ${
+                isActive
+                  ? "bg-rog-blue text-white"
+                  : "hover:bg-epic-hover text-gray-300 hover:text-white"
               }`
             }
-            title={t("navigation.history")}
           >
-            <History className="w-6 h-6" />
+            <History className="w-5 h-5" />
+            <span className="absolute left-full ml-2 px-2 py-1 bg-black/90 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              {t("navigation.history")}
+            </span>
           </NavLink>
+        </nav>
+
+        {/* Bottom Section */}
+        <div className="p-1">
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                isActive ? "bg-rog-blue" : "bg-white/10 hover:bg-white/20"
+              `relative flex items-center justify-center py-3 rounded-lg transition-all duration-200 group ${
+                isActive
+                  ? "bg-rog-blue text-white"
+                  : "hover:bg-epic-hover text-gray-300 hover:text-white"
               }`
             }
-            title={t("navigation.settings")}
           >
-            <Settings className="w-6 h-6" />
+            <Settings className="w-5 h-5" />
+            <span className="absolute left-full ml-2 px-2 py-1 bg-black/90 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              {t("navigation.settings")}
+            </span>
           </NavLink>
-        </nav>
+
+          <button className="relative flex items-center justify-center w-full py-3 rounded-lg transition-all duration-200 hover:bg-epic-hover text-gray-300 hover:text-white mt-2 group">
+            <User className="w-5 h-5" />
+            <span className="absolute left-full ml-2 px-2 py-1 bg-black/90 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              Profile
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="ml-16 pt-12 px-8 pb-8">{children}</div>
+      <div className="ml-14 h-screen overflow-y-auto">
+        <div className="">{children}</div>
+      </div>
     </div>
   );
 }

@@ -29,21 +29,21 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-game-card rounded-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-game-card rounded-lg p-6 max-w-md w-full mx-4 shadow-xl animate-scale-in">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-epic-danger/20 flex items-center justify-center">
             {isDeleting ? (
-              <Loader2 className="w-6 h-6 text-red-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-epic-danger animate-spin" />
             ) : (
-              <Trash2 className="w-6 h-6 text-red-500" />
+              <Trash2 className="w-8 h-8 text-epic-danger" />
             )}
           </div>
         </div>
-        <h3 className="text-xl font-bold text-center mb-2">
+        <h3 className="text-2xl font-bold text-center mb-3">
           {t("deleteGameModal.title")}
         </h3>
-        <p className="text-gray-400 text-center mb-6">
+        <p className="text-gray-400 text-center mb-8 text-lg">
           {t("deleteGameModal.confirmation", { gameTitle })}
         </p>
 
@@ -54,23 +54,25 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
               checked={includeSaveFiles}
               onChange={(e) => setIncludeSaveFiles(e.target.checked)}
               disabled={isDeleting}
-              className="w-4 h-4 rounded border-gray-600 text-rog-blue focus:ring-rog-blue bg-transparent disabled:opacity-50"
+              className="w-5 h-5 rounded border-gray-600 text-rog-blue focus:ring-rog-blue focus:ring-offset-2 focus:ring-offset-game-card bg-transparent disabled:opacity-50 cursor-pointer"
             />
-            <span className="text-sm text-gray-300">
+            <span className="text-base text-gray-300">
               {t("deleteGameModal.includeSaveFiles")}
             </span>
           </label>
         </div>
 
         {error && (
-          <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+          <div className="bg-epic-danger/10 border border-epic-danger/20 rounded-lg p-3 mb-4">
+            <p className="text-epic-danger text-sm text-center">{error}</p>
+          </div>
         )}
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className={`flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors ${
+            className={`flex-1 px-4 py-2 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200 font-medium ${
               isDeleting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -79,7 +81,7 @@ const DeleteGameModal: React.FC<DeleteGameModalProps> = ({
           <button
             onClick={onDelete}
             disabled={isDeleting}
-            className={`flex-1 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center space-x-2 ${
+            className={`flex-1 px-4 py-2 rounded-lg bg-epic-danger hover:bg-epic-danger/90 transition-all duration-200 flex items-center justify-center space-x-2 font-medium ${
               isDeleting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >

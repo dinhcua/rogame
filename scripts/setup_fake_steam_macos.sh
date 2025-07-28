@@ -38,6 +38,8 @@ cat > "$STEAM_ROOT/steamapps/libraryfolders.vdf" << 'EOF'
 		{
 			"3489700"		"226466092"
 			"2358720"		"334522123"
+			"2277560"		"223344556"
+			"2680010"		"112233445"
 			"3017860"		"445623234"
 			"292030"		"556734345"
 			"1091500"		"667845456"
@@ -96,6 +98,34 @@ cat > "$STEAM_ROOT/steamapps/appmanifest_2358720.acf" << 'EOF'
 EOF
 mkdir -p "$STEAM_ROOT/steamapps/common/Black Myth Wukong"
 touch "$STEAM_ROOT/steamapps/common/Black Myth Wukong/b1.exe"
+
+# WUCHANG: Fallen Feathers (2277560)
+cat > "$STEAM_ROOT/steamapps/appmanifest_2277560.acf" << 'EOF'
+"AppState"
+{
+	"appid"		"2277560"
+	"Universe"		"1"
+	"name"		"WUCHANG: Fallen Feathers"
+	"StateFlags"		"4"
+	"installdir"		"WUCHANG Fallen Feathers"
+}
+EOF
+mkdir -p "$STEAM_ROOT/steamapps/common/WUCHANG Fallen Feathers"
+touch "$STEAM_ROOT/steamapps/common/WUCHANG Fallen Feathers/WUCHANG.exe"
+
+# The First Berserker: Khazan (2680010)
+cat > "$STEAM_ROOT/steamapps/appmanifest_2680010.acf" << 'EOF'
+"AppState"
+{
+	"appid"		"2680010"
+	"Universe"		"1"
+	"name"		"The First Berserker: Khazan"
+	"StateFlags"		"4"
+	"installdir"		"The First Berserker Khazan"
+}
+EOF
+mkdir -p "$STEAM_ROOT/steamapps/common/The First Berserker Khazan"
+touch "$STEAM_ROOT/steamapps/common/The First Berserker Khazan/Khazan.exe"
 
 # Doom: The Dark Ages (3017860)
 cat > "$STEAM_ROOT/steamapps/appmanifest_3017860.acf" << 'EOF'
@@ -167,6 +197,14 @@ for uid in "${USER_IDS[@]}"; do
     # Black Myth: Wukong saves (Steam Cloud)
     mkdir -p "$STEAM_ROOT/userdata/$uid/2358720/remote"
     echo "fake wukong save for user $uid" > "$STEAM_ROOT/userdata/$uid/2358720/remote/save.sav"
+    
+    # WUCHANG: Fallen Feathers saves (Steam Cloud)
+    mkdir -p "$STEAM_ROOT/userdata/$uid/2277560/remote"
+    echo "fake wuchang save for user $uid" > "$STEAM_ROOT/userdata/$uid/2277560/remote/save.dat"
+    
+    # The First Berserker: Khazan saves (Steam Cloud)
+    mkdir -p "$STEAM_ROOT/userdata/$uid/2680010/remote"
+    echo "fake khazan save for user $uid" > "$STEAM_ROOT/userdata/$uid/2680010/remote/save.sav"
     
     # Doom: The Dark Ages saves (Steam Cloud)
     mkdir -p "$STEAM_ROOT/userdata/$uid/3017860/remote"
@@ -321,7 +359,7 @@ echo "Fake Steam environment setup complete!"
 echo ""
 echo "Created structure:"
 echo "- Main library: $STEAM_ROOT"
-echo "- Games in library 0: Stellar Blade, Black Myth Wukong, Doom The Dark Ages, The Witcher 3, Cyberpunk 2077, Red Dead Redemption 2"
+echo "- Games in library 0: Stellar Blade, Black Myth Wukong, WUCHANG Fallen Feathers, The First Berserker Khazan, Doom The Dark Ages, The Witcher 3, Cyberpunk 2077, Red Dead Redemption 2"
 echo "- External library: $EXTERNAL_LIB (if /Volumes/External exists)"
 echo "- Games in library 1: God of War Ragnarök, Monster Hunter World, Resident Evil 4, Baldur's Gate 3, Nioh 2, Sekiro, Lies of P"
 echo "- Steam user IDs: ${USER_IDS[*]}"

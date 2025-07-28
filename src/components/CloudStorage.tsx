@@ -11,11 +11,18 @@ const CloudStorage: React.FC = () => {
   const { t } = useTranslation();
   const {
     isLoading,
+    tokensLoaded,
     authenticate,
     disconnectProvider,
     isProviderConnected,
     getProviderName,
+    refreshTokens,
   } = useCloudStorage();
+
+  // Refresh tokens when component mounts
+  React.useEffect(() => {
+    refreshTokens();
+  }, [refreshTokens]);
 
   // Temporary sync settings state (should be managed in a proper store)
   const [syncSettings, setSyncSettings] = React.useState({
@@ -33,18 +40,31 @@ const CloudStorage: React.FC = () => {
 
   const providers: CloudProvider[] = ['google_drive', 'dropbox', 'onedrive'];
 
+  // Debug logging
+  React.useEffect(() => {
+    providers.forEach(provider => {
+      console.log(`Provider ${provider} connected:`, isProviderConnected(provider));
+    });
+  }, [isProviderConnected, providers]);
+
   return (
-    <div className="bg-game-card rounded-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">{t("cloudStorage.title")}</h2>
+    <div className="bg-game-card rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold">{t("cloudStorage.title")}</h2>
       </div>
 
-      <div className="space-y-6">
-        {providers.map((provider) => {
-          const isConnected = isProviderConnected(provider);
-          
-          return (
-            <div key={provider} className="flex items-center justify-between">
+      <div className="space-y-4">
+        {!tokensLoaded ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <span className="ml-2 text-gray-400">Loading cloud providers...</span>
+          </div>
+        ) : (
+          providers.map((provider) => {
+            const isConnected = isProviderConnected(provider);
+            
+            return (
+            <div key={provider} className="flex items-center justify-between p-3 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200">
               <div className="flex items-center space-x-3">
                 <PlatformIcon platform={provider} />
                 <div>
@@ -65,7 +85,7 @@ const CloudStorage: React.FC = () => {
                   }
                 }}
                 disabled={isLoading}
-                className="text-rog-blue hover:text-blue-400 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="text-rog-blue hover:text-epic-accent text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-rog-blue/10"
               >
                 {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>
@@ -75,12 +95,13 @@ const CloudStorage: React.FC = () => {
                 </span>
               </button>
             </div>
-          );
-        })}
+            );
+          })
+        )}
 
         {/* Auto-sync Settings */}
-        <div className="border-t border-white/10 pt-4 mt-4">
-          <h3 className="text-lg font-medium mb-4">
+        <div className="border-t border-gray-700 pt-4 mt-4">
+          <h3 className="text-base font-semibold mb-3">
             {t("cloudStorage.autoSync.title")}
           </h3>
           <div className="space-y-4">
@@ -100,7 +121,7 @@ const CloudStorage: React.FC = () => {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-rog-blue dark:bg-gray-700 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:after:translate-x-full"></div>
+                <div className="w-11 h-6 bg-epic-hover rounded-full peer peer-checked:bg-rog-blue after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
               </label>
             </div>
             <div className="flex items-center justify-between">

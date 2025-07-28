@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Game } from "../types/game";
-import { formatBackupTime } from "../utils/time";
 import AddGameModal from "../components/AddGameModal";
 import DeleteGameModal from "../components/DeleteGameModal";
 import DropdownSelect from "../components/DropdownSelect";
@@ -13,16 +12,15 @@ import {
   Search,
   ShoppingBag,
   SlidersHorizontal,
-  Clock,
   Star,
   Plus,
   CheckCircle2,
+  CheckCircle,
   ChevronDown,
   File,
   X,
   Loader2,
   Download,
-  Check,
   Trash2,
 } from "lucide-react";
 import "../i18n/config";
@@ -206,10 +204,10 @@ const GameUI = () => {
 
         setSteamGamesCount(steamGames.length);
         setEpicGamesCount(epicGames.length);
-        
+
         // Store found games without adding to database
         setFoundGames(games);
-        
+
         // Don't reload from database - just show the found games
 
         // Ensure we reach 100%
@@ -226,14 +224,18 @@ const GameUI = () => {
         console.error("Error scanning games:", error);
         clearInterval(progressInterval);
         setShowScanProgress(false);
-        showError(t("gameUI.errors.scanFailed", { error: error.message || "Unknown error" }));
+        showError(
+          t("gameUI.errors.scanFailed", {
+            error: error.message || "Unknown error",
+          })
+        );
       });
   };
 
   const addGameToLibrary = async (gameId: string) => {
     try {
       await addFoundGameToLibrary(gameId);
-      const game = foundGames.find(g => g.id === gameId);
+      const game = foundGames.find((g) => g.id === gameId);
       if (game) {
         success(t("gameUI.success.gameAdded", { title: game.title }));
       }
@@ -263,7 +265,8 @@ const GameUI = () => {
       setIncludeSaveFiles(false);
     } catch (error) {
       console.error("Failed to delete game:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete game";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete game";
       setDeleteError(errorMessage);
       showError(t("gameUI.errors.deleteFailed", { error: errorMessage }));
     } finally {
@@ -272,22 +275,35 @@ const GameUI = () => {
   };
 
   return (
-    <div className="bg-game-dark text-white font-sans">
+    <div className="text-white font-sans animate-fade-in p-8">
       {/* Main Content */}
       <div>
+        {/* Header Section */}
+        <div className="mb-3">
+          <h1 className="text-2xl font-bold">{t("gameUI.title")}</h1>
+          <p className="text-gray-400">{t("gameUI.subtitle")}</p>
+        </div>
+
         {/* Game Scanner Section */}
-        <div className="bg-game-card rounded-lg p-6 mb-8">
+        <div className="bg-gradient-to-r from-rog-blue/10 to-purple-600/10 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-medium mb-2">
-                {t("gameUI.scanner.title")}
-              </h2>
-              <p className="text-gray-400">{t("gameUI.scanner.description")}</p>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-rog-blue/20 rounded-xl flex items-center justify-center">
+                <Search className="w-8 h-8 text-rog-blue" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">
+                  {t("gameUI.scanner.title")}
+                </h2>
+                <p className="text-gray-400 text-sm">
+                  {t("gameUI.scanner.description")}
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleScan}
-                className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
+                className="bg-rog-blue px-6 py-2 rounded-lg hover:bg-epic-accent transition-all duration-200 flex items-center space-x-2 font-medium"
               >
                 <Search className="w-5 h-5" />
                 <span>{t("gameUI.scanner.scanButton")}</span>
@@ -304,11 +320,13 @@ const GameUI = () => {
                 </span>
                 <span className="text-sm text-gray-400">{scanPercentage}%</span>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-2">
+              <div className="w-full bg-epic-hover rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-rog-blue h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-rog-blue to-purple-600 h-3 rounded-full transition-all duration-300 relative"
                   style={{ width: `${scanPercentage}%` }}
-                />
+                >
+                  <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                </div>
               </div>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center space-x-3 text-green-500">
@@ -335,76 +353,97 @@ const GameUI = () => {
 
           {/* Recently Found Games */}
           {showFoundGames && foundGames.length > 0 && (
-            <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="mt-6 bg-game-dark/50 backdrop-blur-sm rounded-lg p-4 border border-epic-border/50 animate-fade-in">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">
-                  {t("gameUI.foundGames.title")}
-                </h3>
-                <div className="flex items-center space-x-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white">
+                    {t("gameUI.foundGames.title")}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    Found {foundGames.length} games ready to import
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
                   <button
                     onClick={async () => {
                       try {
                         for (const game of foundGames) {
                           await addGameToLibrary(game.id);
                         }
-                        success(t("gameUI.success.allGamesImported", { count: foundGames.length }));
+                        success(
+                          t("gameUI.success.allGamesImported", {
+                            count: foundGames.length,
+                          })
+                        );
                       } catch (error) {
                         console.error("Failed to import all games:", error);
                         showError(t("gameUI.errors.importAllFailed"));
                       }
                     }}
-                    className="bg-rog-blue px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors flex items-center space-x-2"
+                    className="bg-rog-blue px-4 py-2 rounded hover:bg-epic-accent transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-lg hover:shadow-rog-blue/20"
                   >
-                    <Download className="w-5 h-5" />
+                    <Download className="w-4 h-4" />
                     <span>{t("gameUI.foundGames.importAll")}</span>
                   </button>
                   <button
                     onClick={() => setShowFoundGames(false)}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="p-1.5 rounded hover:bg-epic-hover transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 text-gray-400" />
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {foundGames.map((game) => {
                   const isInLibrary = games.some((g) => g.id === game.id);
                   return (
                     <div
                       key={game.id}
-                      className="bg-black/20 rounded-lg p-4 flex items-center space-x-3"
+                      className="bg-game-card/80 backdrop-blur-sm rounded p-3 hover:bg-game-card transition-all duration-200 group shadow-lg hover:shadow-xl"
                     >
-                      <img
-                        src={game.cover_image}
-                        alt={game.title}
-                        className="w-12 h-12 rounded object-cover"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium">{game.title}</h4>
-                        <p className="text-sm text-gray-400">{game.platform}</p>
+                      <div className="flex gap-3">
+                        <div className="relative w-16 h-20 flex-shrink-0 overflow-hidden rounded">
+                          <img
+                            src={game.cover_image}
+                            alt={game.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm text-white truncate mb-1">
+                            {game.title}
+                          </h4>
+                          <div className="flex items-center gap-1 mb-2">
+                            <PlatformIcon
+                              platform={game.platform}
+                              className="w-3 h-3 brightness-0 invert"
+                            />
+                            <p className="text-xs text-gray-400">
+                              {game.platform}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              !isInLibrary && addGameToLibrary(game.id)
+                            }
+                            className={`${
+                              isInLibrary
+                                ? "bg-epic-success/20 text-epic-success border border-epic-success/30"
+                                : "bg-rog-blue text-white hover:bg-epic-accent"
+                            } px-3 py-1 rounded transition-all duration-200 text-xs font-medium w-full`}
+                            disabled={isInLibrary}
+                          >
+                            {isInLibrary ? (
+                              <span className="flex items-center justify-center gap-1">
+                                <CheckCircle className="w-3 h-3" />
+                                {t("gameUI.foundGames.added")}
+                              </span>
+                            ) : (
+                              t("gameUI.foundGames.addToLibrary")
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() =>
-                          !isInLibrary && addGameToLibrary(game.id)
-                        }
-                        className={`${
-                          isInLibrary
-                            ? "bg-green-500/20 text-green-500 cursor-default"
-                            : "bg-rog-blue/20 hover:bg-rog-blue/30 text-rog-blue"
-                        } p-2 rounded-lg transition-colors group relative`}
-                        disabled={isInLibrary}
-                      >
-                        {isInLibrary ? (
-                          <Check className="w-5 h-5" />
-                        ) : (
-                          <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        )}
-                        <span className="absolute bg-black/90 text-white text-xs px-2 py-1 rounded -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {isInLibrary
-                            ? t("gameUI.foundGames.added")
-                            : t("gameUI.foundGames.addToLibrary")}
-                        </span>
-                      </button>
                     </div>
                   );
                 })}
@@ -414,7 +453,7 @@ const GameUI = () => {
         </div>
 
         {/* Filters and Search */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
             <div className="relative">
               <input
@@ -422,7 +461,7 @@ const GameUI = () => {
                 placeholder={t("gameUI.filters.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white/10 rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue"
+                className="bg-epic-hover rounded-lg pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-rog-blue focus:border-transparent transition-all duration-200"
               />
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
             </div>
@@ -444,7 +483,7 @@ const GameUI = () => {
         </div>
 
         {/* Game Categories */}
-        <div className="flex flex-wrap gap-4 mb-8">
+        <div className="flex flex-wrap gap-2 mb-6">
           {gameCategories
             .slice(0, showMoreCategories ? undefined : 6)
             .map((category) => (
@@ -453,9 +492,9 @@ const GameUI = () => {
                 onClick={() => setSelectedCategory(category)}
                 className={`${
                   selectedCategory === category
-                    ? "bg-rog-blue"
-                    : "bg-white/10 hover:bg-white/20"
-                } px-4 py-2 rounded-lg transition-colors whitespace-nowrap`}
+                    ? "bg-rog-blue text-white"
+                    : "bg-epic-hover hover:bg-epic-hover/80 text-gray-300 hover:text-white border border-epic-border"
+                } px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap font-medium`}
               >
                 {t(category)}
               </button>
@@ -463,7 +502,7 @@ const GameUI = () => {
           {gameCategories.length > 6 && (
             <button
               onClick={() => setShowMoreCategories(!showMoreCategories)}
-              className="bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap flex items-center space-x-1"
+              className="bg-epic-hover hover:bg-epic-hover/80 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap flex items-center space-x-2 font-medium text-gray-300 hover:text-white"
             >
               <span>
                 {showMoreCategories
@@ -480,26 +519,27 @@ const GameUI = () => {
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filteredGames.map((game) => (
             <div key={game.id} className="relative group">
               <a
                 href={`/game/${game.id}`}
-                className="block bg-game-card h-[320px] rounded-lg overflow-hidden group hover:ring-2 hover:ring-rog-blue transition-all"
+                className="block bg-game-card rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg"
               >
-                <div className="relative">
+                <div className="relative aspect-[3/4] overflow-hidden">
                   <img
                     src={game.cover_image}
                     alt={game.title}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-3 right-3 flex items-center space-x-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-2 right-2 flex items-center space-x-1 z-10">
                     <span
                       className={`${
                         game.status === "synced"
-                          ? "bg-green-500/90"
-                          : "bg-yellow-500/90"
-                      } text-white px-2 py-1 rounded text-sm`}
+                          ? "bg-epic-success/90 backdrop-blur-sm"
+                          : "bg-epic-warning/90 backdrop-blur-sm"
+                      } text-white p-1.25 rounded text-xs font-medium shadow-lg`}
                     >
                       {game.status === "synced"
                         ? t("gameUI.status.synced")
@@ -512,9 +552,17 @@ const GameUI = () => {
                         toggleFavorite(game.id)
                           .then(() => {
                             if (game.is_favorite) {
-                              success(t("gameUI.success.removedFromFavorites", { title: game.title }));
+                              success(
+                                t("gameUI.success.removedFromFavorites", {
+                                  title: game.title,
+                                })
+                              );
                             } else {
-                              success(t("gameUI.success.addedToFavorites", { title: game.title }));
+                              success(
+                                t("gameUI.success.addedToFavorites", {
+                                  title: game.title,
+                                })
+                              );
                             }
                           })
                           .catch((error) => {
@@ -522,12 +570,14 @@ const GameUI = () => {
                             showError(t("gameUI.errors.toggleFavoriteFailed"));
                           });
                       }}
-                      className={`bg-black/50 p-1.5 rounded-lg hover:bg-black/70 transition-colors ${
-                        game.is_favorite ? "text-yellow-500" : "text-white"
-                      }`}
+                      className={`bg-black/60 backdrop-blur-sm p-1.5 rounded hover:bg-black/80 transition-all duration-200 ${
+                        game.is_favorite
+                          ? "text-epic-warning"
+                          : "text-white/80 hover:text-white"
+                      } shadow-lg`}
                     >
                       <Star
-                        className={`w-5 h-5 ${
+                        className={`w-4 h-4 ${
                           game.is_favorite ? "fill-current" : ""
                         }`}
                       />
@@ -539,46 +589,34 @@ const GameUI = () => {
                         setGameToDelete(game);
                         setShowDeleteModal(true);
                       }}
-                      className="bg-black/50 p-1.5 rounded-lg hover:bg-red-500/70 transition-colors"
+                      className="bg-black/60 backdrop-blur-sm p-1.5 rounded hover:bg-epic-danger/80 transition-all duration-200 text-white/80 hover:text-white shadow-lg"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-medium group-hover:text-rog-blue transition-colors">
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/90 to-transparent">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-white group-hover:text-rog-blue transition-colors line-clamp-1">
                       {game.title}
                     </h3>
-                    <div className="flex items-center space-x-1 text-gray-400">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">
-                        {game.last_backup_time === null
-                          ? t("gameUI.backup.never")
-                          : formatBackupTime(game.last_backup_time, t)}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1">
+                        <PlatformIcon
+                          platform={game.platform}
+                          className="w-3 h-3 brightness-0 invert opacity-70"
+                        />
+                        <span className="text-xs text-gray-300">
+                          {game.platform}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-gray-300">
+                        <File className="w-3 h-3" />
+                        <span className="text-xs font-medium">
+                          {game.save_count}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <PlatformIcon
-                      platform={game.platform}
-                      className="w-5 h-5 brightness-0 invert opacity-70"
-                    />
-                    <span className="text-sm text-gray-400">
-                      {game.platform}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <File className="w-5 h-5 text-gray-400" />
-                      <span className="text-sm">
-                        {t("gameUI.saveCount", { count: game.save_count })}
-                      </span>
-                    </div>
-                    {/* <div className="flex items-center space-x-2">
-                      <Scale className="w-5 h-5 text-gray-400" />
-                      <span className="text-sm">{game.size}</span>
-                    </div> */}
                   </div>
                 </div>
               </a>
@@ -588,16 +626,16 @@ const GameUI = () => {
           {/* Add Game Card */}
           <div
             onClick={() => setShowAddGameModal(true)}
-            className="bg-game-card rounded-lg overflow-hidden border-2 border-dashed border-white/20 flex items-center justify-center h-[320px] cursor-pointer hover:border-rog-blue transition-colors group"
+            className="bg-game-card rounded-lg overflow-hidden border border-dashed border-gray-600 flex items-center justify-center aspect-[3/4] cursor-pointer hover:border-rog-blue hover:bg-epic-hover transition-all duration-200 group"
           >
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-rog-blue/20 transition-colors">
-                <Plus className="w-8 h-8 text-white/70 group-hover:text-rog-blue transition-colors" />
+            <div className="text-center p-2">
+              <div className="w-14 h-14 rounded-full bg-epic-hover flex items-center justify-center mx-auto mb-3 group-hover:bg-rog-blue/20 transition-all duration-300">
+                <Plus className="w-7 h-7 text-gray-400 group-hover:text-rog-blue transition-colors" />
               </div>
-              <h3 className="text-lg font-medium text-white/70 group-hover:text-white transition-colors">
+              <h3 className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">
                 {t("gameUI.addGame.title")}
               </h3>
-              <p className="text-sm text-white/50 mt-2 max-w-[200px]">
+              <p className="text-xs text-gray-500 mt-1 group-hover:text-gray-300 transition-colors">
                 {t("gameUI.addGame.description")}
               </p>
             </div>

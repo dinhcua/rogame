@@ -6,6 +6,7 @@ import path from 'path';
 import logger from './utils/logger';
 import authRoutes from './routes/auth';
 import cloudRoutes from './routes/cloud';
+import storageRoutes from './routes/storage';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use('/auth/dropbox/callback', express.static(path.join(__dirname, '../oauth-
 app.use('/auth', authRoutes);
 app.use('/rest/oauth2-credential', authRoutes); // Additional route mapping for OAuth callbacks
 app.use('/cloud', cloudRoutes);
+app.use('/storage', storageRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

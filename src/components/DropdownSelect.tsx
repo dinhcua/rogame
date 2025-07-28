@@ -68,7 +68,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-white/10 rounded-lg px-4 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue flex items-center justify-between ${
+        className={`w-full bg-epic-hover rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-rog-blue focus:border-transparent hover:bg-epic-hover/80 transition-all duration-200 flex items-center justify-between ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
         disabled={disabled}
@@ -87,7 +87,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-game-card rounded-lg shadow-lg border border-white/10 py-1 max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-game-card rounded-lg shadow-xl py-1 max-h-60 overflow-auto animate-fade-in">
           {isSearchable && (
             <div className="px-3 py-2 border-b border-white/10">
               <input
@@ -95,7 +95,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("dropdown.searchPlaceholder")}
-                className="w-full bg-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rog-blue"
+                className="w-full bg-epic-hover rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-rog-blue focus:border-transparent hover:bg-epic-hover/80 transition-all duration-200"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -105,8 +105,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
               <button
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
-                className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-2 ${
-                  option.value === value ? "text-rog-blue" : "text-white"
+                className={`w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-all duration-200 flex items-center space-x-2 ${
+                  option.value === value
+                    ? "text-rog-blue bg-epic-hover"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 <span>{option.label}</span>

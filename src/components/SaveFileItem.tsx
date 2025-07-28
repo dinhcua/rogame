@@ -5,9 +5,17 @@ import {
   Trash2,
   FolderOpen,
   FolderInput,
+  Upload,
+  Save,
+  FileText,
+  MoreVertical,
+  Loader2,
+  CheckCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import ConfirmationModal from "./ConfirmationModal";
 import "../i18n/config";
 
 interface SaveFile {
@@ -18,25 +26,32 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
-  file_path?: string;
-  origin_path?: string; // Add origin path
+  file_path: string;
+  origin_path: string;
 }
 
 interface SaveFileItemProps {
   saveFile: SaveFile;
   onRestore: (saveFile: SaveFile) => void;
   onDelete: (saveFile: SaveFile) => void;
+  onUpload?: (saveFile: SaveFile) => Promise<void>;
   isDeleting?: boolean;
+  isUploading?: boolean;
 }
 
 const SaveFileItem: React.FC<SaveFileItemProps> = ({
   saveFile,
   onRestore,
   onDelete,
+  onUpload,
   isDeleting = false,
 }) => {
-  const { t } = useTranslation();
-  const [isHovered, setIsHovered] = useState(false);
+  const { t, i18n } = useTranslation();
+  const [showMenu, setShowMenu] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<
+    "idle" | "uploading" | "success"
+  >("idle");
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   const formatSize = (bytes: number) => {
     const sizes = ["B", "KB", "MB", "GB"];
@@ -53,21 +68,61 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) {
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      return t("saveFile.timeAgo.minutes", { count: diffMinutes });
+    } else if (diffHours < 24) {
+      return t("saveFile.timeAgo.hours", { count: diffHours });
+    } else if (diffDays < 7) {
+      return t("saveFile.timeAgo.days", { count: diffDays });
+    } else {
+      const locale = i18n.language === "vi" ? "vi-VN" : "en-US";
+      return date.toLocaleDateString(locale, {
+        year: "numeric",
+        month: i18n.language === "vi" ? "numeric" : "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  // Get a user-friendly name for the save file
+  const getDisplayName = (fileName: string) => {
+    // Extract timestamp from backup filename
+    const match = fileName.match(/backup_(\d{8})_(\d{6})/);
+    if (match) {
+      const dateStr = match[1];
+      const timeStr = match[2];
+      const year = dateStr.slice(0, 4);
+      const month = dateStr.slice(4, 6);
+      const day = dateStr.slice(6, 8);
+      const hour = timeStr.slice(0, 2);
+      const minute = timeStr.slice(2, 4);
+
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+
+      // Format date based on current locale
+      const locale = i18n.language === "vi" ? "vi-VN" : "en-US";
+      const formattedDate = new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        month: i18n.language === "vi" ? "numeric" : "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(date);
+
+      return t("saveFile.saveFrom", { date: formattedDate });
+    }
+    return fileName;
   };
 
   const handleOpenOriginalLocation = async () => {
-    if (!saveFile.origin_path) return;
+    if (!saveFile.origin_path || saveFile.origin_path.trim() === "") return;
     try {
-      // For mock saves, this will open the Steam saves directory
       await revealItemInDir(saveFile.origin_path);
     } catch (error) {
       console.error("Failed to open original save location:", error);
@@ -75,7 +130,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
   };
 
   const handleOpenLocation = async () => {
-    if (!saveFile.file_path) return;
+    if (!saveFile.file_path || saveFile.file_path.trim() === "") return;
     try {
       await revealItemInDir(saveFile.file_path);
     } catch (error) {
@@ -83,69 +138,188 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     }
   };
 
+  const handleUpload = async () => {
+    if (!onUpload) return;
+
+    setUploadStatus("uploading");
+    try {
+      await onUpload(saveFile);
+      setUploadStatus("success");
+      setTimeout(() => setUploadStatus("idle"), 3000);
+    } catch (error) {
+      setUploadStatus("idle");
+    }
+  };
+
   return (
-    <div
-      className="bg-black/20 rounded-lg p-4 hover:bg-black/30 transition-colors"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-medium">{saveFile.file_name}</h4>
-        <div className="flex items-center space-x-2">
+    <div className="bg-game-card rounded-lg p-3 hover:bg-epic-hover transition-all duration-200 group relative">
+      {/* Main Content */}
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-10 h-10 bg-rog-blue/10 rounded-lg flex items-center justify-center">
+              <Save className="w-5 h-5 text-rog-blue" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-base text-white">
+                {saveFile.file_name}
+              </h4>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {getDisplayName(saveFile.file_name)}
+              </p>
+            </div>
+          </div>
+
+          {/* Metadata */}
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <span className="text-gray-300">
+                {formatDate(saveFile.modified_at)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-gray-500" />
+              <span className="text-gray-300">
+                {formatSize(saveFile.size_bytes)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-500" />
+              <span className="text-gray-300">{t("saveFile.autoBackup")}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {/* Always visible primary action */}
           <button
-            onClick={() => onRestore(saveFile)}
-            className={`${
-              isHovered ? "opacity-100" : "opacity-0"
-            } bg-blue-500/20 p-2 rounded hover:bg-blue-500/30 transition-all`}
+            onClick={() => setShowRestoreConfirm(true)}
+            className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white"
           >
             {t("saveFile.actions.restore")}
           </button>
-          {saveFile.origin_path && (
+
+          {/* More actions menu */}
+          <div className="relative">
             <button
-              onClick={handleOpenOriginalLocation}
-              className={`${
-                isHovered ? "opacity-100" : "opacity-0"
-              } bg-purple-500/20 p-2 rounded hover:bg-purple-500/30 transition-all`}
-              title={t("saveFile.actions.openOriginalLocation")}
+              onClick={() => setShowMenu(!showMenu)}
+              className="opacity-100 p-2 rounded-lg hover:bg-epic-hover transition-all duration-200"
             >
-              <FolderInput className="w-5 h-5 text-purple-400" />
+              <MoreVertical className="w-5 h-5 text-gray-400" />
             </button>
-          )}
-          {saveFile.file_path && (
-            <button
-              onClick={handleOpenLocation}
-              className={`${
-                isHovered ? "opacity-100" : "opacity-0"
-              } bg-gray-500/20 p-2 rounded hover:bg-gray-500/30 transition-all`}
-              title={t("saveFile.actions.openBackupLocation")}
-            >
-              <FolderOpen className="w-5 h-5 text-gray-400" />
-            </button>
-          )}
-          <button
-            onClick={() => onDelete(saveFile)}
-            disabled={isDeleting}
-            className={`${
-              isHovered ? "opacity-100" : "opacity-0"
-            } bg-red-500/20 p-2 rounded hover:bg-red-500/30 transition-all ${
-              isDeleting ? "cursor-not-allowed opacity-50" : ""
-            }`}
-            title={t("saveFile.actions.delete")}
-          >
-            <Trash2 className="w-5 h-5 text-red-500" />
-          </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-game-card rounded-lg shadow-2xl border border-epic-border py-2 z-10">
+                {onUpload && (
+                  <button
+                    onClick={async () => {
+                      setShowMenu(false);
+                      await handleUpload();
+                    }}
+                    disabled={uploadStatus === "uploading"}
+                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                  >
+                    {uploadStatus === "uploading" ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
+                    ) : uploadStatus === "success" ? (
+                      <CheckCircle className="w-4 h-4 text-epic-success" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-gray-300">
+                      {uploadStatus === "uploading"
+                        ? t("saveFile.uploading")
+                        : uploadStatus === "success"
+                        ? t("saveFile.uploaded")
+                        : t("saveFile.actions.uploadToServer")}
+                    </span>
+                  </button>
+                )}
+
+                {saveFile.origin_path && saveFile.origin_path.trim() !== "" && (
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      handleOpenOriginalLocation();
+                    }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                  >
+                    <FolderInput className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-300">
+                      {t("saveFile.actions.openOriginalLocation")}
+                    </span>
+                  </button>
+                )}
+
+                {saveFile.file_path && saveFile.file_path.trim() !== "" && (
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      handleOpenLocation();
+                    }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                  >
+                    <FolderOpen className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-300">
+                      {t("saveFile.actions.openBackupLocation")}
+                    </span>
+                  </button>
+                )}
+
+                <div className="border-t border-epic-border my-2"></div>
+
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onDelete(saveFile);
+                  }}
+                  disabled={isDeleting}
+                  className="w-full px-4 py-2.5 text-left hover:bg-epic-danger/10 transition-colors flex items-center gap-3 text-sm"
+                >
+                  <Trash2 className="w-4 h-4 text-epic-danger" />
+                  <span className="text-epic-danger">
+                    {t("saveFile.actions.delete")}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
-        <div className="flex items-center space-x-2">
-          <Clock className="w-4 h-4" />
-          <span>{formatDate(saveFile.modified_at)}</span>
+
+      {/* Click outside to close menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />
+      )}
+
+      {/* Restore Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showRestoreConfirm}
+        onClose={() => setShowRestoreConfirm(false)}
+        onConfirm={() => {
+          setShowRestoreConfirm(false);
+          onRestore(saveFile);
+        }}
+        title={t("saveFile.restoreConfirm.title")}
+        message={t("saveFile.restoreConfirm.message")}
+        icon={RotateCcw}
+        iconColor="success"
+        confirmText={t("saveFile.restoreConfirm.confirm")}
+        confirmButtonVariant="success"
+      >
+        <div className="bg-epic-hover/50 rounded-lg p-3">
+          <p className="text-sm text-gray-400 mb-1">
+            {t("saveFile.restoreConfirm.fileName")}:
+          </p>
+          <p className="text-white font-medium">{saveFile.file_name}</p>
+          <p className="text-sm text-gray-400 mt-2">
+            {t("saveFile.restoreConfirm.created")}:{" "}
+            {formatDate(saveFile.created_at)}
+          </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <HardDrive className="w-4 h-4" />
-          <span>{formatSize(saveFile.size_bytes)}</span>
-        </div>
-      </div>
+      </ConfirmationModal>
     </div>
   );
 };

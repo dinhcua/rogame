@@ -85,10 +85,10 @@ const BackupSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-game-card rounded-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">{t("backupSettings.title")}</h2>
-        <span className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded">
+    <div className="bg-game-card rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold">{t("backupSettings.title")}</h2>
+        <span className="text-xs px-3 py-1.5 bg-epic-warning/10 text-epic-warning rounded-lg font-medium">
           {t("backupSettings.comingSoon")}
         </span>
       </div>
@@ -105,7 +105,7 @@ const BackupSettings: React.FC = () => {
               className="sr-only peer"
               disabled
             />
-            <div className="w-11 h-6 bg-gray-700 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600"></div>
+            <div className="w-11 h-6 bg-epic-hover rounded-full peer peer-checked:bg-rog-blue peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
           </label>
         </div>
         <div className="flex justify-between items-center">
@@ -142,7 +142,7 @@ const BackupSettings: React.FC = () => {
               className="sr-only peer"
               disabled
             />
-            <div className="w-11 h-6 bg-gray-700 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600"></div>
+            <div className="w-11 h-6 bg-epic-hover rounded-full peer peer-checked:bg-rog-blue peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
           </label>
         </div>
       </div>

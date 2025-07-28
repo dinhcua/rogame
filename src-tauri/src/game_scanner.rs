@@ -250,25 +250,43 @@ fn get_steam_libraries_with_games() -> Vec<SteamLibrary> {
     libraries
 }
 
-// Get game name from Steam app manifest
-fn get_steam_game_name(library_path: &PathBuf, app_id: &str) -> Option<String> {
+// Get game info from Steam app manifest
+fn get_steam_game_info(library_path: &PathBuf, app_id: &str) -> Option<(String, String)> {
     // Go back to steamapps folder from common folder
     if let Some(steamapps_path) = library_path.parent() {
         let manifest_path = steamapps_path.join(format!("appmanifest_{}.acf", app_id));
 
         if manifest_path.exists() {
             if let Ok(content) = fs::read_to_string(&manifest_path) {
-                // Simple parser for "name" field in ACF format
+                let mut name = None;
+                let mut installdir = None;
+                
+                // Simple parser for ACF format
                 for line in content.lines() {
                     let trimmed = line.trim();
+                    
+                    // Parse name field
                     if trimmed.contains("\"name\"") && trimmed.contains("\"") {
                         if let Some(name_start) = trimmed.rfind("\"") {
                             if let Some(value_start) = trimmed[..name_start].rfind("\"") {
-                                let game_name = &trimmed[value_start + 1..name_start];
-                                return Some(game_name.to_string());
+                                name = Some(trimmed[value_start + 1..name_start].to_string());
                             }
                         }
                     }
+                    
+                    // Parse installdir field
+                    if trimmed.contains("\"installdir\"") && trimmed.contains("\"") {
+                        if let Some(dir_start) = trimmed.rfind("\"") {
+                            if let Some(value_start) = trimmed[..dir_start].rfind("\"") {
+                                installdir = Some(trimmed[value_start + 1..dir_start].to_string());
+                            }
+                        }
+                    }
+                }
+                
+                // Return both if we found them
+                if let (Some(n), Some(d)) = (name, installdir) {
+                    return Some((n, d));
                 }
             }
         }
@@ -487,7 +505,8 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
 
                                 let save_count =
                                     save_locations.iter().map(|loc| loc.file_count).sum();
-                                let cover_image = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg", 
+                                // let cover_image = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/hero_capsule.jpg",
+                                let cover_image = format!("https://steamcdn-a.akamaihd.net/steam/apps/{}/library_600x900_2x.jpg",   
                                     if game_id.chars().all(|c| c.is_numeric()) { &game_id } else { "1245620" });
 
                                 games.insert(
@@ -527,9 +546,9 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                 library.installed_app_ids.len()
             );
             for app_id in &library.installed_app_ids {
-                // Try to get game name from manifest
-                if let Some(game_name) = get_steam_game_name(&library.path, app_id) {
-                    let game_path = library.path.join(&game_name);
+                // Try to get game info from manifest
+                if let Some((game_name, install_dir)) = get_steam_game_info(&library.path, app_id) {
+                    let game_path = library.path.join(&install_dir);
 
                     if game_path.exists() {
                         println!(
@@ -548,8 +567,12 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                             "Unknown".to_string()
                         };
 
+                        // let cover_image = format!(
+                        //     "https://cdn.cloudflare.steamstatic.com/steam/apps/{}/hero_capsule.jpg",
+                        //     app_id
+                        // );
                         let cover_image = format!(
-                            "https://cdn.cloudflare.steamstatic.com/steam/apps/{}/header.jpg",
+                            "https://steamcdn-a.akamaihd.net/steam/apps/{}/library_600x900_2x.jpg",
                             app_id
                         );
 
@@ -642,7 +665,8 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
 
                                         let save_count =
                                             save_locations.iter().map(|loc| loc.file_count).sum();
-                                        let cover_image = "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg".to_string();
+                                        // let cover_image = "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/hero_capsule.jpg".to_string();
+                                        let cover_image = format!("https://steamcdn-a.akamaihd.net/steam/apps/{}/library_600x900_2x.jpg", game_id);
 
                                         games.insert(
                                             game_id.clone(),

@@ -83,6 +83,10 @@
     }
   },
   "gameUI": {
+    "title": "Thư viện",
+    "subtitle": "Quản lý các file save game",
+    "lastBackup": "{{time}} trước",
+    "autoBackup": "Sao lưu tự động",
     "scanner": {
       "title": "Quét Game",
       "description": "Tự động phát hiện và nhập game từ hệ thống của bạn",
@@ -185,7 +189,8 @@
     },
     "status": {
       "synced": "Đã đồng bộ",
-      "syncing": "Đang đồng bộ"
+      "syncing": "Đang đồng bộ",
+      "not_synced": "Chưa đồng bộ"
     },
     "filters": {
       "search": "Tìm kiếm game...",
@@ -261,6 +266,26 @@
     }
   },
   "history": {
+    "title": "Danh sách bản sao lưu",
+    "subtitle": "Xem và quản lý tất cả bản sao lưu trò chơi của bạn",
+    "loading": "Đang tải bản sao lưu...",
+    "noBackups": "Không tìm thấy bản sao lưu",
+    "noBackupsDescription": "Bắt đầu sao lưu trò chơi để xem chúng ở đây",
+    "actions": {
+      "uploadToServer": "Tải lên máy chủ",
+      "uploading": "Đang tải lên...",
+      "openOriginalLocation": "Mở thư mục save gốc",
+      "openBackupLocation": "Mở thư mục sao lưu",
+      "deleteSaveFile": "Xóa file save",
+      "export": "Xuất",
+      "filter": "Lọc"
+    },
+    "stats": {
+      "totalBackups": "Tổng Số Bản Sao Lưu",
+      "gamesBackedUp": "Trò Chơi Đã Sao Lưu",
+      "lastBackup": "Sao Lưu Gần Nhất",
+      "never": "Chưa bao giờ"
+    },
     "filters": {
       "search": "Tìm kiếm bản sao lưu...",
       "allGames": "Tất cả trò chơi",
@@ -272,10 +297,6 @@
         "lastWeek": "Tuần qua",
         "lastMonth": "Tháng qua"
       }
-    },
-    "actions": {
-      "export": "Xuất",
-      "filter": "Lọc"
     },
     "backup": {
       "created": "Đã tạo {{time}}",
@@ -309,8 +330,15 @@
       "loadGamesError": "Không thể tải danh sách trò chơi",
       "loadBackupsError": "Không thể tải danh sách bản sao lưu",
       "exportFeatureComingSoon": "Tính năng xuất dữ liệu sắp ra mắt!",
-      "filterFeatureComingSoon": "Tính năng lọc nâng cao sắp ra mắt!"
+      "filterFeatureComingSoon": "Tính năng lọc nâng cao sắp ra mắt!",
+      "uploadComingSoon": "Tính năng tải lên máy chủ sắp ra mắt!",
+      "uploadError": "Không thể tải lên máy chủ",
+      "openLocationError": "Không thể mở thư mục",
+      "deleteSuccess": "Xóa file save thành công",
+      "deleteError": "Không thể xóa file save",
+      "uploadSuccess": "Tải lên máy chủ thành công"
     },
+    "confirmDelete": "Bạn có chắc chắn muốn xóa file save này?",
     "pagination": {
       "showing": "Hiển thị {{start}}-{{end}} trong tổng số {{total}} bản sao lưu",
       "previous": "Trước",
@@ -322,16 +350,33 @@
       "restore": "Khôi phục",
       "delete": "Xóa file save",
       "openBackupLocation": "Mở thư mục sao lưu",
-      "openOriginalLocation": "Mở thư mục save gốc"
+      "openOriginalLocation": "Mở thư mục save gốc",
+      "uploadToServer": "Tải lên máy chủ"
     },
     "info": {
       "lastModified": "Lần sửa cuối",
       "size": "Kích thước"
-    }
+    },
+    "restoreConfirm": {
+      "title": "Khôi phục bản sao lưu",
+      "message": "Bản ghi cũ sẽ bị ghi đè. Bạn có chắc chắn muốn khôi phục bản sao lưu này?",
+      "fileName": "Tên file",
+      "created": "Ngày tạo",
+      "confirm": "Đồng ý"
+    },
+    "timeAgo": {
+      "minutes": "{{count}} phút trước",
+      "hours": "{{count}} giờ trước",
+      "days": "{{count}} ngày trước"
+    },
+    "saveFrom": "Lưu lúc {{date}}",
+    "autoBackup": "Sao lưu tự động",
+    "uploading": "Đang tải lên...",
+    "uploaded": "Đã tải lên!"
   },
   "deleteGameModal": {
     "title": "Xóa Game",
-    "confirmation": "Bạn có chắc chắn muốn xóa \"{gameTitle}\"? Hành động này không thể hoàn tác.",
+    "confirmation": "Bạn có chắc chắn muốn xóa \"{{gameTitle}}\"? Hành động này không thể hoàn tác.",
     "includeSaveFiles": "Đồng thời xóa tất cả các bản sao lưu (backup) của game này",
     "deleting": "Đang xóa...",
     "deleteButton": "Xóa Game"
@@ -423,7 +468,9 @@
   },
   "common": {
     "cancel": "Hủy",
-    "close": "Đóng"
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "loading": "Đang xử lý..."
   },
   "storageInfo": {
     "title": "Bộ nhớ",

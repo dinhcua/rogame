@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from "react";
 import { CloudProvider, CloudSyncStatus } from "../types/cloud";
 import { useToast } from "./useToast";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { invoke } from "@tauri-apps/api/core";
 
 const CLOUD_SERVER_URL =
@@ -41,47 +40,95 @@ export const useCloudStorage = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [tokensLoaded, setTokensLoaded] = useState(false);
 
-  // Load tokens from database on mount
-  useEffect(() => {
-    const loadTokens = async () => {
-      try {
-        const providers: CloudProvider[] = [
-          "google_drive",
-          "onedrive",
-          "dropbox",
-        ];
+  // Function to load tokens from database
+  const loadTokens = useCallback(async () => {
+    setTokensLoaded(false);
+    try {
+      const providers: CloudProvider[] = [
+        "google_drive",
+        "onedrive",
+        "dropbox",
+      ];
 
-        for (const provider of providers) {
-          try {
-            const token = await invoke<any>("get_cloud_token", { provider });
+      for (const provider of providers) {
+        try {
+          const token = await invoke<any>("get_cloud_token", { provider });
 
-            console.log("token", token);
+          console.log(`Token for ${provider}:`, token);
 
-            if (token) {
-              setTokens((prev) => ({
-                ...prev,
-                [provider]: {
-                  accessToken: token.access_token,
-                  refreshToken: token.refresh_token,
-                  expiresIn: token.expires_at
-                    ? Math.floor((token.expires_at - Date.now()) / 1000)
-                    : undefined,
-                  tokenType: token.token_type,
-                },
-              }));
-            }
-          } catch (error) {
-            console.error(`Failed to load token for ${provider}:`, error);
+          if (token && token.access_token) {
+            setTokens((prev) => ({
+              ...prev,
+              [provider]: {
+                accessToken: token.access_token,
+                refreshToken: token.refresh_token,
+                expiresIn: token.expires_at
+                  ? Math.floor((token.expires_at - Date.now()) / 1000)
+                  : undefined,
+                tokenType: token.token_type,
+              },
+            }));
+          } else {
+            // Clear token if none exists
+            setTokens((prev) => ({
+              ...prev,
+              [provider]: null,
+            }));
           }
+        } catch (error) {
+          console.error(`Failed to load token for ${provider}:`, error);
+          // Clear token on error
+          setTokens((prev) => ({
+            ...prev,
+            [provider]: null,
+          }));
         }
-      } catch (error) {
-        console.error("Failed to load tokens:", error);
+      }
+    } catch (error) {
+      console.error("Failed to load tokens:", error);
+    } finally {
+      setTokensLoaded(true);
+    }
+  }, []);
+
+  // Load tokens from database on mount and when window gains focus
+  useEffect(() => {
+    loadTokens();
+
+    // Reload tokens when window gains focus (e.g., returning from OAuth)
+    const handleFocus = () => {
+      console.log("Window focused, reloading tokens...");
+      loadTokens();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    // Also listen for visibility change
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("Page became visible, reloading tokens...");
+        loadTokens();
       }
     };
 
-    loadTokens();
-  }, []);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Listen for custom cloud token update events
+    const handleCloudTokenUpdate = (event: CustomEvent) => {
+      console.log("Cloud token updated for provider:", event.detail.provider);
+      loadTokens();
+    };
+
+    window.addEventListener("cloud-token-updated" as any, handleCloudTokenUpdate);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("cloud-token-updated" as any, handleCloudTokenUpdate);
+    };
+  }, [loadTokens]);
 
   // Helper function to get provider display name
   const getProviderName = useCallback((provider: CloudProvider): string => {
@@ -97,116 +144,9 @@ export const useCloudStorage = () => {
     }
   }, []);
 
-  // Define processAuthCode early using useCallback to avoid dependency issues
-  const processAuthCode = useCallback(
-    async (provider: CloudProvider, code: string): Promise<void> => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          `${CLOUD_SERVER_URL}/auth/${provider}/callback`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-          }
-        );
-
-        if (!response.ok) throw new Error("Failed to exchange code for tokens");
-
-        const { tokens: newTokens } = await response.json();
-        console.log("Received tokens:", newTokens);
-        setTokens((prev) => ({ ...prev, [provider]: newTokens }));
-
-        // Save tokens to database
-        try {
-          await invoke("save_cloud_token", {
-            token: {
-              provider,
-              access_token: newTokens.accessToken,
-              refresh_token: newTokens.refreshToken,
-              expires_at: newTokens.expiresIn
-                ? Date.now() + newTokens.expiresIn * 1000
-                : null,
-              token_type: newTokens.tokenType,
-            },
-          });
-        } catch (error) {
-          console.error("Failed to save tokens to database:", error);
-        }
-
-        const message = `Successfully connected to ${getProviderName(
-          provider
-        )}`;
-        console.log("Showing success message:", message);
-        success(message);
-      } catch (error) {
-        console.error("Failed to process auth code:", error);
-        showError(`Failed to connect to ${getProviderName(provider)}`);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [success, showError, getProviderName]
-  );
-
-  // Listen for OAuth callback deep links
-  useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-
-    const setupDeepLinkListener = async () => {
-      try {
-        unsubscribe = await onOpenUrl((urls) => {
-          console.log("Received deep link URLs:", urls);
-
-          urls.forEach((url) => {
-            try {
-              // Parse the deep link URL
-              const urlObj = new URL(url);
-
-              // Check if this is an OAuth callback
-              if (
-                urlObj.protocol === "rogame:" &&
-                urlObj.host === "oauth-callback"
-              ) {
-                const code = urlObj.searchParams.get("code");
-                const state = urlObj.searchParams.get("state");
-
-                console.log("OAuth callback received:", { code, state });
-
-                if (code && state) {
-                  // Parse state to get provider
-                  try {
-                    const stateData = JSON.parse(decodeURIComponent(state));
-                    const provider = stateData.provider;
-
-                    if (provider) {
-                      processAuthCode(provider as CloudProvider, code);
-                    }
-                  } catch {
-                    // If state is not JSON, use it as provider directly
-                    processAuthCode(state as CloudProvider, code);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error("Failed to parse deep link URL:", error);
-            }
-          });
-        });
-      } catch (error) {
-        console.error("Failed to setup deep link listener:", error);
-      }
-    };
-
-    setupDeepLinkListener();
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [processAuthCode]);
+  // OAuth callback deep links are now handled in useDeepLink.ts to avoid conflicts
+  // The useDeepLink hook will handle all deep links including OAuth callbacks
+  // This prevents duplicate toast notifications when OAuth completes
 
   const getAuthUrl = async (provider: CloudProvider): Promise<string> => {
     try {
@@ -228,6 +168,9 @@ export const useCloudStorage = () => {
 
       console.log("Opening auth URL:", authUrl);
 
+      // Store current location to return after OAuth
+      window.history.replaceState({ from: window.location.pathname }, '');
+
       // Open auth URL in the default browser using Tauri
       await openUrl(authUrl);
 
@@ -236,7 +179,7 @@ export const useCloudStorage = () => {
         `Please complete the authentication in your browser. The app will automatically detect when you're done.`
       );
 
-      // The OAuth callback will be handled by the message listener or localStorage polling
+      // The OAuth callback will be handled by the useDeepLink hook
     } catch (error) {
       console.error("Authentication failed:", error);
       showError(`Failed to connect to ${getProviderName(provider)}`);
@@ -431,8 +374,8 @@ export const useCloudStorage = () => {
     syncStatus,
     tokens,
     isLoading,
+    tokensLoaded,
     authenticate,
-    processAuthCode,
     uploadGameSaves,
     listCloudFiles,
     downloadFile,
@@ -440,5 +383,6 @@ export const useCloudStorage = () => {
     disconnectProvider,
     getProviderName,
     isProviderConnected,
+    refreshTokens: loadTokens,
   };
 };

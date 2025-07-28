@@ -120,7 +120,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 p-4">
       {/* Language Settings */}
       <div className="bg-game-card rounded-lg p-6">
         <div className="flex items-center space-x-3 mb-4">

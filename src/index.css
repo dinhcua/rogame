@@ -10,13 +10,21 @@ button {
 }
 
 @theme {
-  /* Light theme colors */
-  --color-game-dark: #0a0a0a;
-  --color-game-card: #1a1a1a;
-  --color-rog-blue: #00b4d8;
-  --color-sidebar: #141414;
+  /* Epic Games inspired dark theme */
+  --color-game-dark: #121212;
+  --color-game-card: #202020;
+  --color-rog-blue: #007dfc;
+  --color-sidebar: #18181c;
+  --color-epic-hover: #2a2a2e;
+  --color-epic-accent: #0074e4;
+  --color-epic-secondary: #f5f5f5;
+  --color-epic-success: #4ade80;
+  --color-epic-warning: #fbbf24;
+  --color-epic-danger: #ef4444;
+  --color-epic-border: #2a2a2e;
 }
 
+/* Epic Games-like animations */
 @keyframes slide-in {
   from {
     transform: translateX(100%);
@@ -28,6 +36,85 @@ button {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .animate-slide-in {
   animation: slide-in 0.3s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+/* Epic Games-like hover effects */
+.epic-card-hover {
+  transition: all 0.2s ease;
+}
+
+.epic-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom scrollbar like Epic Games */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Epic-style buttons */
+.epic-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.epic-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.epic-button:hover::before {
+  left: 100%;
 }

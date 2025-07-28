@@ -12,6 +12,8 @@ interface SaveFile {
   modified_at: string;
   size_bytes: number;
   tags: string[];
+  file_path: string;
+  origin_path: string;
 }
 
 interface RestoreModalProps {
