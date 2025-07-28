@@ -407,8 +407,8 @@ export default function History() {
 
   const loadGames = async () => {
     try {
-      const result = await invoke<Record<string, Game>>("scan_games");
-      setGames(Object.values(result));
+      const result = await invoke<Game[]>("get_all_games");
+      setGames(result);
     } catch (err) {
       console.error("Failed to load games:", err);
       error(
@@ -422,8 +422,8 @@ export default function History() {
       setLoading(true);
 
       // First get all games
-      const gamesResult = await invoke<Record<string, Game>>("scan_games");
-      const allGames = Object.values(gamesResult);
+      const gamesResult = await invoke<Game[]>("get_all_games");
+      const allGames = gamesResult;
 
       // Then get save files for each game
       let allBackups: BackupHistoryItem[] = [];
@@ -572,9 +572,9 @@ export default function History() {
   return (
     <div className="text-white font-sans animate-fade-in p-8">
       {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{t("history.title")}</h1>
-        <p className="text-gray-400 text-lg">{t("history.subtitle")}</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">{t("history.title")}</h1>
+        <p className="text-gray-400">{t("history.subtitle")}</p>
       </div>
 
       {/* Stats Overview */}

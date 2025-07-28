@@ -39,6 +39,7 @@ pub fn run() {
             save_manager::toggle_favorite,
             save_manager::sync_game_to_db,
             save_manager::add_game_to_library,
+            save_manager::add_game_manually,
             save_manager::read_file_as_bytes,
             save_manager::open_save_location,
             cloud_tokens::save_cloud_token,

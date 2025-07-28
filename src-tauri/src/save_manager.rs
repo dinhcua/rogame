@@ -941,8 +941,13 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
         .to_string();
     let is_favorite = game_info["is_favorite"].as_bool().unwrap_or(false);
 
-    // Get first save location if available (from SaveLocation array)
-    let save_location = if let Some(locations) = game_info["save_locations"].as_array() {
+    // Get save location - handle both array format (from scanner) and string format (from manual add)
+    let save_location = if let Some(location_str) = game_info["save_location"].as_str() {
+        // Direct string format (from manual add)
+        println!("Found save location (string): {}", location_str);
+        location_str.to_string()
+    } else if let Some(locations) = game_info["save_locations"].as_array() {
+        // Array format (from scanner)
         if let Some(first_location) = locations.first() {
             // SaveLocation object has "path" field
             let path = first_location["path"].as_str().unwrap_or("");
@@ -953,7 +958,7 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
             String::new()
         }
     } else {
-        println!("save_locations is not an array");
+        println!("No save location found in game info");
         String::new()
     };
 
@@ -1025,6 +1030,69 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
 #[tauri::command]
 pub async fn sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFileError> {
     // Just forward to the new function
+    add_game_to_library(game_info).await
+}
+
+// Add game manually from the UI
+#[tauri::command]
+pub async fn add_game_manually(
+    title: String,
+    platform: String,
+    steam_id: String,
+    save_path: String,
+    save_pattern: String,
+    cover_image: String,
+) -> Result<(), SaveFileError> {
+    use uuid::Uuid;
+    
+    // Generate a unique ID for the game
+    let game_id = Uuid::new_v4().to_string();
+    
+    // Expand tilde in save path
+    let expanded_save_path = save_path.replace("~", &dirs::home_dir().unwrap().to_string_lossy());
+    
+    println!("Adding game manually: {}", title);
+    println!("Platform: {}", platform);
+    println!("Steam ID: {}", steam_id);
+    println!("Save path: {}", expanded_save_path);
+    println!("Save pattern: {}", save_pattern);
+    
+    // Use Steam CDN for cover image if Steam ID is valid (not "0" or empty)
+    let final_cover_image = if !steam_id.is_empty() && steam_id != "0" {
+        format!(
+            "https://steamcdn-a.akamaihd.net/steam/apps/{}/library_600x900_2x.jpg",
+            steam_id
+        )
+    } else {
+        cover_image
+    };
+    
+    // Create backup directory for the game
+    let backup_dir = get_saves_directory()?.join(&game_id);
+    
+    if let Err(e) = std::fs::create_dir_all(&backup_dir) {
+        println!("Warning: Failed to create backup directory: {}", e);
+    }
+    
+    // Create the game info JSON
+    let game_info = serde_json::json!({
+        "id": game_id,
+        "title": title,
+        "cover_image": final_cover_image,
+        "platform": platform,
+        "steam_id": steam_id,
+        "last_played": "Never",
+        "save_count": 0,
+        "size": "0B",
+        "status": "no_saves",
+        "category": "Unknown",
+        "is_favorite": false,
+        "save_location": expanded_save_path,
+        "save_pattern": save_pattern,
+        "backup_location": backup_dir.to_string_lossy().to_string(),
+    });
+    
+    // Use the existing add_game_to_library function
     add_game_to_library(game_info).await
 }
 

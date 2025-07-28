@@ -1,5 +1,7 @@
 {
   "settings": {
+    "title": "Cài đặt",
+    "subtitle": "Tùy chỉnh ứng dụng theo sở thích của bạn",
     "general": {
       "title": "Cài Đặt Chung",
       "darkMode": {
@@ -397,8 +399,8 @@
       "titlePlaceholder": "Nhập tên game",
       "platform": "Nền Tảng",
       "platformPlaceholder": "Chọn nền tảng",
-      "version": "Phiên Bản Game",
-      "versionPlaceholder": "vd: 1.0.5"
+      "version": "Steam ID",
+      "versionPlaceholder": "vd: 570940"
     },
     "platforms": {
       "epic": "Epic Games",

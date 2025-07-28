@@ -13,13 +13,17 @@ interface AddGameModalProps {
 const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
   const { t } = useTranslation();
   const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [gameTitle, setGameTitle] = useState("");
+  const [steamId, setSteamId] = useState("");
+  const [savePath, setSavePath] = useState("");
+  const [savePattern, setSavePattern] = useState("");
 
   const platformOptions = [
-    { value: "steam", label: "Steam" },
-    { value: "epic", label: t("addGameModal.platforms.epic") },
-    { value: "gog", label: "GOG" },
-    { value: "origin", label: "Origin" },
-    { value: "other", label: t("addGameModal.platforms.other") },
+    { value: "Steam", label: "Steam" },
+    { value: "Epic Games", label: t("addGameModal.platforms.epic") },
+    { value: "GOG", label: "GOG" },
+    { value: "Origin", label: "Origin" },
+    { value: "Other", label: t("addGameModal.platforms.other") },
   ];
 
   if (!isOpen) return null;
@@ -48,6 +52,8 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
               </label>
               <input
                 type="text"
+                value={gameTitle}
+                onChange={(e) => setGameTitle(e.target.value)}
                 className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
                 placeholder={t("addGameModal.gameInfo.titlePlaceholder")}
               />
@@ -71,6 +77,8 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
                 </label>
                 <input
                   type="text"
+                  value={steamId}
+                  onChange={(e) => setSteamId(e.target.value)}
                   className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
                   placeholder={t("addGameModal.gameInfo.versionPlaceholder")}
                 />
@@ -86,6 +94,8 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             <div className="flex space-x-2">
               <input
                 type="text"
+                value={savePath}
+                onChange={(e) => setSavePath(e.target.value)}
                 className="flex-1 bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
                 placeholder={t("addGameModal.saveLocation.pathPlaceholder")}
               />
@@ -106,6 +116,8 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             </label>
             <input
               type="text"
+              value={savePattern}
+              onChange={(e) => setSavePattern(e.target.value)}
               className="w-full bg-black/20 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-rog-blue"
               placeholder={t("addGameModal.savePattern.placeholder")}
             />
@@ -114,36 +126,6 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
             </p>
           </div>
 
-          {/* Additional Options */}
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
-              />
-              <span className="text-sm">
-                {t("addGameModal.options.monitorChanges")}
-              </span>
-            </label>
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
-              />
-              <span className="text-sm">
-                {t("addGameModal.options.autoBackup")}
-              </span>
-            </label>
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                className="w-5 h-5 rounded bg-black/20 border-white/20 text-rog-blue focus:ring-rog-blue focus:ring-offset-0"
-              />
-              <span className="text-sm">
-                {t("addGameModal.options.cloudSync")}
-              </span>
-            </label>
-          </div>
         </div>
 
         {/* Modal Footer */}
@@ -156,11 +138,37 @@ const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
           </button>
           <button
             onClick={() => {
-              // TODO: Implement form data collection and validation
-              onAdd({});
+              // Validate required fields
+              if (!gameTitle || !selectedPlatform || !savePath) {
+                return;
+              }
+              
+              // Use Steam CDN for cover image if Steam ID is provided
+              const coverImage = steamId 
+                ? `https://steamcdn-a.akamaihd.net/steam/apps/${steamId}/library_600x900_2x.jpg`
+                : `https://via.placeholder.com/300x400?text=${encodeURIComponent(gameTitle)}`;
+              
+              const gameData = {
+                title: gameTitle,
+                platform: selectedPlatform,
+                steam_id: steamId || "0", // Default to "0" if not provided
+                save_path: savePath,
+                save_pattern: savePattern || "*.sav", // Default pattern
+                cover_image: coverImage,
+              };
+              
+              onAdd(gameData);
               onClose();
+              
+              // Reset form
+              setGameTitle("");
+              setSelectedPlatform("");
+              setSteamId("");
+              setSavePath("");
+              setSavePattern("");
             }}
-            className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors"
+            disabled={!gameTitle || !selectedPlatform || !savePath}
+            className="bg-rog-blue px-6 py-2.5 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("addGameModal.actions.add")}
           </button>

@@ -279,7 +279,7 @@ const GameUI = () => {
       {/* Main Content */}
       <div>
         {/* Header Section */}
-        <div className="mb-3">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold">{t("gameUI.title")}</h1>
           <p className="text-gray-400">{t("gameUI.subtitle")}</p>
         </div>
@@ -649,8 +649,19 @@ const GameUI = () => {
         onClose={() => setShowAddGameModal(false)}
         onAdd={async (gameData) => {
           try {
-            // TODO: Implement adding game to library
-            console.log("Adding game:", gameData);
+            // Call the Tauri command to add the game
+            await invoke("add_game_manually", {
+              title: gameData.title,
+              platform: gameData.platform,
+              steam_id: gameData.steam_id,
+              save_path: gameData.save_path,
+              save_pattern: gameData.save_pattern,
+              cover_image: gameData.cover_image,
+            });
+            
+            // Refresh the games list from the store
+            await loadGames();
+            
             success(t("gameUI.success.gameAddedManually"));
           } catch (error) {
             console.error("Failed to add game:", error);

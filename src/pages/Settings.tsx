@@ -120,8 +120,15 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 p-4">
-      {/* Language Settings */}
+    <div className="text-white font-sans animate-fade-in p-8">
+      {/* Header Section */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+        <p className="text-gray-400">{t("settings.subtitle")}</p>
+      </div>
+      
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Language Settings */}
       <div className="bg-game-card rounded-lg p-6">
         <div className="flex items-center space-x-3 mb-4">
           <Globe className="w-6 h-6 text-rog-blue" />
@@ -320,6 +327,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

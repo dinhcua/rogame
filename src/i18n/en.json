@@ -1,5 +1,7 @@
 {
   "settings": {
+    "title": "Settings",
+    "subtitle": "Customize the app to your preferences",
     "general": {
       "title": "General Settings",
       "darkMode": {
@@ -355,8 +357,8 @@
       "titlePlaceholder": "Enter game title",
       "platform": "Platform",
       "platformPlaceholder": "Select platform",
-      "version": "Game Version",
-      "versionPlaceholder": "e.g. 1.0.5"
+      "version": "Steam ID",
+      "versionPlaceholder": "e.g. 570940"
     },
     "platforms": {
       "epic": "Epic Games",
