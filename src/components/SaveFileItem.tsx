@@ -271,7 +271,19 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                           // Convert to File object
                           const uint8Array = new Uint8Array(fileData);
                           const blob = new Blob([uint8Array]);
-                          const file = new File([blob], saveFile.file_name, {
+                          
+                          // If the original backup was a directory, the server will have created a zip
+                          // So we should change the filename to include .zip extension
+                          let fileName = saveFile.file_name;
+                          if (!fileName.toLowerCase().endsWith('.zip')) {
+                            // Check if it was originally a directory by looking at the backup name pattern
+                            // Directory backups are named like "backup_20250728_141201" without extension
+                            if (fileName.match(/^backup_\d{8}_\d{6}$/)) {
+                              fileName = `${fileName}.zip`;
+                            }
+                          }
+                          
+                          const file = new File([blob], fileName, {
                             lastModified: new Date(saveFile.modified_at).getTime()
                           });
                           

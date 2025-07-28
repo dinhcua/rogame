@@ -1106,6 +1106,12 @@ pub async fn read_file_as_bytes(file_path: String) -> Result<Vec<u8>, SaveFileEr
     match fs::metadata(&file_path).await {
         Ok(metadata) => {
             println!("File exists. Size: {} bytes", metadata.len());
+            
+            // If it's a directory, we need to zip it first
+            if metadata.is_dir() {
+                println!("Path is a directory, creating zip file");
+                return create_zip_from_directory(&file_path).await;
+            }
         }
         Err(e) => {
             eprintln!("File not found or inaccessible: {} - Error: {}", &file_path, e);
@@ -1127,6 +1133,78 @@ pub async fn read_file_as_bytes(file_path: String) -> Result<Vec<u8>, SaveFileEr
             })
         }
     }
+}
+
+// Helper function to create a zip file from a directory
+async fn create_zip_from_directory(dir_path: &str) -> Result<Vec<u8>, SaveFileError> {
+    use std::io::{Write, Seek};
+    use walkdir::WalkDir;
+    use zip::write::FileOptions;
+    use zip::ZipWriter;
+    
+    let path = PathBuf::from(dir_path);
+    let mut buffer = std::io::Cursor::new(Vec::new());
+    
+    {
+        let mut zip = ZipWriter::new(&mut buffer);
+        let options = FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .unix_permissions(0o755);
+        
+        let walkdir = WalkDir::new(&path);
+        let iterator = walkdir.into_iter().filter_map(|e| e.ok());
+        
+        for entry in iterator {
+            let entry_path = entry.path();
+            let name = entry_path.strip_prefix(&path)
+                .map_err(|_| SaveFileError {
+                    message: "Failed to strip prefix from path".to_string(),
+                })?;
+            
+            // Skip empty paths
+            if name.as_os_str().is_empty() {
+                continue;
+            }
+            
+            let path_str = name.to_string_lossy();
+            
+            if entry_path.is_file() {
+                println!("Adding file to zip: {}", path_str);
+                zip.start_file(path_str, options)
+                    .map_err(|e| SaveFileError {
+                        message: format!("Failed to add file to zip: {}", e),
+                    })?;
+                
+                let file_contents = std::fs::read(entry_path)
+                    .map_err(|e| SaveFileError {
+                        message: format!("Failed to read file for zip: {}", e),
+                    })?;
+                
+                zip.write_all(&file_contents)
+                    .map_err(|e| SaveFileError {
+                        message: format!("Failed to write file to zip: {}", e),
+                    })?;
+            } else if entry_path.is_dir() && !path_str.is_empty() {
+                println!("Adding directory to zip: {}", path_str);
+                zip.add_directory(path_str, options)
+                    .map_err(|e| SaveFileError {
+                        message: format!("Failed to add directory to zip: {}", e),
+                    })?;
+            }
+        }
+        
+        zip.finish()
+            .map_err(|e| SaveFileError {
+                message: format!("Failed to finish zip: {}", e),
+            })?;
+    }
+    
+    buffer.seek(std::io::SeekFrom::Start(0))
+        .map_err(|e| SaveFileError {
+            message: format!("Failed to seek in buffer: {}", e),
+        })?;
+    
+    Ok(buffer.into_inner())
 }
 
 // Helper function to get directory size
