@@ -43,7 +43,7 @@ router.get('/:provider/url', (req, res) => {
       case 'google':
       case 'google_drive':
         const scopes = ['https://www.googleapis.com/auth/drive.file'];
-        const googleState = encodeURIComponent(JSON.stringify({ provider: 'google' }));
+        const googleState = encodeURIComponent(JSON.stringify({ provider: 'google_drive' }));
         authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
           `client_id=${process.env.GOOGLE_CLIENT_ID}` +
           `&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}` +
@@ -56,7 +56,7 @@ router.get('/:provider/url', (req, res) => {
       
       case 'microsoft':
       case 'onedrive':
-        const microsoftState = encodeURIComponent(JSON.stringify({ provider: 'microsoft' }));
+        const microsoftState = encodeURIComponent(JSON.stringify({ provider: 'onedrive' }));
         authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?` +
           `client_id=${process.env.MICROSOFT_CLIENT_ID}` +
           `&redirect_uri=${process.env.MICROSOFT_REDIRECT_URI}` +
@@ -66,11 +66,13 @@ router.get('/:provider/url', (req, res) => {
         break;
       
       case 'dropbox':
+        const dropboxState = encodeURIComponent(JSON.stringify({ provider: 'dropbox' }));
         authUrl = `https://www.dropbox.com/oauth2/authorize?` +
           `client_id=${process.env.DROPBOX_CLIENT_ID}` +
           `&redirect_uri=${process.env.DROPBOX_REDIRECT_URI}` +
           `&response_type=code` +
-          `&token_access_type=offline`;
+          `&token_access_type=offline` +
+          `&state=${dropboxState}`;
         break;
       
       default:

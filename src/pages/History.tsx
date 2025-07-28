@@ -13,6 +13,9 @@ import {
 import { Game } from "../types/game";
 import { useToast } from "../hooks/useToast";
 import { useServerUpload } from "../hooks/useServerUpload";
+import { useCloudStorage } from "../hooks/useCloudStorage";
+import PlatformIcon from "../components/PlatformIcon";
+import { CloudProvider } from "../types/cloud";
 import "../i18n/config";
 
 interface SaveFile {
@@ -52,6 +55,12 @@ const BackupCard: React.FC<{
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { uploadFile, isUploading } = useServerUpload();
   const { error, success } = useToast();
+  const { 
+    isProviderConnected, 
+    getProviderName,
+    uploadGameSaves,
+    isLoading: isCloudUploading 
+  } = useCloudStorage();
 
   const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
     switch (status) {
@@ -292,6 +301,65 @@ const BackupCard: React.FC<{
                     </>
                   )}
                 </button>
+                
+                {/* Cloud Provider Upload Buttons */}
+                {(['google_drive', 'dropbox', 'onedrive'] as CloudProvider[]).map((provider) => {
+                  const isConnected = isProviderConnected(provider);
+                  if (!isConnected) return null;
+                  
+                  return (
+                    <button
+                      key={provider}
+                      className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
+                      onClick={async () => {
+                        onDropdownToggle();
+                        try {
+                          // Read the backup file
+                          const fileData = await invoke<number[]>('read_file_as_bytes', {
+                            filePath: backup.save_file.file_path
+                          });
+                          
+                          // Convert to File object
+                          const uint8Array = new Uint8Array(fileData);
+                          const blob = new Blob([uint8Array]);
+                          const file = new File([blob], backup.save_file.file_name, {
+                            lastModified: new Date(backup.save_file.modified_at).getTime()
+                          });
+                          
+                          await uploadGameSaves(
+                            provider,
+                            backup.game.id,
+                            backup.game.title,
+                            [file]
+                          );
+                          
+                          success(t("history.notifications.uploadSuccess"));
+                        } catch (err) {
+                          console.error('Failed to upload to cloud:', err);
+                          error(t("history.notifications.uploadError"));
+                        }
+                      }}
+                      disabled={isCloudUploading}
+                    >
+                      {isCloudUploading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-gray-300">
+                            {t("history.actions.uploading")}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <PlatformIcon platform={provider} className="w-4 h-4" />
+                          <span className="text-gray-300">
+                            {t("history.actions.uploadToProvider", { provider: getProviderName(provider) })}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+                
                 <button
                   className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
                   onClick={async () => {

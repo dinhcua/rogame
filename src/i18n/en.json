@@ -213,7 +213,8 @@
       "backupCreated": "Backup created successfully",
       "saveRestored": "Save file {{fileName}} restored successfully",
       "gameDeleted": "Game deleted successfully",
-      "saveDeleted": "Save file deleted successfully"
+      "saveDeleted": "Save file deleted successfully",
+      "uploadedToCloud": "Uploaded to {{provider}} successfully"
     },
     "errors": {
       "gameNotFound": "Game not found",
@@ -222,7 +223,8 @@
       "restoreFailed": "Failed to restore save file: {{error}}",
       "deleteFailed": "Failed to delete game: {{error}}",
       "saveDeleteFailed": "Failed to delete save file: {{error}}",
-      "autoBackupFailed": "Auto-backup failed"
+      "autoBackupFailed": "Auto-backup failed",
+      "cloudUploadFailed": "Failed to upload to {{provider}}"
     }
   },
   "history": {
@@ -233,6 +235,7 @@
     "noBackupsDescription": "Start backing up your games to see them here",
     "actions": {
       "uploadToServer": "Upload to Server",
+      "uploadToProvider": "Upload to {{provider}}",
       "uploading": "Uploading...",
       "openOriginalLocation": "Open Original Save Location",
       "openBackupLocation": "Open Backup Location",
@@ -313,6 +316,9 @@
       "uploadToServer": "Upload to Server",
       "openOriginalLocation": "Open Original Save Location"
     },
+    "uploadToProvider": "Upload to {{provider}}",
+    "uploadedToCloud": "Uploaded to {{provider}} successfully",
+    "uploadToCloudFailed": "Failed to upload to {{provider}}",
     "info": {
       "lastModified": "Last Modified",
       "size": "Size"

@@ -16,6 +16,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import ConfirmationModal from "./ConfirmationModal";
+import { useCloudStorage } from "../hooks/useCloudStorage";
+import { CloudProvider } from "../types/cloud";
+import PlatformIcon from "./PlatformIcon";
+import { invoke } from "@tauri-apps/api/core";
+import { useToast } from "../hooks/useToast";
 import "../i18n/config";
 
 interface SaveFile {
@@ -52,6 +57,14 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     "idle" | "uploading" | "success"
   >("idle");
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const { 
+    isProviderConnected, 
+    getProviderName,
+    uploadGameSaves,
+    isLoading: isCloudUploading 
+  } = useCloudStorage();
+  const [uploadingProvider, setUploadingProvider] = useState<CloudProvider | null>(null);
+  const { success, error } = useToast();
 
   const formatSize = (bytes: number) => {
     const sizes = ["B", "KB", "MB", "GB"];
@@ -237,6 +250,65 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                     </span>
                   </button>
                 )}
+
+                {/* Cloud Provider Upload Buttons */}
+                {(['google_drive', 'dropbox', 'onedrive'] as CloudProvider[]).map((provider) => {
+                  const isConnected = isProviderConnected(provider);
+                  if (!isConnected) return null;
+                  
+                  return (
+                    <button
+                      key={provider}
+                      onClick={async () => {
+                        setShowMenu(false);
+                        setUploadingProvider(provider);
+                        try {
+                          // Read the backup file
+                          const fileData = await invoke<number[]>('read_file_as_bytes', {
+                            filePath: saveFile.file_path
+                          });
+                          
+                          // Convert to File object
+                          const uint8Array = new Uint8Array(fileData);
+                          const blob = new Blob([uint8Array]);
+                          const file = new File([blob], saveFile.file_name, {
+                            lastModified: new Date(saveFile.modified_at).getTime()
+                          });
+                          
+                          // Get game info
+                          const gameInfo = await invoke<any>('get_game_by_id', { id: saveFile.game_id });
+                          
+                          await uploadGameSaves(
+                            provider,
+                            saveFile.game_id,
+                            gameInfo.title,
+                            [file]
+                          );
+                          
+                          success(t("saveFile.uploadedToCloud", { provider: getProviderName(provider) }));
+                        } catch (err) {
+                          console.error('Failed to upload to cloud:', err);
+                          error(t("saveFile.uploadToCloudFailed", { provider: getProviderName(provider) }));
+                        } finally {
+                          setUploadingProvider(null);
+                        }
+                      }}
+                      disabled={isCloudUploading && uploadingProvider === provider}
+                      className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                    >
+                      {isCloudUploading && uploadingProvider === provider ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
+                      ) : (
+                        <PlatformIcon platform={provider} className="w-4 h-4" />
+                      )}
+                      <span className="text-gray-300">
+                        {isCloudUploading && uploadingProvider === provider
+                          ? t("saveFile.uploading")
+                          : t("saveFile.uploadToProvider", { provider: getProviderName(provider) })}
+                      </span>
+                    </button>
+                  );
+                })}
 
                 {saveFile.origin_path && saveFile.origin_path.trim() !== "" && (
                   <button

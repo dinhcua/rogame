@@ -255,7 +255,8 @@
       "backupCreated": "Tạo bản sao lưu thành công",
       "saveRestored": "Khôi phục tệp {{fileName}} thành công",
       "gameDeleted": "Xóa trò chơi thành công",
-      "saveDeleted": "Xóa tệp lưu thành công"
+      "saveDeleted": "Xóa tệp lưu thành công",
+      "uploadedToCloud": "Tải lên {{provider}} thành công"
     },
     "errors": {
       "gameNotFound": "Không tìm thấy trò chơi",
@@ -264,7 +265,8 @@
       "restoreFailed": "Không thể khôi phục tệp: {{error}}",
       "deleteFailed": "Không thể xóa trò chơi: {{error}}",
       "saveDeleteFailed": "Không thể xóa tệp lưu: {{error}}",
-      "autoBackupFailed": "Sao lưu tự động thất bại"
+      "autoBackupFailed": "Sao lưu tự động thất bại",
+      "cloudUploadFailed": "Không thể tải lên {{provider}}"
     }
   },
   "history": {
@@ -275,6 +277,7 @@
     "noBackupsDescription": "Bắt đầu sao lưu trò chơi để xem chúng ở đây",
     "actions": {
       "uploadToServer": "Tải lên máy chủ",
+      "uploadToProvider": "Tải lên {{provider}}",
       "uploading": "Đang tải lên...",
       "openOriginalLocation": "Mở thư mục save gốc",
       "openBackupLocation": "Mở thư mục sao lưu",
@@ -324,8 +327,6 @@
       "mb": "{{size}} MB",
       "gb": "{{size}} GB"
     },
-    "loading": "Đang tải bản sao lưu...",
-    "noBackups": "Không có bản sao lưu nào",
     "notifications": {
       "restoreSuccess": "Khôi phục bản sao lưu thành công",
       "restoreError": "Không thể khôi phục bản sao lưu",
@@ -355,6 +356,9 @@
       "openOriginalLocation": "Mở thư mục save gốc",
       "uploadToServer": "Tải lên máy chủ"
     },
+    "uploadToProvider": "Tải lên {{provider}}",
+    "uploadedToCloud": "Tải lên {{provider}} thành công",
+    "uploadToCloudFailed": "Không thể tải lên {{provider}}",
     "info": {
       "lastModified": "Lần sửa cuối",
       "size": "Kích thước"
@@ -372,7 +376,7 @@
       "days": "{{count}} ngày trước"
     },
     "saveFrom": "Lưu lúc {{date}}",
-    "autoBackup": "Sao lưu tự động",
+    "autoBackup": "Tự động",
     "uploading": "Đang tải lên...",
     "uploaded": "Đã tải lên!"
   },
