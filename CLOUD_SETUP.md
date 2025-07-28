@@ -7,8 +7,10 @@ This guide will help you set up cloud storage synchronization for Rogame.
 The cloud storage feature consists of three components working together:
 
 1. **React Frontend** - User interface for cloud sync operations
-2. **Node.js Server** - Handles OAuth authentication and cloud API operations
+2. **Node.js Server** - Handles OAuth authentication and cloud API operations (Required for security)
 3. **Tauri Backend** - Manages local game saves and database
+
+⚠️ **Important**: The server is required for cloud upload functionality. Direct upload from the app is not supported for security reasons.
 
 ## Prerequisites
 
@@ -107,6 +109,12 @@ npm run tauri dev
 
 ## Troubleshooting
 
+**500 Internal Server Error when uploading:**
+- Check that the server is running (`cd server && npm run dev`)
+- Verify OAuth credentials are correctly set in server/.env
+- Check server console for detailed error messages
+- Ensure ALLOWED_ORIGINS in .env includes your app URL
+
 **Authentication fails:**
 - Check that redirect URIs match exactly in your OAuth app settings
 - Ensure `.env` file has correct credentials
@@ -121,6 +129,21 @@ npm run tauri dev
 - Ensure the Node.js server is running
 - Check CORS settings if running on different ports
 - Verify network connectivity
+
+## Why Server is Required
+
+The cloud upload feature requires a server for several reasons:
+
+1. **Security**: OAuth credentials should never be exposed in client applications
+2. **Token Management**: Server handles token refresh and secure storage
+3. **CORS**: Cloud provider APIs don't allow direct browser access
+4. **Rate Limiting**: Server can implement proper rate limiting and retry logic
+
+Direct upload from the Tauri app without the server is not recommended and would require:
+- Embedding OAuth secrets in the app (major security risk)
+- Complex OAuth flow implementation in Rust
+- Handling CORS and authentication headers
+- Managing token refresh in the client
 
 ## Production Deployment
 
