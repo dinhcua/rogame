@@ -38,12 +38,16 @@ const CloudStorage: React.FC = () => {
     { value: "manual", label: t("cloudStorage.frequency.manual") },
   ];
 
-  const providers: CloudProvider[] = ['google_drive', 'dropbox', 'onedrive'];
+  // Temporarily only show Google Drive
+  const providers: CloudProvider[] = ["google_drive"]; // 'dropbox', 'onedrive'];
 
   // Debug logging
   React.useEffect(() => {
-    providers.forEach(provider => {
-      console.log(`Provider ${provider} connected:`, isProviderConnected(provider));
+    providers.forEach((provider) => {
+      console.log(
+        `Provider ${provider} connected:`,
+        isProviderConnected(provider)
+      );
     });
   }, [isProviderConnected, providers]);
 
@@ -57,56 +61,67 @@ const CloudStorage: React.FC = () => {
         {!tokensLoaded ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-400">Loading cloud providers...</span>
+            <span className="ml-2 text-gray-400">
+              Loading cloud providers...
+            </span>
           </div>
         ) : (
           providers.map((provider) => {
             const isConnected = isProviderConnected(provider);
-            
+
             return (
-            <div key={provider} className="flex items-center justify-between p-3 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200">
-              <div className="flex items-center space-x-3">
-                <PlatformIcon platform={provider} />
-                <div>
-                  <p className="font-medium">{getProviderName(provider)}</p>
-                  <p className="text-sm text-gray-400">
-                    {isConnected
-                      ? t("cloudStorage.status.connected")
-                      : t("cloudStorage.status.notConnected")}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (isConnected) {
-                    disconnectProvider(provider);
-                  } else {
-                    authenticate(provider);
-                  }
-                }}
-                disabled={isLoading}
-                className="text-rog-blue hover:text-epic-accent text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-rog-blue/10"
+              <div
+                key={provider}
+                className="flex items-center justify-between p-3 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200"
               >
-                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>
-                  {isConnected
-                    ? t("cloudStorage.actions.disconnect")
-                    : t("cloudStorage.actions.connect")}
-                </span>
-              </button>
-            </div>
+                <div className="flex items-center space-x-3">
+                  <PlatformIcon platform={provider} />
+                  <div>
+                    <p className="font-medium text-sm">
+                      {getProviderName(provider)}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isConnected
+                        ? t("cloudStorage.status.connected")
+                        : t("cloudStorage.status.notConnected")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isConnected) {
+                      disconnectProvider(provider);
+                    } else {
+                      authenticate(provider);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className={`${
+                    isConnected
+                      ? "text-epic-danger hover:text-red-400 hover:bg-epic-danger/10"
+                      : "text-rog-blue hover:text-epic-accent hover:bg-rog-blue/10"
+                  } text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 p-2 rounded-md`}
+                >
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>
+                    {isConnected
+                      ? t("cloudStorage.actions.disconnect")
+                      : t("cloudStorage.actions.connect")}
+                  </span>
+                </button>
+              </div>
             );
           })
         )}
 
         {/* Auto-sync Settings */}
-        <div className="border-t border-gray-700 pt-4 mt-4">
+        <div className="border-t border-gray-700 pt-2 mt-2">
           <h3 className="text-base font-semibold mb-3">
             {t("cloudStorage.autoSync.title")}
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">
+              <span className="text-sm text-gray-400">
                 {t("cloudStorage.autoSync.enabled")}
               </span>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -125,7 +140,7 @@ const CloudStorage: React.FC = () => {
               </label>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">
+              <span className="text-sm text-gray-400">
                 {t("cloudStorage.autoSync.frequency")}
               </span>
               <DropdownSelect
@@ -142,7 +157,7 @@ const CloudStorage: React.FC = () => {
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">
+              <span className="text-sm text-gray-400">
                 {t("cloudStorage.autoSync.keepLocal")}
               </span>
               <label className="relative inline-flex items-center cursor-pointer">

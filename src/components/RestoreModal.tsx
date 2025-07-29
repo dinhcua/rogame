@@ -1,7 +1,7 @@
 import React from "react";
-import { formatDistanceToNow } from "date-fns";
 import { X, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatFileSize, formatDistanceToNow } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -37,18 +37,6 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
 
   if (!isOpen) return null;
 
-  const formatFileSize = (bytes: number) => {
-    const units = ["B", "KB", "MB", "GB"];
-    let size = bytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -77,7 +65,7 @@ const RestoreModal: React.FC<RestoreModalProps> = ({
                     </h3>
                     <p className="text-gray-400 text-sm">
                       {t("restoreModal.created")}:{" "}
-                      {formatDistanceToNow(new Date(saveFile.created_at))}{" "}
+                      {formatDistanceToNow(new Date(saveFile.created_at), t)}{" "}
                       {t("restoreModal.ago")}
                     </p>
                     <p className="text-gray-400 text-sm mt-1">

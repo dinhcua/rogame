@@ -13,9 +13,6 @@ import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
 import { useServerUpload } from "../hooks/useServerUpload";
-import { useCloudStorage } from "../hooks/useCloudStorage";
-import { CloudProvider } from "../types/cloud";
-import PlatformIcon from "../components/PlatformIcon";
 import "../i18n/config";
 
 interface SaveFile {
@@ -50,12 +47,6 @@ const GameDetail: React.FC = () => {
   const { deleteGame } = useGameStore();
   const { success, error: showError } = useToast();
   const { uploadFile, isUploading } = useServerUpload();
-  const { 
-    isProviderConnected, 
-    getProviderName,
-    uploadGameSaves,
-    isLoading: isCloudUploading 
-  } = useCloudStorage();
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

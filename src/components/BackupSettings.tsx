@@ -94,7 +94,7 @@ const BackupSettings: React.FC = () => {
       </div>
       <div className="space-y-4 opacity-50">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">
+          <span className="text-sm text-gray-400">
             {t("backupSettings.autoBackup")}
           </span>
           <label className="relative inline-flex items-center cursor-not-allowed">
@@ -109,7 +109,7 @@ const BackupSettings: React.FC = () => {
           </label>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">{t("backupSettings.interval")}</span>
+          <span className="text-sm text-gray-400">{t("backupSettings.interval")}</span>
           <DropdownSelect
             options={intervalOptions}
             value={settings.backup_interval}
@@ -119,7 +119,7 @@ const BackupSettings: React.FC = () => {
           />
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">
+          <span className="text-sm text-gray-400">
             {t("backupSettings.maxBackups")}
           </span>
           <DropdownSelect
@@ -131,7 +131,7 @@ const BackupSettings: React.FC = () => {
           />
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">
+          <span className="text-sm text-gray-400">
             {t("backupSettings.compression")}
           </span>
           <label className="relative inline-flex items-center cursor-not-allowed">

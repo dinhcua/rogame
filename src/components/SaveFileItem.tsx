@@ -21,6 +21,7 @@ import { CloudProvider } from "../types/cloud";
 import PlatformIcon from "./PlatformIcon";
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "../hooks/useToast";
+import { formatFileSize, formatDate, getDisplayName } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -66,46 +67,8 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
   const [uploadingProvider, setUploadingProvider] = useState<CloudProvider | null>(null);
   const { success, error } = useToast();
 
-  const formatSize = (bytes: number) => {
-    const sizes = ["B", "KB", "MB", "GB"];
-    let i = 0;
-    let size = bytes;
-
-    while (size >= 1024 && i < sizes.length - 1) {
-      size /= 1024;
-      i++;
-    }
-
-    return `${size.toFixed(1)} ${sizes[i]}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 1) {
-      const diffMinutes = Math.floor(diffMs / (1000 * 60));
-      return t("saveFile.timeAgo.minutes", { count: diffMinutes });
-    } else if (diffHours < 24) {
-      return t("saveFile.timeAgo.hours", { count: diffHours });
-    } else if (diffDays < 7) {
-      return t("saveFile.timeAgo.days", { count: diffDays });
-    } else {
-      const locale = i18n.language === "vi" ? "vi-VN" : "en-US";
-      return date.toLocaleDateString(locale, {
-        year: "numeric",
-        month: i18n.language === "vi" ? "numeric" : "short",
-        day: "numeric",
-      });
-    }
-  };
-
-  // Get a user-friendly name for the save file
-  const getDisplayName = (fileName: string) => {
-    // Extract timestamp from backup filename
+  // Extract date from backup filename
+  const getBackupDate = (fileName: string): Date | null => {
     const match = fileName.match(/backup_(\d{8})_(\d{6})/);
     if (match) {
       const dateStr = match[1];
@@ -115,23 +78,13 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
       const day = dateStr.slice(6, 8);
       const hour = timeStr.slice(0, 2);
       const minute = timeStr.slice(2, 4);
+      const second = timeStr.slice(4, 6);
 
-      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
-
-      // Format date based on current locale
-      const locale = i18n.language === "vi" ? "vi-VN" : "en-US";
-      const formattedDate = new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: i18n.language === "vi" ? "numeric" : "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(date);
-
-      return t("saveFile.saveFrom", { date: formattedDate });
+      return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
     }
-    return fileName;
+    return null;
   };
+
 
   const handleOpenOriginalLocation = async () => {
     if (!saveFile.origin_path || saveFile.origin_path.trim() === "") return;
@@ -178,7 +131,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                 {saveFile.file_name}
               </h4>
               <p className="text-sm text-gray-400 mt-0.5">
-                {getDisplayName(saveFile.file_name)}
+                {getDisplayName(saveFile.file_name, t, i18n)}
               </p>
             </div>
           </div>
@@ -188,13 +141,18 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-gray-500" />
               <span className="text-gray-300">
-                {formatDate(saveFile.modified_at)}
+                {(() => {
+                  const backupDate = getBackupDate(saveFile.file_name);
+                  return backupDate 
+                    ? formatDate(backupDate, t, i18n)
+                    : formatDate(saveFile.created_at, t, i18n);
+                })()}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <HardDrive className="w-4 h-4 text-gray-500" />
               <span className="text-gray-300">
-                {formatSize(saveFile.size_bytes)}
+                {formatFileSize(saveFile.size_bytes)}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -252,7 +210,8 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                 )}
 
                 {/* Cloud Provider Upload Buttons */}
-                {(['google_drive', 'dropbox', 'onedrive'] as CloudProvider[]).map((provider) => {
+                {/* Temporarily only show Google Drive */}
+                {(['google_drive'] as CloudProvider[]).map((provider) => {
                   const isConnected = isProviderConnected(provider);
                   if (!isConnected) return null;
                   
@@ -404,7 +363,12 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
           <p className="text-white font-medium">{saveFile.file_name}</p>
           <p className="text-sm text-gray-400 mt-2">
             {t("saveFile.restoreConfirm.created")}:{" "}
-            {formatDate(saveFile.created_at)}
+            {(() => {
+              const backupDate = getBackupDate(saveFile.file_name);
+              return backupDate 
+                ? formatDate(backupDate, t, i18n)
+                : formatDate(saveFile.created_at, t, i18n);
+            })()}
           </p>
         </div>
       </ConfirmationModal>

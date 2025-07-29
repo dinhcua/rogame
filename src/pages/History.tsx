@@ -16,6 +16,7 @@ import { useServerUpload } from "../hooks/useServerUpload";
 import { useCloudStorage } from "../hooks/useCloudStorage";
 import PlatformIcon from "../components/PlatformIcon";
 import { CloudProvider } from "../types/cloud";
+import { formatFileSize, getDisplayName, formatTimeAgo } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -79,82 +80,7 @@ const BackupCard: React.FC<{
     return t(`history.backup.status.${status}`);
   };
 
-  const formatFileSize = (bytes: number) => {
-    const units = ["bytes", "kb", "mb", "gb"];
-    let size = bytes;
-    let unitIndex = 0;
 
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-
-    return t(`history.fileSize.${units[unitIndex]}`, {
-      size: size.toFixed(1),
-    });
-  };
-
-  const getDisplayName = (fileName: string) => {
-    // Extract timestamp from backup filename
-    const match = fileName.match(/backup_(\d{8})_(\d{6})/);
-    if (match) {
-      const dateStr = match[1];
-      const timeStr = match[2];
-      const year = dateStr.slice(0, 4);
-      const month = dateStr.slice(4, 6);
-      const day = dateStr.slice(6, 8);
-      const hour = timeStr.slice(0, 2);
-      const minute = timeStr.slice(2, 4);
-
-      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
-      
-      // Format date based on current locale
-      const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
-      const formattedDate = new Intl.DateTimeFormat(locale, {
-        day: 'numeric',
-        month: i18n.language === 'vi' ? 'numeric' : 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).format(date);
-      
-      return t("saveFile.saveFrom", { date: formattedDate });
-    }
-    return fileName;
-  };
-
-  const formatTimeAgo = (date: string) => {
-    const now = new Date();
-    const then = new Date(date);
-    const diffInMinutes = Math.floor(
-      (now.getTime() - then.getTime()) / (1000 * 60)
-    );
-
-    if (diffInMinutes < 1) {
-      return t("history.backup.timeAgo.lessThanAMinute");
-    } else if (diffInMinutes < 60) {
-      return t("history.backup.timeAgo.minutes", { count: diffInMinutes });
-    } else if (diffInMinutes < 1440) {
-      // less than 24 hours
-      return t("history.backup.timeAgo.hours", {
-        count: Math.floor(diffInMinutes / 60),
-      });
-    } else if (diffInMinutes < 10080) {
-      // less than 7 days
-      return t("history.backup.timeAgo.days", {
-        count: Math.floor(diffInMinutes / 1440),
-      });
-    } else if (diffInMinutes < 43200) {
-      // less than 30 days
-      return t("history.backup.timeAgo.weeks", {
-        count: Math.floor(diffInMinutes / 10080),
-      });
-    } else {
-      return t("history.backup.timeAgo.months", {
-        count: Math.floor(diffInMinutes / 43200),
-      });
-    }
-  };
 
   return (
     <div className="relative bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50 hover:border-rog-blue/30 transition-all duration-200 group">
@@ -172,7 +98,7 @@ const BackupCard: React.FC<{
               {backup.game.title}
             </h3>
             <p className="text-sm text-gray-400 mb-2">
-              {getDisplayName(backup.save_file.file_name)}
+              {getDisplayName(backup.save_file.file_name, t, i18n)}
             </p>
             <div className="flex items-center flex-wrap gap-3 text-xs">
               <div className="flex items-center gap-1.5">
@@ -190,7 +116,7 @@ const BackupCard: React.FC<{
                   />
                 </svg>
                 <span className="text-gray-300">
-                  {formatTimeAgo(backup.save_file.created_at)}
+                  {formatTimeAgo(backup.save_file.created_at, t)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -588,35 +514,6 @@ export default function History() {
     setPagination((prev) => ({ ...prev, current_page: page }));
   };
 
-  const formatTimeAgo = (date: string) => {
-    const now = new Date();
-    const then = new Date(date);
-    const diffInMinutes = Math.floor(
-      (now.getTime() - then.getTime()) / (1000 * 60)
-    );
-
-    if (diffInMinutes < 1) {
-      return t("history.backup.timeAgo.lessThanAMinute");
-    } else if (diffInMinutes < 60) {
-      return t("history.backup.timeAgo.minutes", { count: diffInMinutes });
-    } else if (diffInMinutes < 1440) {
-      return t("history.backup.timeAgo.hours", {
-        count: Math.floor(diffInMinutes / 60),
-      });
-    } else if (diffInMinutes < 10080) {
-      return t("history.backup.timeAgo.days", {
-        count: Math.floor(diffInMinutes / 1440),
-      });
-    } else if (diffInMinutes < 43200) {
-      return t("history.backup.timeAgo.weeks", {
-        count: Math.floor(diffInMinutes / 10080),
-      });
-    } else {
-      return t("history.backup.timeAgo.months", {
-        count: Math.floor(diffInMinutes / 43200),
-      });
-    }
-  };
 
   // Close dropdown when clicking escape key
   useEffect(() => {
@@ -667,7 +564,7 @@ export default function History() {
           </h3>
           <p className="text-xl font-semibold text-white">
             {backups.length > 0
-              ? formatTimeAgo(backups[0].save_file.created_at)
+              ? formatTimeAgo(backups[0].save_file.created_at, t)
               : t("history.stats.never")}
           </p>
         </div>

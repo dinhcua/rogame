@@ -394,7 +394,15 @@
     "size": "Kích thước",
     "restoreButton": "Khôi phục",
     "warning": "Khôi phục tệp lưu sẽ ghi đè lên tiến trình hiện tại của bạn",
-    "cancelButton": "Hủy"
+    "cancelButton": "Hủy",
+    "day": "ngày",
+    "days": "ngày",
+    "hour": "giờ",
+    "hours": "giờ",
+    "minute": "phút",
+    "minutes": "phút",
+    "second": "giây",
+    "seconds": "giây"
   },
   "addGameModal": {
     "title": "Thêm Game Thủ Công",

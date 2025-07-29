@@ -354,7 +354,15 @@
     "size": "Size",
     "restoreButton": "Restore",
     "warning": "Restoring a save will overwrite your current game progress",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "day": "day",
+    "days": "days",
+    "hour": "hour",
+    "hours": "hours",
+    "minute": "minute",
+    "minutes": "minutes",
+    "second": "second",
+    "seconds": "seconds"
   },
   "addGameModal": {
     "title": "Add New Game Manually",
