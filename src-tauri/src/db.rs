@@ -17,25 +17,14 @@ pub fn get_database_path() -> Result<PathBuf, String> {
     let app_data_dir =
         dirs::data_local_dir().ok_or_else(|| "Failed to get app data directory".to_string())?;
 
-    // Check if running in development mode
-    let is_dev = cfg!(debug_assertions);
-    
-    let db_dir = if is_dev {
-        app_data_dir.join("rogame-dev")
-    } else {
-        app_data_dir.join("rogame")
-    };
+    // Use the same directory and database for both dev and prod
+    let db_dir = app_data_dir.join("rogame");
     
     fs::create_dir_all(&db_dir)
         .map_err(|e| format!("Failed to create database directory: {}", e))?;
 
-    let db_name = if is_dev {
-        "rogame-dev.db"
-    } else {
-        "rogame.db"
-    };
-    
-    Ok(db_dir.join(db_name))
+    // Always use rogame.db for both development and production
+    Ok(db_dir.join("rogame.db"))
 }
 
 // Initialize the database schema
