@@ -90,8 +90,10 @@ pub async fn delete_cloud_token(provider: String) -> Result<(), String> {
     .await
 }
 
-#[tauri::command]
-pub async fn get_all_cloud_tokens() -> Result<Vec<CloudToken>, String> {
+// Removed unused function: get_all_cloud_tokens
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _get_all_cloud_tokens() -> Result<Vec<CloudToken>, String> {
     execute_blocking(move |conn| {
         let mut stmt = conn
             .prepare(

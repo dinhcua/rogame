@@ -26,15 +26,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             game_scanner::scan_games,
             game_scanner::delete_game_saves,
-            game_scanner::delete_save_file,
             save_manager::backup_save,
             save_manager::restore_save,
             save_manager::list_saves,
             save_manager::delete_save,
-            save_manager::update_save_cloud_status,
-            save_manager::sync_existing_backups_to_db,
-            save_manager::sync_all_existing_backups,
-            save_manager::update_all_save_counts,
             save_manager::save_backup_settings,
             save_manager::load_backup_settings,
             save_manager::get_all_games,
@@ -43,15 +38,13 @@ pub fn run() {
             save_manager::update_game,
             save_manager::delete_game,
             save_manager::toggle_favorite,
-            save_manager::sync_game_to_db,
             save_manager::add_game_to_library,
             save_manager::add_game_manually,
             save_manager::read_file_as_bytes,
             save_manager::open_save_location,
             cloud_tokens::save_cloud_token,
             cloud_tokens::get_cloud_token,
-            cloud_tokens::delete_cloud_token,
-            cloud_tokens::get_all_cloud_tokens
+            cloud_tokens::delete_cloud_token
         ])
         .setup(|app| {
             // Setup deep link handler

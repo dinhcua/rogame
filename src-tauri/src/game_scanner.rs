@@ -143,7 +143,9 @@ const EPIC_PATHS: &[&str] = &[
 ];
 
 // Steam userdata directories
-const STEAM_USERDATA_PATHS: &[&str] = &[
+// Removed unused constant
+#[allow(dead_code)]
+const _STEAM_USERDATA_PATHS: &[&str] = &[
     "~/Library/Application Support/Steam/userdata", // macOS
     "~/.steam/steam/userdata",                      // Linux
     "~/.local/share/Steam/userdata",                // Linux alternative
@@ -753,8 +755,10 @@ fn get_backup_dir() -> PathBuf {
     app_data_dir.join("rogame").join("saves")
 }
 
-#[tauri::command]
-pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), String> {
+// Removed unused function: delete_save_file
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _delete_save_file(game_id: String, save_id: String) -> Result<(), String> {
     // Validate inputs to prevent path traversal
     validate_path_component(&game_id).map_err(|e| e.message)?;
     validate_path_component(&save_id).map_err(|e| e.message)?;
@@ -883,7 +887,9 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
 }
 
 // Helper function to list all save files for a game
-fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
+// Removed unused function
+#[allow(dead_code)]
+fn _list_save_files(game_id: &str) -> Result<Vec<String>, String> {
     let config_path = get_save_config_path();
     let game_config: HashMap<String, GameEntry> = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
@@ -958,7 +964,9 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
 }
 
 // Helper function to delete saves in a directory
-fn delete_saves_in_directory(path: &PathBuf, patterns: &[String], errors: &mut Vec<String>) {
+// Removed unused function
+#[allow(dead_code)]
+fn _delete_saves_in_directory(path: &PathBuf, patterns: &[String], errors: &mut Vec<String>) {
     for pattern in patterns {
         let glob_pattern = path.join(pattern).to_string_lossy().into_owned();
         println!("Checking pattern: {}", glob_pattern);

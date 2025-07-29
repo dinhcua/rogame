@@ -664,8 +664,10 @@ async fn delete_save_file_from_db(game_id: String, save_id: String) -> Result<()
 }
 
 // Update cloud status for a save file
-#[tauri::command]
-pub async fn update_save_cloud_status(
+// Removed unused function: update_save_cloud_status
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _update_save_cloud_status(
     game_id: String,
     save_id: String,
     cloud_provider: Option<String>,
@@ -709,8 +711,10 @@ async fn update_game_save_count(game_id: String) -> Result<(), SaveFileError> {
 }
 
 // Update all games' save counts
-#[tauri::command]
-pub async fn update_all_save_counts() -> Result<(), SaveFileError> {
+// Removed unused function: update_all_save_counts
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _update_all_save_counts() -> Result<(), SaveFileError> {
     println!("Updating save counts for all games");
     
     let games = get_all_games().await?;
@@ -1005,8 +1009,10 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 }
 
 // Sync existing file system backups to database
-#[tauri::command]
-pub async fn sync_existing_backups_to_db(game_id: String) -> Result<i32, SaveFileError> {
+// Removed unused function: sync_existing_backups_to_db
+// This function was not being called from the frontend (only called internally)
+#[allow(dead_code)]
+async fn sync_existing_backups_to_db(game_id: String) -> Result<i32, SaveFileError> {
     println!("Syncing existing backups for game: {}", game_id);
     
     let saves_dir = get_saves_directory()?;
@@ -1077,8 +1083,10 @@ pub async fn sync_existing_backups_to_db(game_id: String) -> Result<i32, SaveFil
 }
 
 // Sync all existing backups for all games
-#[tauri::command]
-pub async fn sync_all_existing_backups() -> Result<i32, SaveFileError> {
+// Removed unused function: sync_all_existing_backups
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _sync_all_existing_backups() -> Result<i32, SaveFileError> {
     println!("Syncing all existing backups to database");
     
     let games = get_all_games().await?;
@@ -1326,8 +1334,10 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
 }
 
 // Deprecated - use add_game_to_library instead
-#[tauri::command]
-pub async fn sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFileError> {
+// Removed unused function: sync_game_to_db
+// This function was not being called from the frontend
+#[allow(dead_code)]
+async fn _sync_game_to_db(game_info: serde_json::Value) -> Result<(), SaveFileError> {
     // Just forward to the new function
     add_game_to_library(game_info).await
 }
