@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { PassThrough } from 'stream';
 import { CloudProvider, AuthTokens, CloudFile } from '../types';
 import logger from '../utils/logger';
 
@@ -67,8 +68,12 @@ export class GoogleDriveService implements CloudProvider {
         parents: [parentId],
       };
 
+      const bufferStream = new PassThrough();
+      bufferStream.end(file);
+      
       const media = {
-        body: file,
+        mimeType: 'application/octet-stream',
+        body: bufferStream,
       };
 
       const response = await drive.files.create({
