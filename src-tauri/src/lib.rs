@@ -6,6 +6,7 @@ mod cloud_tokens;
 mod db;
 mod game_scanner;
 mod save_manager;
+mod security;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

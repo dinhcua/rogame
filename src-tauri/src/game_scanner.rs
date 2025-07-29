@@ -2,6 +2,7 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::PathBuf};
 use walkdir::WalkDir;
+use crate::security::{safe_join_path, validate_path_component};
 
 // Helper function to get save game config path
 fn get_save_config_path() -> PathBuf {
@@ -12,25 +13,53 @@ fn get_save_config_path() -> PathBuf {
         // In production, load from resources
         if let Ok(exe_path) = std::env::current_exe() {
             if let Some(exe_dir) = exe_path.parent() {
-                // Try multiple possible locations
-                let resource_paths = vec![
-                    exe_dir.join("resources").join("save_game_location.json"),
-                    exe_dir.join("save_game_location.json"),
-                    exe_dir
-                        .join("_up_")
-                        .join("resources")
-                        .join("save_game_location.json"),
-                ];
-
-                for path in resource_paths {
-                    if path.exists() {
-                        return path;
+                // Try multiple possible locations based on platform
+                let mut resource_paths = vec![];
+                
+                #[cfg(target_os = "macos")]
+                {
+                    // On macOS, resources are in Contents/Resources
+                    if let Some(contents_dir) = exe_dir.parent() {
+                        if let Some(_app_dir) = contents_dir.parent() {
+                            resource_paths.push(contents_dir.join("Resources").join("save_game_location.json"));
+                        }
                     }
                 }
+                
+                #[cfg(target_os = "windows")]
+                {
+                    // On Windows, resources are typically in the same directory as the exe
+                    resource_paths.push(exe_dir.join("save_game_location.json"));
+                    resource_paths.push(exe_dir.join("resources").join("save_game_location.json"));
+                }
+                
+                #[cfg(target_os = "linux")]
+                {
+                    // On Linux, could be in various locations
+                    resource_paths.push(exe_dir.join("save_game_location.json"));
+                    resource_paths.push(exe_dir.join("resources").join("save_game_location.json"));
+                    // AppImage structure
+                    resource_paths.push(exe_dir.join("../lib/rogame").join("save_game_location.json"));
+                }
+                
+                // Common fallback paths
+                resource_paths.push(exe_dir.join("_up_").join("Resources").join("save_game_location.json"));
+
+                println!("Searching for save_game_location.json in production mode:");
+                for path in &resource_paths {
+                    println!("  Checking: {:?} - exists: {}", path, path.exists());
+                    if path.exists() {
+                        println!("  Found config at: {:?}", path);
+                        return path.clone();
+                    }
+                }
+                
+                println!("WARNING: Could not find save_game_location.json in any expected location!");
             }
         }
 
-        // Fallback
+        // Fallback - this will likely fail but provides error info
+        println!("FALLBACK: Using relative path save_game_location.json");
         PathBuf::from("save_game_location.json")
     }
 }
@@ -460,9 +489,22 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
             e.to_string()
         })?,
         Err(e) => {
-            println!("Error reading config: {}", e);
-            // Return empty config as fallback
-            HashMap::new()
+            println!("Error reading config file: {}", e);
+            println!("Using embedded config as fallback...");
+            
+            // Use embedded config as fallback for production builds
+            const EMBEDDED_CONFIG: &str = include_str!("save_game_location.json");
+            match serde_json::from_str(EMBEDDED_CONFIG) {
+                Ok(config) => {
+                    println!("Successfully loaded embedded config");
+                    config
+                },
+                Err(parse_err) => {
+                    println!("Error parsing embedded config: {}", parse_err);
+                    // Return empty config as last resort
+                    HashMap::new()
+                }
+            }
         }
     };
 
@@ -713,6 +755,10 @@ fn get_backup_dir() -> PathBuf {
 
 #[tauri::command]
 pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), String> {
+    // Validate inputs to prevent path traversal
+    validate_path_component(&game_id).map_err(|e| e.message)?;
+    validate_path_component(&save_id).map_err(|e| e.message)?;
+    
     let mut found = false;
     let mut last_error = None;
 
@@ -720,7 +766,12 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
     let config_path = get_save_config_path();
     let game_config: HashMap<String, GameEntry> = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
-        Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
+        Err(e) => {
+            // Use embedded config as fallback
+            const EMBEDDED_CONFIG: &str = include_str!("save_game_location.json");
+            serde_json::from_str(EMBEDDED_CONFIG)
+                .map_err(|_| format!("Failed to read save game configuration: {}", e))?
+        }
     };
 
     // Extract steam_id from game_id (remove epic_ prefix if present)
@@ -747,7 +798,7 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
                 for path_result in paths {
                     if let Ok(path) = path_result {
                         if path.is_dir() {
-                            // Try exact match first
+                            // Try exact match first - validate save_id is already done above
                             let exact_path = path.join(&save_id);
                             if exact_path.exists() {
                                 match fs::remove_file(&exact_path) {
@@ -809,9 +860,10 @@ pub async fn delete_save_file(game_id: String, save_id: String) -> Result<(), St
     }
 
     // 2. Delete from backup directory
-    let backup_dir = get_backup_dir().join(&game_id);
+    let backup_base = get_backup_dir();
+    let backup_dir = safe_join_path(&backup_base, &game_id).map_err(|e| e.message)?;
     if backup_dir.exists() {
-        let backup_file = backup_dir.join(&save_id);
+        let backup_file = safe_join_path(&backup_dir, &save_id).map_err(|e| e.message)?;
         if backup_file.exists() {
             match fs::remove_file(&backup_file) {
                 Ok(_) => found = true,
@@ -835,7 +887,12 @@ fn list_save_files(game_id: &str) -> Result<Vec<String>, String> {
     let config_path = get_save_config_path();
     let game_config: HashMap<String, GameEntry> = match fs::read_to_string(&config_path) {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string())?,
-        Err(e) => return Err(format!("Failed to read save game configuration: {}", e)),
+        Err(e) => {
+            // Use embedded config as fallback
+            const EMBEDDED_CONFIG: &str = include_str!("save_game_location.json");
+            serde_json::from_str(EMBEDDED_CONFIG)
+                .map_err(|_| format!("Failed to read save game configuration: {}", e))?
+        }
     };
 
     // Extract steam_id from game_id
@@ -942,13 +999,18 @@ fn delete_saves_in_directory(path: &PathBuf, patterns: &[String], errors: &mut V
 #[tauri::command]
 pub async fn delete_game_saves(game_id: String) -> Result<(), String> {
     println!("Attempting to delete BACKUP saves for game: {}", game_id);
+    
+    // Validate game_id to prevent path traversal
+    validate_path_component(&game_id).map_err(|e| e.message)?;
+    
     let mut errors = Vec::new();
 
     // IMPORTANT: Only delete backup directory, NOT original save files
     // Original save files should remain untouched
 
     // Delete from backup directory only
-    let backup_dir = get_backup_dir().join(&game_id);
+    let backup_base = get_backup_dir();
+    let backup_dir = safe_join_path(&backup_base, &game_id).map_err(|e| e.message)?;
     println!("Deleting backup directory: {:?}", backup_dir);
 
     if backup_dir.exists() {

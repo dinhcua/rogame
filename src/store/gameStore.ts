@@ -107,22 +107,17 @@ const useGameStore = create<GameState>((set, get) => ({
     if (!gameToAdd) return;
 
     try {
-      // Transform save_locations array to save_location string
-      const transformedGame = {
-        ...gameToAdd,
-        save_location: gameToAdd.save_locations?.[0]?.path || "",
-        backup_location: null,
-        last_backup_time: null,
-      };
-
-      // Remove save_locations from the object to match Rust struct
-      const { save_locations, ...gameForRust } = transformedGame;
-
-      await get().addGame(gameForRust as Game);
+      // Use add_game_to_library command which handles save_locations properly
+      await invoke("add_game_to_library", { gameInfo: gameToAdd });
+      
+      // Update local state
       const foundGames = get().foundGames.map((g) =>
         g.id === gameId ? { ...g, status: "added" as const } : g
       );
       set({ foundGames });
+      
+      // Reload games to get the updated data from database
+      await get().loadGames();
     } catch (error) {
       console.error("Failed to add game to library:", error);
       throw error;

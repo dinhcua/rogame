@@ -6,6 +6,7 @@ use std::fs::{self, create_dir_all};
 use std::path::PathBuf;
 
 use crate::db;
+use crate::security::{safe_join_path, safe_expand_tilde, validate_path_component};
 
 // Structs for the new JSON structure
 #[derive(Debug, Deserialize)]
@@ -50,19 +51,41 @@ fn get_save_config_path() -> PathBuf {
         // In production, load from resources
         if let Ok(exe_path) = std::env::current_exe() {
             if let Some(exe_dir) = exe_path.parent() {
-                // Try multiple possible locations
-                let resource_paths = vec![
-                    exe_dir.join("resources").join("save_game_location.json"),
-                    exe_dir.join("save_game_location.json"),
-                    exe_dir
-                        .join("_up_")
-                        .join("resources")
-                        .join("save_game_location.json"),
-                ];
+                // Try multiple possible locations based on platform
+                let mut resource_paths = vec![];
+                
+                #[cfg(target_os = "macos")]
+                {
+                    // On macOS, resources are in Contents/Resources
+                    if let Some(contents_dir) = exe_dir.parent() {
+                        if let Some(_app_dir) = contents_dir.parent() {
+                            resource_paths.push(contents_dir.join("Resources").join("save_game_location.json"));
+                        }
+                    }
+                }
+                
+                #[cfg(target_os = "windows")]
+                {
+                    // On Windows, resources are typically in the same directory as the exe
+                    resource_paths.push(exe_dir.join("save_game_location.json"));
+                    resource_paths.push(exe_dir.join("resources").join("save_game_location.json"));
+                }
+                
+                #[cfg(target_os = "linux")]
+                {
+                    // On Linux, could be in various locations
+                    resource_paths.push(exe_dir.join("save_game_location.json"));
+                    resource_paths.push(exe_dir.join("resources").join("save_game_location.json"));
+                    // AppImage structure
+                    resource_paths.push(exe_dir.join("../lib/rogame").join("save_game_location.json"));
+                }
+                
+                // Common fallback paths
+                resource_paths.push(exe_dir.join("_up_").join("Resources").join("save_game_location.json"));
 
-                for path in resource_paths {
+                for path in &resource_paths {
                     if path.exists() {
-                        return path;
+                        return path.clone();
                     }
                 }
             }
@@ -144,8 +167,28 @@ impl SaveFile {
         origin_path: String,
     ) -> Self {
         let now = Utc::now().to_rfc3339();
-        let expanded_path = expand_tilde(&file_path);
-        let expanded_origin_path = expand_tilde(&origin_path);
+        // For new SaveFile creation, we'll use the paths as-is since they come from
+        // trusted sources (our own backup process). The validation happens at the
+        // command level before we get here.
+        let expanded_path = if file_path.starts_with("~/") {
+            dirs::home_dir()
+                .map(|home| home.join(&file_path[2..]))
+                .unwrap_or_else(|| PathBuf::from(&file_path))
+                .to_string_lossy()
+                .into_owned()
+        } else {
+            file_path.clone()
+        };
+        
+        let expanded_origin_path = if origin_path.starts_with("~/") {
+            dirs::home_dir()
+                .map(|home| home.join(&origin_path[2..]))
+                .unwrap_or_else(|| PathBuf::from(&origin_path))
+                .to_string_lossy()
+                .into_owned()
+        } else {
+            origin_path.clone()
+        };
 
         Self {
             id: file_name.clone(),
@@ -155,21 +198,13 @@ impl SaveFile {
             modified_at: now,
             size_bytes,
             tags: Vec::new(),
-            file_path: expanded_path.to_string_lossy().into_owned(),
-            origin_path: expanded_origin_path.to_string_lossy().into_owned(),
+            file_path: expanded_path,
+            origin_path: expanded_origin_path,
             cloud: None,
         }
     }
 }
 
-fn expand_tilde(path: &str) -> PathBuf {
-    if path.starts_with("~/") {
-        if let Some(home) = dirs::home_dir() {
-            return home.join(&path[2..]);
-        }
-    }
-    PathBuf::from(path)
-}
 
 #[tauri::command]
 pub async fn get_all_games() -> Result<Vec<Game>, SaveFileError> {
@@ -366,9 +401,13 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         game_id, save_id
     );
 
+    // Validate inputs to prevent path traversal
+    validate_path_component(&game_id)?;
+    validate_path_component(&save_id)?;
+
     let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
-    let save_path = game_saves_dir.join(&save_id);
+    let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
+    let save_path = safe_join_path(&game_saves_dir, &save_id)?;
 
     println!("Backup file path: {:?}", save_path);
 
@@ -400,7 +439,7 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         }
     };
 
-    let origin_path = expand_tilde(&save_location);
+    let origin_path = safe_expand_tilde(&save_location)?;
 
     // Check if the backup is a directory (for pattern "*" backups)
     if save_path.is_dir() {
@@ -493,12 +532,14 @@ fn get_save_location_from_config(game_id: &str) -> Result<String, SaveFileError>
     let config_path = get_save_config_path();
     println!("Reading config from: {:?}", config_path);
 
-    let config_content = fs::read_to_string(&config_path).map_err(|e| SaveFileError {
-        message: format!(
-            "Failed to read save game configuration at {:?}: {}",
-            config_path, e
-        ),
-    })?;
+    let config_content = match fs::read_to_string(&config_path) {
+        Ok(content) => content,
+        Err(e) => {
+            println!("Failed to read config file: {}, using embedded config", e);
+            // Use embedded config as fallback
+            include_str!("save_game_location.json").to_string()
+        }
+    };
 
     let game_config: HashMap<String, GameEntry> =
         serde_json::from_str(&config_content).map_err(|e| SaveFileError {
@@ -750,7 +791,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         (false, None)
     };
 
-    let origin_path = expand_tilde(&save_location);
+    let origin_path = safe_expand_tilde(&save_location)?;
     println!("Save location: {}", save_location);
     println!("Expanded save location: {:?}", origin_path);
 
@@ -767,7 +808,7 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     if has_wildcard && pattern_info.is_some() {
         // Handle wildcard patterns by using glob
         let pattern = pattern_info.unwrap();
-        let expanded_pattern = expand_tilde(&pattern);
+        let expanded_pattern = safe_expand_tilde(&pattern)?;
         let glob_pattern = expanded_pattern.to_string_lossy();
 
         println!("Using glob pattern: {}", glob_pattern);
@@ -1089,10 +1130,14 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
 pub async fn delete_save(game_id: String, save_id: String) -> Result<(), SaveFileError> {
     println!("Deleting save: {} for game: {}", save_id, game_id);
     
+    // Validate inputs to prevent path traversal
+    validate_path_component(&game_id)?;
+    validate_path_component(&save_id)?;
+    
     // Get the backup file path
     let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
-    let save_path = game_saves_dir.join(&save_id);
+    let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
+    let save_path = safe_join_path(&game_saves_dir, &save_id)?;
     
     // Delete from file system
     if save_path.exists() {
@@ -1508,10 +1553,13 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<u64, std::io::Erro
 
 #[tauri::command]
 pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), SaveFileError> {
+    // Validate game_id to prevent path traversal
+    validate_path_component(&game_id)?;
+    
     if backup {
         // Open backup location
         let saves_dir = get_saves_directory()?;
-        let game_saves_dir = saves_dir.join(&game_id);
+        let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
         
         if !game_saves_dir.exists() {
             return Err(SaveFileError {
@@ -1551,7 +1599,7 @@ pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), Sav
     } else {
         // Open original save location
         let game = get_game_by_id(game_id).await?;
-        let save_location = PathBuf::from(&game.save_location);
+        let save_location = safe_expand_tilde(&game.save_location)?;
         
         if !save_location.exists() {
             return Err(SaveFileError {
