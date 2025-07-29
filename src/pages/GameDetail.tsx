@@ -451,9 +451,6 @@ const GameDetail: React.FC = () => {
                 <p className="text-2xl font-bold text-white">
                   {gameDetails?.save_count || 0}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {t("gameDetail.saveDetails.saveFiles")}
-                </p>
               </div>
               <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-4 border border-epic-border/50">
                 <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-1">
