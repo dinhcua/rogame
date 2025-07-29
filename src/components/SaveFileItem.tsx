@@ -283,18 +283,22 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                             }
                           }
                           
-                          const file = new File([blob], fileName, {
-                            lastModified: new Date(saveFile.modified_at).getTime()
-                          });
                           
                           // Get game info
                           const gameInfo = await invoke<any>('get_game_by_id', { id: saveFile.game_id });
                           
+                          // Upload to rogame folder in cloud provider
+                          const rogameFile = new File([blob], fileName, {
+                            lastModified: new Date(saveFile.modified_at).getTime(),
+                            // Add custom path to indicate it should go to rogame folder
+                            type: 'application/octet-stream'
+                          });
+                          
                           await uploadGameSaves(
                             provider,
                             saveFile.game_id,
-                            gameInfo.title,
-                            [file]
+                            `rogame/${gameInfo.title}`, // Upload to rogame/GameName folder
+                            [rogameFile]
                           );
                           
                           success(t("saveFile.uploadedToCloud", { provider: getProviderName(provider) }));

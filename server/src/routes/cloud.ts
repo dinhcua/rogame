@@ -48,10 +48,10 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
       path
     );
 
-    res.json({ file: result });
+    return res.json({ file: result });
   } catch (error) {
     logger.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
+    return res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 
@@ -64,10 +64,10 @@ router.get('/download/:fileId', authenticateToken, async (req: AuthRequest, res)
     const fileBuffer = await service.downloadFile(req.accessToken!, fileId);
 
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.send(fileBuffer);
+    return res.send(fileBuffer);
   } catch (error) {
     logger.error('Download error:', error);
-    res.status(500).json({ error: 'Failed to download file' });
+    return res.status(500).json({ error: 'Failed to download file' });
   }
 });
 
@@ -79,10 +79,10 @@ router.get('/files', authenticateToken, async (req: AuthRequest, res) => {
     const service = getCloudService(req.provider!);
     const files = await service.listFiles(req.accessToken!, path as string);
 
-    res.json({ files });
+    return res.json({ files });
   } catch (error) {
     logger.error('List files error:', error);
-    res.status(500).json({ error: 'Failed to list files' });
+    return res.status(500).json({ error: 'Failed to list files' });
   }
 });
 
@@ -94,10 +94,10 @@ router.delete('/files/:fileId', authenticateToken, async (req: AuthRequest, res)
     const service = getCloudService(req.provider!);
     await service.deleteFile(req.accessToken!, fileId);
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     logger.error('Delete error:', error);
-    res.status(500).json({ error: 'Failed to delete file' });
+    return res.status(500).json({ error: 'Failed to delete file' });
   }
 });
 
@@ -113,10 +113,10 @@ router.post('/folder', authenticateToken, async (req: AuthRequest, res) => {
     const service = getCloudService(req.provider!);
     const folder = await service.createFolder(req.accessToken!, name, parentId);
 
-    res.json({ folder });
+    return res.json({ folder });
   } catch (error) {
     logger.error('Create folder error:', error);
-    res.status(500).json({ error: 'Failed to create folder' });
+    return res.status(500).json({ error: 'Failed to create folder' });
   }
 });
 
@@ -136,21 +136,71 @@ router.post('/sync/game', authenticateToken, upload.array('files'), async (req: 
 
     const service = getCloudService(req.provider!);
     
-    // Create game folder if it doesn't exist
-    const gameFolder = await service.createFolder(req.accessToken!, `${gameName}_${gameId}`);
+    // Handle rogame folder structure
+    let folderPath: string;
+    if (gameName.startsWith('rogame/')) {
+      // If gameName starts with 'rogame/', use it as is
+      folderPath = gameName;
+    } else {
+      // Otherwise, use the default naming
+      folderPath = `${gameName}_${gameId}`;
+    }
     
-    // Upload all save files
+    // Helper function to get existing files in the target folder path
+    const getExistingFiles = async (path: string): Promise<any[]> => {
+      try {
+        // Navigate to the folder path
+        const pathParts = path.split('/').filter(p => p);
+        let currentPath = '';
+        
+        // Build the path to check if files exist
+        for (let i = 0; i < pathParts.length; i++) {
+          currentPath = pathParts.slice(0, i + 1).join('/');
+        }
+        
+        const files = await service.listFiles(req.accessToken!, currentPath);
+        return files;
+      } catch (error) {
+        // If folder doesn't exist, return empty array
+        return [];
+      }
+    };
+    
+    // Helper function to generate unique filename
+    const getUniqueFileName = async (baseName: string, folderPath: string): Promise<string> => {
+      const existingFiles = await getExistingFiles(folderPath);
+      
+      // Extract file extension
+      const lastDotIndex = baseName.lastIndexOf('.');
+      const nameWithoutExt = lastDotIndex > -1 ? baseName.substring(0, lastDotIndex) : baseName;
+      const extension = lastDotIndex > -1 ? baseName.substring(lastDotIndex) : '';
+      
+      let finalName = baseName;
+      let counter = 1;
+      
+      // Check if file exists
+      while (existingFiles.some(f => f.name === finalName && !f.isFolder)) {
+        finalName = `${nameWithoutExt}_${counter}${extension}`;
+        counter++;
+      }
+      
+      return finalName;
+    };
+    
+    // Upload all save files with unique names
     const uploadedFiles = await Promise.all(
-      files.map(file => 
-        service.uploadFile(
+      files.map(async file => {
+        const uniqueFileName = await getUniqueFileName(file.originalname, folderPath);
+        // The uploadFile method will create the folder structure automatically
+        return service.uploadFile(
           req.accessToken!,
           file.buffer,
-          `${gameFolder.name}/${file.originalname}`
-        )
-      )
+          `${folderPath}/${uniqueFileName}`
+        );
+      })
     );
 
-    res.json({ 
+    return res.json({ 
       gameId,
       gameName,
       uploadedFiles,
@@ -159,7 +209,7 @@ router.post('/sync/game', authenticateToken, upload.array('files'), async (req: 
     });
   } catch (error) {
     logger.error('Game sync error:', error);
-    res.status(500).json({ error: 'Failed to sync game saves' });
+    return res.status(500).json({ error: 'Failed to sync game saves' });
   }
 });
 
