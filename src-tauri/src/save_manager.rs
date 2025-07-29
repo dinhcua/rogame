@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use glob::glob;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -85,6 +84,7 @@ pub struct SaveFile {
     pub tags: Vec<String>,
     pub file_path: String,
     pub origin_path: String,
+    pub cloud: Option<String>, // "gdrive", "dropbox", "onedrive", etc.
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -157,6 +157,7 @@ impl SaveFile {
             tags: Vec::new(),
             file_path: expanded_path.to_string_lossy().into_owned(),
             origin_path: expanded_origin_path.to_string_lossy().into_owned(),
+            cloud: None,
         }
     }
 }
@@ -543,6 +544,145 @@ fn get_save_location_from_config(game_id: &str) -> Result<String, SaveFileError>
     }
 }
 
+// Database operations for save files
+async fn add_save_file_to_db(save_file: &SaveFile) -> Result<(), SaveFileError> {
+    let save_file_clone = save_file.clone();
+    
+    db::execute_blocking(move |conn| {
+        conn.execute(
+            "INSERT OR REPLACE INTO save_files (
+                id, game_id, file_name, created_at, modified_at, 
+                size_bytes, file_path, cloud
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                save_file_clone.id,
+                save_file_clone.game_id,
+                save_file_clone.file_name,
+                save_file_clone.created_at,
+                save_file_clone.modified_at,
+                save_file_clone.size_bytes,
+                save_file_clone.file_path,
+                save_file_clone.cloud,
+            ],
+        )
+        .map_err(|e| format!("Failed to add save file to database: {}", e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+async fn get_save_files_from_db(game_id: String) -> Result<Vec<SaveFile>, SaveFileError> {
+    db::execute_blocking(move |conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, game_id, file_name, created_at, modified_at, 
+                        size_bytes, file_path, cloud 
+                 FROM save_files 
+                 WHERE game_id = ?1 
+                 ORDER BY created_at DESC"
+            )
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+        
+        let saves = stmt
+            .query_map(rusqlite::params![game_id], |row| {
+                Ok(SaveFile {
+                    id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    file_name: row.get(2)?,
+                    created_at: row.get(3)?,
+                    modified_at: row.get(4)?,
+                    size_bytes: row.get(5)?,
+                    tags: Vec::new(),
+                    file_path: row.get(6)?,
+                    origin_path: String::new(), // Will be populated from game data
+                    cloud: row.get(7)?,
+                })
+            })
+            .map_err(|e| format!("Failed to query save files: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect save files: {}", e))?;
+        
+        Ok(saves)
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+async fn delete_save_file_from_db(game_id: String, save_id: String) -> Result<(), SaveFileError> {
+    db::execute_blocking(move |conn| {
+        conn.execute(
+            "DELETE FROM save_files WHERE game_id = ?1 AND id = ?2",
+            rusqlite::params![game_id, save_id],
+        )
+        .map_err(|e| format!("Failed to delete save file from database: {}", e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+// Update cloud status for a save file
+#[tauri::command]
+pub async fn update_save_cloud_status(
+    game_id: String,
+    save_id: String,
+    cloud_provider: Option<String>,
+) -> Result<(), SaveFileError> {
+    db::execute_blocking(move |conn| {
+        conn.execute(
+            "UPDATE save_files SET cloud = ?1 WHERE game_id = ?2 AND id = ?3",
+            rusqlite::params![cloud_provider, game_id, save_id],
+        )
+        .map_err(|e| format!("Failed to update cloud status: {}", e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+// Update game save count based on database records
+async fn update_game_save_count(game_id: String) -> Result<(), SaveFileError> {
+    db::execute_blocking(move |conn| {
+        // Count saves from database
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM save_files WHERE game_id = ?1",
+                rusqlite::params![&game_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        
+        // Update game save count
+        conn.execute(
+            "UPDATE games SET save_count = ?1 WHERE id = ?2",
+            rusqlite::params![count, &game_id],
+        )
+        .map_err(|e| format!("Failed to update save count: {}", e))?;
+        
+        println!("Updated save count for game {}: {}", game_id, count);
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+// Update all games' save counts
+#[tauri::command]
+pub async fn update_all_save_counts() -> Result<(), SaveFileError> {
+    println!("Updating save counts for all games");
+    
+    let games = get_all_games().await?;
+    
+    for game in games {
+        if let Err(e) = update_game_save_count(game.id.clone()).await {
+            println!("Failed to update save count for game {}: {}", game.id, e.message);
+        }
+    }
+    
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileError> {
     println!("=== Starting backup for game: {} ===", game_id);
@@ -775,54 +915,81 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         }
     }
 
-    // Update the game's save_count and last_backup_time in the database
-    let game_id_clone = game_id.clone();
-    let save_count = backup_entries.len() as i32;
-
+    // Update the game's save_count based on database records
+    update_game_save_count(game_id.clone()).await?;
+    
+    // Update last_backup_time
+    let game_id_for_time = game_id.clone();
     db::execute_blocking(move |conn| {
         conn.execute(
-            "UPDATE games SET save_count = ?1, last_backup_time = ?2 WHERE id = ?3",
-            params![save_count, backup_time, game_id_clone],
+            "UPDATE games SET last_backup_time = ?1 WHERE id = ?2",
+            params![backup_time, game_id_for_time],
         )
-        .map_err(|e| format!("Failed to update game info: {}", e))?;
-
+        .map_err(|e| format!("Failed to update last backup time: {}", e))?;
         Ok(())
     })
     .await
     .map_err(|e| SaveFileError { message: e })?;
 
+    // Create save file record
+    let save_file = SaveFile::new(
+        game_id.clone(),
+        backup_name.clone(),
+        total_size,
+        backup_path.to_string_lossy().into_owned(),
+        origin_path.to_string_lossy().into_owned(),
+    );
+    
+    // Add save file to database
+    add_save_file_to_db(&save_file).await?;
+    
+    // Get actual save count from database
+    let game_id_for_count = game_id.clone();
+    let save_count = db::execute_blocking(move |conn| {
+        Ok(conn.query_row(
+            "SELECT COUNT(*) FROM save_files WHERE game_id = ?1",
+            rusqlite::params![game_id_for_count],
+            |row| row.get::<_, i32>(0),
+        )
+        .unwrap_or(0))
+    })
+    .await
+    .unwrap_or(0);
+    
     Ok(BackupResponse {
-        save_file: SaveFile::new(
-            game_id,
-            backup_name.clone(),
-            total_size,
-            backup_path.to_string_lossy().into_owned(),
-            origin_path.to_string_lossy().into_owned(),
-        ),
+        save_file,
         backup_time,
-        save_count: backup_entries.len() as i32,
+        save_count,
     })
 }
 
+// Sync existing file system backups to database
 #[tauri::command]
-pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError> {
+pub async fn sync_existing_backups_to_db(game_id: String) -> Result<i32, SaveFileError> {
+    println!("Syncing existing backups for game: {}", game_id);
+    
     let saves_dir = get_saves_directory()?;
     let game_saves_dir = saves_dir.join(&game_id);
-
+    
     if !game_saves_dir.exists() {
-        return Ok(Vec::new());
+        return Ok(0);
     }
-
-    // Get the game from database to get the actual save location
+    
+    // Get the game to get origin path
     let game = get_game_by_id(game_id.clone()).await?;
     let origin_path = if !game.save_location.is_empty() {
         game.save_location
     } else {
-        // Fallback to empty string if no save location configured
         String::new()
     };
-
-    let mut saves = Vec::new();
+    
+    let mut synced_count = 0;
+    
+    // Get existing save IDs from database
+    let existing_saves = get_save_files_from_db(game_id.clone()).await?;
+    let db_save_ids: Vec<String> = existing_saves.iter().map(|s| s.id.clone()).collect();
+    
+    // Read all backup directories from file system
     for entry in fs::read_dir(&game_saves_dir).map_err(|e| SaveFileError {
         message: format!("Failed to read saves directory: {}", e),
     })? {
@@ -837,30 +1004,117 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
         let file_name = entry.file_name().to_string_lossy().to_string();
         let file_path = entry.path().to_string_lossy().into_owned();
 
-        // Check if it's a backup directory (starts with "backup_")
-        if metadata.is_dir() && file_name.starts_with("backup_") {
-            // For directory backups, calculate total size
+        // Check if it's a backup directory and not already in database
+        if metadata.is_dir() && file_name.starts_with("backup_") && !db_save_ids.contains(&file_name) {
+            println!("Found untracked backup: {}", file_name);
+            
+            // Calculate directory size
             let dir_size = get_directory_size(&entry.path());
-            saves.push(SaveFile::new(
+            
+            // Create save file record
+            let save_file = SaveFile::new(
                 game_id.clone(),
                 file_name,
                 dir_size,
                 file_path,
                 origin_path.clone(),
-            ));
-        } else if metadata.is_file() {
-            // Legacy single file backups
-            saves.push(SaveFile::new(
-                game_id.clone(),
-                file_name,
-                metadata.len(),
-                file_path,
-                origin_path.clone(),
-            ));
+            );
+            
+            // Add to database
+            if add_save_file_to_db(&save_file).await.is_ok() {
+                synced_count += 1;
+                println!("Added backup to database: {}", save_file.id);
+            }
         }
     }
+    
+    // Update game save count
+    update_game_save_count(game_id).await?;
+    
+    println!("Synced {} backups to database", synced_count);
+    Ok(synced_count)
+}
 
+// Sync all existing backups for all games
+#[tauri::command]
+pub async fn sync_all_existing_backups() -> Result<i32, SaveFileError> {
+    println!("Syncing all existing backups to database");
+    
+    let games = get_all_games().await?;
+    let mut total_synced = 0;
+    
+    for game in games {
+        match sync_existing_backups_to_db(game.id.clone()).await {
+            Ok(count) => {
+                total_synced += count;
+                if count > 0 {
+                    println!("Synced {} backups for game: {}", count, game.title);
+                }
+            }
+            Err(e) => {
+                println!("Failed to sync backups for game {}: {}", game.id, e.message);
+            }
+        }
+    }
+    
+    println!("Total synced: {} backups across all games", total_synced);
+    Ok(total_synced)
+}
+
+#[tauri::command]
+pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError> {
+    // Get saves from database only
+    let mut saves = get_save_files_from_db(game_id.clone()).await?;
+    
+    // Get the game to populate origin_path
+    let game = get_game_by_id(game_id.clone()).await?;
+    let origin_path = if !game.save_location.is_empty() {
+        game.save_location
+    } else {
+        String::new()
+    };
+    
+    // Update origin_path for all saves
+    for save in &mut saves {
+        save.origin_path = origin_path.clone();
+    }
+    
+    // Sort by created_at descending (newest first)
+    saves.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    
     Ok(saves)
+}
+
+#[tauri::command]
+pub async fn delete_save(game_id: String, save_id: String) -> Result<(), SaveFileError> {
+    println!("Deleting save: {} for game: {}", save_id, game_id);
+    
+    // Get the backup file path
+    let saves_dir = get_saves_directory()?;
+    let game_saves_dir = saves_dir.join(&game_id);
+    let save_path = game_saves_dir.join(&save_id);
+    
+    // Delete from file system
+    if save_path.exists() {
+        if save_path.is_dir() {
+            fs::remove_dir_all(&save_path).map_err(|e| SaveFileError {
+                message: format!("Failed to delete save directory: {}", e),
+            })?;
+        } else {
+            fs::remove_file(&save_path).map_err(|e| SaveFileError {
+                message: format!("Failed to delete save file: {}", e),
+            })?;
+        }
+        println!("Deleted save file from disk: {:?}", save_path);
+    }
+    
+    // Delete from database
+    delete_save_file_from_db(game_id.clone(), save_id.clone()).await?;
+    
+    // Update game save count
+    update_game_save_count(game_id).await?;
+    
+    Ok(())
 }
 
 #[tauri::command]

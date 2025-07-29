@@ -341,7 +341,7 @@ const BackupCard: React.FC<{
                       )
                     ) {
                       try {
-                        await invoke("delete_save_file", {
+                        await invoke("delete_save", {
                           gameId: backup.game.id,
                           saveId: backup.save_file.id,
                         });

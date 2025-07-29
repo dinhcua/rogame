@@ -247,30 +247,24 @@ const GameDetail: React.FC = () => {
       setError(null);
 
       console.log("Deleting save file:", {
-        gameId: gameDetails.title,
-        saveId: saveFile.file_name,
+        gameId: gameId,
+        saveId: saveFile.id,
       });
 
       // Delete the save file using the Tauri command
-      await invoke("delete_save_file", {
-        gameId: gameDetails.title,
-        saveId: saveFile.file_name,
+      await invoke("delete_save", {
+        gameId: gameId,
+        saveId: saveFile.id,
       });
 
       // Remove the deleted save from the state
       setSaveFiles((prev) => prev.filter((file) => file.id !== saveFile.id));
 
-      // Update game details if needed
-      if (gameDetails) {
-        const updatedGame = {
-          ...gameDetails,
-          save_count: gameDetails.save_count - 1,
-        };
+      // Refresh game details to get updated save count from database
+      if (gameId) {
+        const updatedGame = await invoke<Game>("get_game_by_id", { id: gameId });
         setGameDetails(updatedGame);
-
-        // Update the game in the database
-        await invoke("update_game", { game: updatedGame });
-
+        
         // Update the game in the store
         await useGameStore.getState().updateGame(updatedGame);
       }

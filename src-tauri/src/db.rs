@@ -70,10 +70,17 @@ pub fn initialize_database(conn: &Connection) -> SqlResult<()> {
             modified_at TEXT NOT NULL,
             size_bytes INTEGER NOT NULL,
             file_path TEXT NOT NULL,
+            cloud TEXT,
             FOREIGN KEY (game_id) REFERENCES games(id)
         )",
         [],
     )?;
+    
+    // Add cloud column to existing save_files table if it doesn't exist
+    let _ = conn.execute(
+        "ALTER TABLE save_files ADD COLUMN cloud TEXT",
+        [],
+    ); // Ignore error if column already exists
 
     // Create settings table
     conn.execute(

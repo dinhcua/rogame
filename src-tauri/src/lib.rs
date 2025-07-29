@@ -14,7 +14,7 @@ pub fn run() {
     // Setup single instance plugin for desktop to handle deep links
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|_app, argv, _cwd| {
             println!("New app instance opened with args: {:?}", argv);
         }));
     }
@@ -29,6 +29,11 @@ pub fn run() {
             save_manager::backup_save,
             save_manager::restore_save,
             save_manager::list_saves,
+            save_manager::delete_save,
+            save_manager::update_save_cloud_status,
+            save_manager::sync_existing_backups_to_db,
+            save_manager::sync_all_existing_backups,
+            save_manager::update_all_save_counts,
             save_manager::save_backup_settings,
             save_manager::load_backup_settings,
             save_manager::get_all_games,
