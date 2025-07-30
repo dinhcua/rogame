@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next";
 import SaveFileItem from "../components/SaveFileItem";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
+import CommunitySharedSaves from "../components/CommunitySharedSaves";
 // import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import { Settings } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
@@ -25,6 +26,7 @@ interface SaveFile {
   tags: string[];
   file_path: string;
   origin_path: string;
+  cloud?: string | null;
 }
 
 interface BackupResponse {
@@ -59,6 +61,10 @@ const GameDetail: React.FC = () => {
   const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
     typeof setInterval
   > | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Initialize language from localStorage
   useEffect(() => {
@@ -140,7 +146,8 @@ const GameDetail: React.FC = () => {
       });
 
       // Update save files list
-      setSaveFiles((prev) => [...prev, response.save_file]);
+      setSaveFiles((prev) => [response.save_file, ...prev]);
+      setCurrentPage(1); // Reset to first page to show the new backup
 
       // Update game details with new backup time and save count from response
       setGameDetails((prev) => {
@@ -506,20 +513,87 @@ const GameDetail: React.FC = () => {
                     {t("gameDetail.saveFiles.noSaves")}
                   </div>
                 ) : (
-                  saveFiles.map((saveFile) => (
-                    <SaveFileItem
-                      key={saveFile.id}
-                      saveFile={saveFile}
-                      onRestore={handleRestore}
-                      onDelete={handleDeleteSave}
-                      onUpload={handleUploadSave}
-                      isDeleting={isDeletingSave}
-                      isUploading={isUploading}
-                    />
-                  ))
+                  <>
+                    {/* Save files for current page */}
+                    {(() => {
+                      const startIndex = (currentPage - 1) * itemsPerPage;
+                      const endIndex = startIndex + itemsPerPage;
+                      const currentSaveFiles = saveFiles.slice(startIndex, endIndex);
+                      
+                      return currentSaveFiles.map((saveFile) => (
+                        <SaveFileItem
+                          key={saveFile.id}
+                          saveFile={saveFile}
+                          onRestore={handleRestore}
+                          onDelete={handleDeleteSave}
+                          onUpload={handleUploadSave}
+                          isDeleting={isDeletingSave}
+                          isUploading={isUploading}
+                        />
+                      ));
+                    })()}
+                    
+                    {/* Pagination controls */}
+                    {saveFiles.length > itemsPerPage && (
+                      <div className="flex items-center justify-between pt-4 border-t border-epic-border/50">
+                        <div className="text-sm text-gray-400">
+                          {t("common.pagination.showing", {
+                            start: (currentPage - 1) * itemsPerPage + 1,
+                            end: Math.min(currentPage * itemsPerPage, saveFiles.length),
+                            total: saveFiles.length
+                          })}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 rounded-lg bg-epic-hover/50 hover:bg-epic-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.ceil(saveFiles.length / itemsPerPage) }).map((_, index) => {
+                              const pageNumber = index + 1;
+                              return (
+                                <button
+                                  key={pageNumber}
+                                  onClick={() => setCurrentPage(pageNumber)}
+                                  className={`w-8 h-8 rounded-lg font-medium text-sm transition-all duration-200 ${
+                                    currentPage === pageNumber
+                                      ? "bg-rog-blue text-white"
+                                      : "bg-epic-hover/50 hover:bg-epic-hover text-gray-300"
+                                  }`}
+                                >
+                                  {pageNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(saveFiles.length / itemsPerPage), prev + 1))}
+                            disabled={currentPage === Math.ceil(saveFiles.length / itemsPerPage)}
+                            className="p-2 rounded-lg bg-epic-hover/50 hover:bg-epic-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
+            
+            {/* Community Shared Saves Section */}
+            {gameDetails && (
+              <CommunitySharedSaves 
+                gameId={gameDetails.id} 
+                gameTitle={gameDetails.title} 
+              />
+            )}
           </div>
 
           {/* Right Column */}

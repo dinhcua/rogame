@@ -187,8 +187,7 @@ router.get('/callback', (req, res) => {
 
 // OAuth callback handling - GET request from OAuth providers with provider in path
 router.get('/:provider/callback', (req, res) => {
-  const { provider } = req.params;
-  const { code } = req.query;
+  const { code, state } = req.query;
 
   if (!code) {
     return res.status(400).json({ error: 'Authorization code required' });

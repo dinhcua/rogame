@@ -28,6 +28,8 @@ interface SaveFile {
   size_bytes: number;
   tags: string[];
   file_path: string;
+  origin_path?: string;
+  cloud?: string | null;
 }
 
 interface BackupHistoryItem {

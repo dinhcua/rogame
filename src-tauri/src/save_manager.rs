@@ -1650,3 +1650,196 @@ pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), Sav
     
     Ok(())
 }
+
+#[tauri::command]
+pub async fn update_save_cloud_status(
+    game_id: String,
+    save_id: String,
+    cloud_provider: Option<String>,
+) -> Result<(), SaveFileError> {
+    // Validate inputs to prevent path traversal
+    validate_path_component(&game_id)?;
+    validate_path_component(&save_id)?;
+    
+    db::execute_blocking(move |conn| {
+        conn.execute(
+            "UPDATE save_files SET cloud = ?1 WHERE game_id = ?2 AND id = ?3",
+            rusqlite::params![cloud_provider, game_id, save_id],
+        )
+        .map_err(|e| format!("Failed to update cloud status: {}", e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+#[tauri::command]
+pub async fn get_saves_directory_path() -> Result<String, SaveFileError> {
+    let saves_dir = get_saves_directory()?;
+    Ok(saves_dir.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub async fn create_directory(path: String) -> Result<(), SaveFileError> {
+    // Validate path to prevent traversal
+    let path_buf = PathBuf::from(&path);
+    if path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(SaveFileError {
+            message: "Invalid path: contains parent directory references".to_string(),
+        });
+    }
+    
+    fs::create_dir_all(&path).map_err(|e| SaveFileError {
+        message: format!("Failed to create directory: {}", e),
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn write_binary_file(path: String, contents: Vec<u8>) -> Result<(), SaveFileError> {
+    // Validate path to prevent traversal
+    let path_buf = PathBuf::from(&path);
+    if path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(SaveFileError {
+            message: "Invalid path: contains parent directory references".to_string(),
+        });
+    }
+    
+    // Ensure the file is being written to our saves directory
+    let saves_dir = get_saves_directory()?;
+    if !path_buf.starts_with(&saves_dir) {
+        return Err(SaveFileError {
+            message: "File must be written to saves directory".to_string(),
+        });
+    }
+    
+    tokio::fs::write(&path, contents).await.map_err(|e| SaveFileError {
+        message: format!("Failed to write file: {}", e),
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn extract_zip(zip_path: String, extract_to: String) -> Result<(), SaveFileError> {
+    use std::io::Read;
+    use zip::ZipArchive;
+    
+    // Validate paths to prevent traversal
+    let zip_path_buf = PathBuf::from(&zip_path);
+    let extract_path_buf = PathBuf::from(&extract_to);
+    
+    if zip_path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) ||
+       extract_path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(SaveFileError {
+            message: "Invalid path: contains parent directory references".to_string(),
+        });
+    }
+    
+    // Ensure paths are within saves directory
+    let saves_dir = get_saves_directory()?;
+    if !zip_path_buf.starts_with(&saves_dir) || !extract_path_buf.starts_with(&saves_dir) {
+        return Err(SaveFileError {
+            message: "Paths must be within saves directory".to_string(),
+        });
+    }
+    
+    // Create extraction directory if it doesn't exist
+    tokio::fs::create_dir_all(&extract_to).await.map_err(|e| SaveFileError {
+        message: format!("Failed to create extraction directory: {}", e),
+    })?;
+    
+    // Extract zip file
+    let file = std::fs::File::open(&zip_path).map_err(|e| SaveFileError {
+        message: format!("Failed to open zip file: {}", e),
+    })?;
+    
+    let mut archive = ZipArchive::new(file).map_err(|e| SaveFileError {
+        message: format!("Failed to read zip archive: {}", e),
+    })?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| SaveFileError {
+            message: format!("Failed to read file from archive: {}", e),
+        })?;
+        
+        let file_name = file.name().to_string();
+        
+        // Validate extracted file path
+        if file_name.contains("..") || file_name.starts_with('/') {
+            continue; // Skip potentially dangerous paths
+        }
+        
+        let output_path = extract_path_buf.join(&file_name);
+        
+        if file.is_dir() {
+            std::fs::create_dir_all(&output_path).map_err(|e| SaveFileError {
+                message: format!("Failed to create directory: {}", e),
+            })?;
+        } else {
+            // Create parent directory if needed
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| SaveFileError {
+                    message: format!("Failed to create parent directory: {}", e),
+                })?;
+            }
+            
+            // Extract file
+            let mut contents = Vec::new();
+            file.read_to_end(&mut contents).map_err(|e| SaveFileError {
+                message: format!("Failed to read file contents: {}", e),
+            })?;
+            
+            std::fs::write(&output_path, contents).map_err(|e| SaveFileError {
+                message: format!("Failed to write extracted file: {}", e),
+            })?;
+        }
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn add_community_save(
+    game_id: String,
+    save_name: String,
+    save_path: String,
+    extracted_path: String,
+) -> Result<SaveFile, SaveFileError> {
+    use chrono::Utc;
+    use std::fs::metadata;
+    
+    // Validate paths
+    let save_path_buf = PathBuf::from(&save_path);
+    let extracted_path_buf = PathBuf::from(&extracted_path);
+    
+    if save_path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) ||
+       extracted_path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(SaveFileError {
+            message: "Invalid path: contains parent directory references".to_string(),
+        });
+    }
+    
+    // Get file size
+    let file_metadata = metadata(&save_path).map_err(|e| SaveFileError {
+        message: format!("Failed to get file metadata: {}", e),
+    })?;
+    
+    let now = Utc::now().to_rfc3339();
+    let save_file = SaveFile {
+        id: uuid::Uuid::new_v4().to_string(),
+        game_id: game_id.clone(),
+        file_name: save_name,
+        created_at: now.clone(),
+        modified_at: now,
+        size_bytes: file_metadata.len(),
+        tags: vec!["community".to_string()], // Tag as community save
+        file_path: extracted_path,
+        origin_path: String::new(), // Community saves don't have origin path
+        cloud: Some("community".to_string()), // Mark as community save
+    };
+    
+    // Add to database
+    add_save_file_to_db(&save_file).await?;
+    
+    Ok(save_file)
+}

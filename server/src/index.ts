@@ -1,12 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import multer from 'multer';
 import path from 'path';
 import logger from './utils/logger';
 import authRoutes from './routes/auth';
 import cloudRoutes from './routes/cloud';
 import storageRoutes from './routes/storage';
+import sharedSavesRoutes from './routes/sharedSaves';
 
 dotenv.config();
 
@@ -34,13 +34,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// File upload configuration
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
-  },
-});
+// File upload configuration is handled in individual route files
 
 // Serve static files for OAuth callbacks
 app.use('/auth/google/callback', express.static(path.join(__dirname, '../oauth-callbacks/google.html')));
@@ -52,14 +46,15 @@ app.use('/auth', authRoutes);
 app.use('/rest/oauth2-credential', authRoutes); // Additional route mapping for OAuth callbacks
 app.use('/cloud', cloudRoutes);
 app.use('/storage', storageRoutes);
+app.use('/api', sharedSavesRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',

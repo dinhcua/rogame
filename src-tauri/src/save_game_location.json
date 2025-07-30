@@ -75,7 +75,7 @@
     "save_locations": {
       "macos": "~/Documents/Rockstar Games/Red Dead Redemption 2/Settings",
       "windows": "~/Documents/Rockstar Games/Red Dead Redemption 2/Profiles",
-      "linux": "~/.local/share/Steam/userdata/*/292030/remote"
+      "linux": "~/.local/share/Steam/userdata/*/1174180/remote"
     },
     "save_pattern": ["*"]
   },
@@ -135,7 +135,7 @@
     "save_locations": {
       "macos": "~/Library/Application Support/Sekiro",
       "windows": "~/AppData/Roaming/Sekiro",
-      "linux": "~/.local/share/Steam/userdata/*/1325200/remote"
+      "linux": "~/.local/share/Steam/userdata/*/814380/remote"
     },
     "save_pattern": ["*.sl2", "S0000.sl2"]
   },
@@ -148,5 +148,65 @@
       "linux": "~/.local/share/Steam/userdata/*/1627720/remote"
     },
     "save_pattern": ["*.sav"]
+  },
+  "570": {
+    "steam_id": "570",
+    "name": "Dota 2",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/570/remote",
+      "windows": "~/Steam/userdata/*/570/remote",
+      "linux": "~/.local/share/Steam/userdata/*/570/remote"
+    },
+    "save_pattern": ["*.cfg", "*.txt", "*.sav", "*.vpk", "*.dem"]
+  },
+  "730": {
+    "steam_id": "730",
+    "name": "Counter-Strike 2",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/730/remote",
+      "windows": "~/Steam/userdata/*/730/local/cfg",
+      "linux": "~/.local/share/Steam/userdata/*/730/remote"
+    },
+    "save_pattern": ["*.cfg", "*.dat"]
+  },
+  "271590": {
+    "steam_id": "271590",
+    "name": "Grand Theft Auto V",
+    "save_locations": {
+      "macos": "~/Documents/Rockstar Games/GTA V/Profiles",
+      "windows": "~/Documents/Rockstar Games/GTA V/Profiles",
+      "linux": "~/Documents/Rockstar Games/GTA V/Profiles"
+    },
+    "save_pattern": ["SGTA*", "settings.xml"]
+  },
+  "1245620": {
+    "steam_id": "1245620",
+    "name": "Elden Ring",
+    "save_locations": {
+      "macos": "~/Library/Application Support/EldenRing",
+      "windows": "~/AppData/Roaming/EldenRing/*",
+      "linux": "~/.local/share/Steam/userdata/*/1245620/remote"
+    },
+    "save_pattern": ["*.sl2", "ER0000.sl2"]
+  },
+  "990080": {
+    "steam_id": "990080",
+    "name": "Hogwarts Legacy",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/990080/remote",
+      "windows": "~/AppData/Local/Hogwarts Legacy/Saved/SaveGames",
+      "linux": "~/.local/share/Steam/userdata/*/990080/remote"
+    },
+    "save_pattern": ["*.sav", "HL-*.sav"]
+  },
+  "1687950": {
+    "steam_id": "1687950",
+    "name": "Persona 5 Royal",
+    "save_locations": {
+      "macos": "~/Library/Application Support/Steam/userdata/*/1687950/remote",
+      "windows": "~/Documents/SEGA/Steam/P5R",
+      "linux": "~/.local/share/Steam/userdata/*/1687950/remote"
+    },
+    "save_pattern": ["*.DAT", "DATA.DAT", "SYSTEM.DAT"]
   }
 }

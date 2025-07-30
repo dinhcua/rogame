@@ -319,6 +319,7 @@
     "uploadToProvider": "Upload to {{provider}}",
     "uploadedToCloud": "Uploaded to {{provider}} successfully",
     "uploadToCloudFailed": "Failed to upload to {{provider}}",
+    "uploadingTo": "Uploading to {{provider}}...",
     "info": {
       "lastModified": "Last Modified",
       "size": "Size"
@@ -444,12 +445,30 @@
     "cancel": "Cancel",
     "close": "Close",
     "confirm": "Confirm",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "pagination": {
+      "showing": "Showing {{start}}-{{end}} of {{total}}"
+    }
   },
   "storageInfo": {
     "title": "Storage",
     "usedSpace": "Used Space",
     "availableSpace": "Available Space"
+  },
+  "communitySharedSaves": {
+    "title": "Community Shared Saves",
+    "loading": "Loading community saves...",
+    "noSharedSaves": "No community saves available for this game",
+    "download": "Download",
+    "downloading": "Downloading...",
+    "downloadCount": "{{count}} downloads",
+    "success": {
+      "downloaded": "Downloaded {{fileName}} successfully"
+    },
+    "errors": {
+      "fetchFailed": "Failed to fetch community saves",
+      "downloadFailed": "Failed to download save file"
+    }
   },
   "navigation": {
     "home": "Home",

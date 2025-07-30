@@ -14,6 +14,7 @@ interface SaveFile {
   tags: string[];
   file_path: string;
   origin_path: string;
+  cloud?: string | null;
 }
 
 interface RestoreModalProps {

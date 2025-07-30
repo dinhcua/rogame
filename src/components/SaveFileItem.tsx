@@ -34,6 +34,7 @@ interface SaveFile {
   tags: string[];
   file_path: string;
   origin_path: string;
+  cloud?: string | null;
 }
 
 interface SaveFileItemProps {
@@ -65,6 +66,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     isLoading: isCloudUploading 
   } = useCloudStorage();
   const [uploadingProvider, setUploadingProvider] = useState<CloudProvider | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<string | null>(saveFile.cloud || null);
   const { success, error } = useToast();
 
   // Extract date from backup filename
@@ -156,8 +158,26 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-gray-500" />
-              <span className="text-gray-300">{t("saveFile.autoBackup")}</span>
+              {uploadingProvider ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+                  <span className="text-gray-300">
+                    {t("saveFile.uploadingTo", { provider: getProviderName(uploadingProvider) })}
+                  </span>
+                </>
+              ) : cloudStatus ? (
+                <>
+                  <PlatformIcon platform={cloudStatus as CloudProvider} className="w-4 h-4" />
+                  <span className="text-gray-300">
+                    {getProviderName(cloudStatus as CloudProvider)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 text-gray-500" />
+                  <span className="text-gray-300">{t("saveFile.autoBackup")}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -259,6 +279,16 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                             `rogame/${gameInfo.title}`, // Upload to rogame/GameName folder
                             [rogameFile]
                           );
+                          
+                          // Update cloud status in database
+                          await invoke('update_save_cloud_status', {
+                            gameId: saveFile.game_id,
+                            saveId: saveFile.id,
+                            cloudProvider: provider
+                          });
+                          
+                          // Update local state
+                          setCloudStatus(provider);
                           
                           success(t("saveFile.uploadedToCloud", { provider: getProviderName(provider) }));
                         } catch (err) {

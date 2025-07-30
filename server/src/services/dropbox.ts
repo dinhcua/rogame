@@ -33,7 +33,7 @@ export class DropboxService implements CloudProvider {
         throw new Error('Failed to exchange code for token');
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       
       return {
         accessToken: data.access_token,

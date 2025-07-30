@@ -42,6 +42,12 @@ pub fn run() {
             save_manager::add_game_manually,
             save_manager::read_file_as_bytes,
             save_manager::open_save_location,
+            save_manager::update_save_cloud_status,
+            save_manager::get_saves_directory_path,
+            save_manager::create_directory,
+            save_manager::write_binary_file,
+            save_manager::extract_zip,
+            save_manager::add_community_save,
             cloud_tokens::save_cloud_token,
             cloud_tokens::get_cloud_token,
             cloud_tokens::delete_cloud_token
