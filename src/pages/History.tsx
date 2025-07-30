@@ -1,22 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import DropdownSelect from "../components/DropdownSelect";
-import {
-  RefreshCw,
-  MoreVertical,
-  Upload,
-  FolderOpen,
-  FolderInput,
-  Trash2,
-} from "lucide-react";
+import BackupActionDropdown from "../components/BackupActionDropdown";
+import { RefreshCw, CloudOff } from "lucide-react";
 import { Game } from "../types/game";
 import { useToast } from "../hooks/useToast";
-import { useServerUpload } from "../hooks/useServerUpload";
-import { useCloudStorage } from "../hooks/useCloudStorage";
+import { formatFileSize, getDisplayName, formatTimeAgo, formatCloudProvider } from "../utils/format";
 import PlatformIcon from "../components/PlatformIcon";
 import { CloudProvider } from "../types/cloud";
-import { formatFileSize, getDisplayName, formatTimeAgo } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -52,18 +44,11 @@ const BackupCard: React.FC<{
   onRestore: (backup: BackupHistoryItem) => void;
   isDropdownOpen: boolean;
   onDropdownToggle: () => void;
-}> = ({ backup, onRestore, isDropdownOpen, onDropdownToggle }) => {
+  isUploading?: boolean;
+  onUploadStart?: () => void;
+  onUploadEnd?: () => void;
+}> = ({ backup, onRestore, isDropdownOpen, onDropdownToggle, isUploading, onUploadStart, onUploadEnd }) => {
   const { t, i18n } = useTranslation();
-  const showDropdown = isDropdownOpen;
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const { uploadFile, isUploading } = useServerUpload();
-  const { error, success } = useToast();
-  const { 
-    isProviderConnected, 
-    getProviderName,
-    uploadGameSaves,
-    isLoading: isCloudUploading 
-  } = useCloudStorage();
 
   const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
     switch (status) {
@@ -82,10 +67,8 @@ const BackupCard: React.FC<{
     return t(`history.backup.status.${status}`);
   };
 
-
-
   return (
-    <div className="relative bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50 hover:border-rog-blue/30 transition-all duration-200 group">
+    <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50 hover:border-rog-blue/30 transition-all duration-200 group">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center space-x-4 flex-1 min-w-0">
           <div className="relative">
@@ -102,7 +85,7 @@ const BackupCard: React.FC<{
             <p className="text-sm text-gray-400 mb-2">
               {getDisplayName(backup.save_file.file_name, t, i18n)}
             </p>
-            <div className="flex items-center flex-wrap gap-3 text-xs">
+            <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <svg
                   className="w-4 h-4 text-gray-500"
@@ -140,18 +123,29 @@ const BackupCard: React.FC<{
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    backup.sync_status === "synced"
-                      ? "bg-epic-success"
-                      : backup.sync_status === "syncing"
-                      ? "bg-epic-warning animate-pulse"
-                      : "bg-epic-danger"
-                  }`}
-                />
-                <span className={`${getSyncStatusColor(backup.sync_status)}`}>
-                  {getSyncStatusText(backup.sync_status)}
-                </span>
+                {isUploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-gray-300">{t("saveFile.uploading")}</span>
+                  </>
+                ) : backup.save_file.cloud ? (
+                  <>
+                    <PlatformIcon
+                      platform={backup.save_file.cloud as CloudProvider}
+                      className="w-4 h-4 flex-shrink-0"
+                    />
+                    <span className="text-gray-300">
+                      {formatCloudProvider(backup.save_file.cloud)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <CloudOff className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-gray-300">
+                      {t("history.backup.status.not_synced")}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             {backup.save_file.tags.length > 0 && (
@@ -176,203 +170,22 @@ const BackupCard: React.FC<{
             <RefreshCw className="w-4 h-4" />
             <span>{t("history.backup.restore")}</span>
           </button>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => {
-                onDropdownToggle();
-              }}
-              className="p-3 rounded-lg hover:bg-epic-hover transition-colors flex-shrink-0"
-            >
-              <MoreVertical className="w-4 h-4 text-gray-400" />
-            </button>
-            {showDropdown && (
-              <div
-                className="absolute right-0 top-full mt-2 w-64 bg-game-card/95 backdrop-blur-sm rounded-xl border border-epic-border/50 shadow-2xl overflow-hidden z-[200]"
-              >
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
-                  onClick={async () => {
-                    onDropdownToggle();
-                    try {
-                      const result = await uploadFile(
-                        backup.save_file.file_path,
-                        backup.save_file.file_name
-                      );
-                      if (result) {
-                        success(
-                          t("history.notifications.uploadSuccess") ||
-                            "Save file uploaded successfully"
-                        );
-                      }
-                    } catch (err) {
-                      error(
-                        t("history.notifications.uploadError") ||
-                          "Failed to upload to server"
-                      );
-                    }
-                  }}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-gray-300">
-                        {t("history.actions.uploading") || "Uploading..."}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-300">
-                        {t("history.actions.uploadToServer")}
-                      </span>
-                    </>
-                  )}
-                </button>
-                
-                {/* Cloud Provider Upload Buttons */}
-                {(['google_drive', 'dropbox', 'onedrive'] as CloudProvider[]).map((provider) => {
-                  const isConnected = isProviderConnected(provider);
-                  if (!isConnected) return null;
-                  
-                  return (
-                    <button
-                      key={provider}
-                      className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
-                      onClick={async () => {
-                        onDropdownToggle();
-                        try {
-                          // Read the backup file
-                          const fileData = await invoke<number[]>('read_file_as_bytes', {
-                            filePath: backup.save_file.file_path
-                          });
-                          
-                          // Convert to File object
-                          const uint8Array = new Uint8Array(fileData);
-                          const blob = new Blob([uint8Array]);
-                          const file = new File([blob], backup.save_file.file_name, {
-                            lastModified: new Date(backup.save_file.modified_at).getTime()
-                          });
-                          
-                          await uploadGameSaves(
-                            provider,
-                            backup.game.id,
-                            backup.game.title,
-                            [file]
-                          );
-                          
-                          success(t("history.notifications.uploadSuccess"));
-                        } catch (err) {
-                          console.error('Failed to upload to cloud:', err);
-                          error(t("history.notifications.uploadError"));
-                        }
-                      }}
-                      disabled={isCloudUploading}
-                    >
-                      {isCloudUploading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                          <span className="text-gray-300">
-                            {t("history.actions.uploading")}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <PlatformIcon platform={provider} className="w-4 h-4" />
-                          <span className="text-gray-300">
-                            {t("history.actions.uploadToProvider", { provider: getProviderName(provider) })}
-                          </span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm border-b border-epic-border/30"
-                  onClick={async () => {
-                    onDropdownToggle();
-                    try {
-                      await invoke("open_save_location", {
-                        gameId: backup.game.id,
-                        backup: false,
-                      });
-                    } catch (err) {
-                      error(
-                        t("history.notifications.openLocationError") ||
-                          "Failed to open save location"
-                      );
-                    }
-                  }}
-                >
-                  <FolderInput className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-300">
-                    {t("history.actions.openOriginalLocation")}
-                  </span>
-                </button>
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
-                  onClick={async () => {
-                    onDropdownToggle();
-                    try {
-                      await invoke("open_save_location", {
-                        gameId: backup.game.id,
-                        backup: true,
-                      });
-                    } catch (err) {
-                      error(
-                        t("history.notifications.openLocationError") ||
-                          "Failed to open backup location"
-                      );
-                    }
-                  }}
-                >
-                  <FolderOpen className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-300">
-                    {t("history.actions.openBackupLocation")}
-                  </span>
-                </button>
-                <button
-                  className="w-full px-4 py-3 text-left hover:bg-epic-danger/20 transition-colors flex items-center gap-3 text-sm text-epic-danger"
-                  onClick={async () => {
-                    onDropdownToggle();
-                    if (
-                      confirm(
-                        t("history.confirmDelete") ||
-                          "Are you sure you want to delete this save file?"
-                      )
-                    ) {
-                      try {
-                        await invoke("delete_save", {
-                          gameId: backup.game.id,
-                          saveId: backup.save_file.id,
-                        });
-                        success(
-                          t("history.notifications.deleteSuccess") ||
-                            "Save file deleted successfully"
-                        );
-                        window.location.reload(); // Refresh to update the list
-                      } catch (err) {
-                        error(
-                          t("history.notifications.deleteError") ||
-                            "Failed to delete save file"
-                        );
-                      }
-                    }
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{t("history.actions.deleteSaveFile")}</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <BackupActionDropdown
+            gameId={backup.game.id}
+            gameTitle={backup.game.title}
+            saveId={backup.save_file.id}
+            saveFileName={backup.save_file.file_name}
+            saveFilePath={backup.save_file.file_path}
+            saveModifiedAt={backup.save_file.modified_at}
+            currentCloudProvider={backup.save_file.cloud}
+            isOpen={isDropdownOpen}
+            onToggle={onDropdownToggle}
+            onAfterDelete={() => window.location.reload()}
+            onUploadStart={onUploadStart}
+            onUploadEnd={onUploadEnd}
+          />
         </div>
       </div>
-      {/* Click outside to close dropdown */}
-      {showDropdown && (
-        <div className="fixed inset-0 z-[90]" onClick={onDropdownToggle} />
-      )}
     </div>
   );
 };
@@ -387,6 +200,8 @@ export default function History() {
   const [selectedGame, setSelectedGame] = useState("all");
   const [selectedTime, setSelectedTime] = useState("all");
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [gamesWithBackupsCount, setGamesWithBackupsCount] = useState(0);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [pagination, setPagination] = useState<PaginationInfo>({
     current_page: 1,
     total_pages: 1,
@@ -417,25 +232,39 @@ export default function History() {
     try {
       setLoading(true);
 
-      // First get all games
-      const gamesResult = await invoke<Game[]>("get_all_games");
-      const allGames = gamesResult;
+      // Fetch all data in parallel
+      const [allGames, allSaveFiles] = await Promise.all([
+        invoke<Game[]>("get_all_games"),
+        invoke<SaveFile[]>("get_all_save_files"),
+      ]);
 
-      // Then get save files for each game
-      let allBackups: BackupHistoryItem[] = [];
-      for (const game of allGames) {
-        const saveFiles = await invoke<SaveFile[]>("list_saves", {
-          gameId: game.id,
+      // Create a map of games for quick lookup
+      const gamesMap = new Map(allGames.map((game) => [game.id, game]));
+
+      // Get unique game IDs from save files
+      const uniqueGameIds = [
+        ...new Set(allSaveFiles.map((save) => save.game_id)),
+      ];
+
+      // Update games with backups count
+      setGamesWithBackupsCount(uniqueGameIds.length);
+
+      // Create backup items by matching save files with their games
+      let allBackups: BackupHistoryItem[] = allSaveFiles
+        .filter((save) => gamesMap.has(save.game_id))
+        .map((save) => {
+          const game = gamesMap.get(save.game_id)!;
+          // Update save's origin_path from game data
+          save.origin_path = game.save_location || "";
+
+          return {
+            id: `${game.title}-${save.id}`,
+            game: game,
+            save_file: save,
+            sync_status: save.cloud ? "synced" as const : "not_synced" as const,
+            description: `Backup for ${game.title}`,
+          };
         });
-        const gameBackups = saveFiles.map((save) => ({
-          id: `${game.title}-${save.id}`,
-          game: game,
-          save_file: save,
-          sync_status: "synced" as const,
-          description: `Backup for ${game.title}`,
-        }));
-        allBackups = [...allBackups, ...gameBackups];
-      }
 
       // Apply filters
       let filteredBackups = allBackups;
@@ -506,16 +335,18 @@ export default function History() {
 
   useEffect(() => {
     loadGames();
+    loadBackups();
   }, []);
 
   useEffect(() => {
-    loadBackups();
+    if (!loading) {
+      loadBackups();
+    }
   }, [pagination.current_page, selectedGame, selectedTime, searchQuery]);
 
   const handlePageChange = (page: number) => {
     setPagination((prev) => ({ ...prev, current_page: page }));
   };
-
 
   // Close dropdown when clicking escape key
   useEffect(() => {
@@ -558,7 +389,9 @@ export default function History() {
           <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-2">
             {t("history.stats.gamesBackedUp")}
           </h3>
-          <p className="text-3xl font-bold text-white">{games.length}</p>
+          <p className="text-3xl font-bold text-white">
+            {gamesWithBackupsCount}
+          </p>
         </div>
         <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-6 border border-epic-border/50">
           <h3 className="text-sm uppercase tracking-wider text-gray-400 mb-2">
@@ -658,6 +491,19 @@ export default function History() {
                 setOpenDropdownId(
                   openDropdownId === backup.id ? null : backup.id
                 );
+              }}
+              isUploading={uploadingFiles.has(backup.save_file.id)}
+              onUploadStart={() => {
+                setUploadingFiles(prev => new Set(prev).add(backup.save_file.id));
+              }}
+              onUploadEnd={() => {
+                setUploadingFiles(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(backup.save_file.id);
+                  return newSet;
+                });
+                // Reload to get updated cloud status
+                loadBackups();
               }}
             />
           ))

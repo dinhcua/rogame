@@ -12,18 +12,16 @@ interface AddGameModalProps {
 
 const AddGameModal = ({ isOpen, onClose, onAdd }: AddGameModalProps) => {
   const { t } = useTranslation();
-  const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState("Steam");
   const [gameTitle, setGameTitle] = useState("");
   const [steamId, setSteamId] = useState("");
   const [savePath, setSavePath] = useState("");
   const [savePattern, setSavePattern] = useState("");
 
+  // Currently only Steam is supported
   const platformOptions = [
     { value: "Steam", label: "Steam" },
-    { value: "Epic Games", label: t("addGameModal.platforms.epic") },
-    { value: "GOG", label: "GOG" },
-    { value: "Origin", label: "Origin" },
-    { value: "Other", label: t("addGameModal.platforms.other") },
+    // Note: Other platforms will be supported in future versions
   ];
 
   if (!isOpen) return null;

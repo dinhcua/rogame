@@ -378,7 +378,7 @@
       "days": "{{count}} ngày trước"
     },
     "saveFrom": "Lưu lúc {{date}}",
-    "autoBackup": "Tự động",
+    "autoBackup": "Chưa đồng bộ",
     "uploading": "Đang tải lên...",
     "uploaded": "Đã tải lên!"
   },

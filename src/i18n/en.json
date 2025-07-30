@@ -338,7 +338,7 @@
       "days": "{{count}} days ago"
     },
     "saveFrom": "Save from {{date}}",
-    "autoBackup": "Auto Backup",
+    "autoBackup": "Not synced",
     "uploading": "Uploading...",
     "uploaded": "Uploaded!"
   },

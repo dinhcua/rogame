@@ -2,18 +2,20 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import SaveFileItem from "../components/SaveFileItem";
+import BackupActionDropdown from "../components/BackupActionDropdown";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import CommunitySharedSaves from "../components/CommunitySharedSaves";
 // import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight, Save, Clock, HardDrive, RefreshCw, CloudOff } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
-import { useServerUpload } from "../hooks/useServerUpload";
+import PlatformIcon from "../components/PlatformIcon";
+import { CloudProvider } from "../types/cloud";
+import { formatFileSize, formatDate, getDisplayName, formatCloudProvider } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -48,7 +50,7 @@ const GameDetail: React.FC = () => {
   const navigate = useNavigate();
   const { deleteGame } = useGameStore();
   const { success, error: showError } = useToast();
-  const { uploadFile, isUploading } = useServerUpload();
+  // Upload functionality is now handled by BackupActionDropdown component
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,8 @@ const GameDetail: React.FC = () => {
   const [gameDetails, setGameDetails] = useState<Game | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
-  const [isDeletingSave, setIsDeletingSave] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
     typeof setInterval
   > | null>(null);
@@ -246,75 +249,7 @@ const GameDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteSave = async (saveFile: SaveFile) => {
-    if (!gameId || !gameDetails) return;
-
-    try {
-      setIsDeletingSave(true);
-      setError(null);
-
-      console.log("Deleting save file:", {
-        gameId: gameId,
-        saveId: saveFile.id,
-      });
-
-      // Delete the save file using the Tauri command
-      await invoke("delete_save", {
-        gameId: gameId,
-        saveId: saveFile.id,
-      });
-
-      // Remove the deleted save from the state
-      setSaveFiles((prev) => prev.filter((file) => file.id !== saveFile.id));
-
-      // Refresh game details to get updated save count from database
-      if (gameId) {
-        const updatedGame = await invoke<Game>("get_game_by_id", {
-          id: gameId,
-        });
-        setGameDetails(updatedGame);
-
-        // Update the game in the store
-        await useGameStore.getState().updateGame(updatedGame);
-      }
-
-      success(t("gameDetail.success.saveDeleted"));
-    } catch (err) {
-      console.error("Failed to delete save file:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete save file";
-      setError(errorMessage);
-      showError(
-        t("gameDetail.errors.saveDeleteFailed", { error: errorMessage })
-      );
-    } finally {
-      setIsDeletingSave(false);
-    }
-  };
-
-  const handleUploadSave = async (saveFile: SaveFile) => {
-    console.log("handleUploadSave called with saveFile:", saveFile);
-
-    if (!saveFile.file_path) {
-      showError("No file path available for upload");
-      console.error("SaveFile missing file_path:", saveFile);
-      return;
-    }
-
-    try {
-      console.log(
-        `Uploading file: ${saveFile.file_name} from path: ${saveFile.file_path}`
-      );
-      const result = await uploadFile(saveFile.file_path, saveFile.file_name);
-      if (result) {
-        console.log("Upload successful:", result);
-        success(`Successfully uploaded ${saveFile.file_name} to server`);
-      }
-    } catch (error) {
-      console.error("Error uploading save file:", error);
-      showError(`Failed to upload ${saveFile.file_name}`);
-    }
-  };
+  // These functions are now handled by BackupActionDropdown component
 
   // Load backup settings and setup auto-backup
   useEffect(() => {
@@ -526,15 +461,117 @@ const GameDetail: React.FC = () => {
                       );
 
                       return currentSaveFiles.map((saveFile) => (
-                        <SaveFileItem
-                          key={saveFile.id}
-                          saveFile={saveFile}
-                          onRestore={handleRestore}
-                          onDelete={handleDeleteSave}
-                          onUpload={handleUploadSave}
-                          isDeleting={isDeletingSave}
-                          isUploading={isUploading}
-                        />
+                        <div key={saveFile.id} className="bg-game-card rounded-lg p-3 hover:bg-epic-hover transition-all duration-200 group">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-10 h-10 bg-rog-blue/10 rounded-lg flex items-center justify-center">
+                                  <Save className="w-5 h-5 text-rog-blue" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-base text-white">
+                                    {saveFile.file_name}
+                                  </h4>
+                                  <p className="text-sm text-gray-400 mt-0.5">
+                                    {getDisplayName(saveFile.file_name, t, i18n)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Metadata */}
+                              <div className="flex flex-wrap items-center gap-6 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4 text-gray-500" />
+                                  <span className="text-gray-300">
+                                    {formatDate(saveFile.created_at, t, i18n)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <HardDrive className="w-4 h-4 text-gray-500" />
+                                  <span className="text-gray-300">
+                                    {formatFileSize(saveFile.size_bytes)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {uploadingFiles.has(saveFile.id) ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                      <span className="text-gray-300">
+                                        {t("saveFile.uploading")}
+                                      </span>
+                                    </>
+                                  ) : saveFile.cloud ? (
+                                    <>
+                                      <PlatformIcon
+                                        platform={saveFile.cloud as CloudProvider}
+                                        className="w-4 h-4 flex-shrink-0"
+                                      />
+                                      <span className="text-gray-300">
+                                        {formatCloudProvider(saveFile.cloud)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CloudOff className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                                      <span className="text-gray-300">
+                                        {t("saveFile.autoBackup")}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleRestore(saveFile)}
+                                className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white flex items-center gap-2"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                {t("saveFile.actions.restore")}
+                              </button>
+                              <BackupActionDropdown
+                                gameId={saveFile.game_id}
+                                gameTitle={gameDetails?.title || ""}
+                                saveId={saveFile.id}
+                                saveFileName={saveFile.file_name}
+                                saveFilePath={saveFile.file_path}
+                                saveModifiedAt={saveFile.modified_at}
+                                currentCloudProvider={saveFile.cloud}
+                                isOpen={openDropdownId === saveFile.id}
+                                onToggle={() => {
+                                  setOpenDropdownId(
+                                    openDropdownId === saveFile.id ? null : saveFile.id
+                                  );
+                                }}
+                                onAfterDelete={async () => {
+                                  // Reload save files
+                                  if (gameId) {
+                                    const files = await invoke<SaveFile[]>("list_saves", {
+                                      gameId: gameId,
+                                    });
+                                    setSaveFiles(files);
+                                  }
+                                }}
+                                onUploadStart={() => {
+                                  setUploadingFiles(prev => new Set(prev).add(saveFile.id));
+                                }}
+                                onUploadEnd={() => {
+                                  setUploadingFiles(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.delete(saveFile.id);
+                                    return newSet;
+                                  });
+                                  // Reload to get updated cloud status
+                                  if (gameId) {
+                                    invoke<SaveFile[]>("list_saves", { gameId }).then(setSaveFiles);
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       ));
                     })()}
 
