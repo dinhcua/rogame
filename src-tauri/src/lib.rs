@@ -29,6 +29,7 @@ pub fn run() {
             save_manager::backup_save,
             save_manager::restore_save,
             save_manager::list_saves,
+            save_manager::get_all_save_files,
             save_manager::delete_save,
             save_manager::save_backup_settings,
             save_manager::load_backup_settings,

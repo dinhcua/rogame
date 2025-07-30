@@ -42,13 +42,11 @@ const CATEGORY_MAPPING = {
 // Categories for filtering
 const gameCategories = Object.keys(CATEGORY_MAPPING);
 
-// Platform options
+// Platform options - Currently only Steam is supported
 const getPlatformOptions = (t: any) => [
   { value: "All Platforms", label: t("gameUI.platforms.all") },
   { value: "Steam", label: t("gameUI.platforms.steam") },
-  { value: "Epic Games", label: t("gameUI.platforms.epic") },
-  { value: "GOG", label: t("gameUI.platforms.gog") },
-  { value: "Origin", label: t("gameUI.platforms.origin") },
+  // Note: Epic Games, GOG, and Origin support will be added in future versions
 ];
 
 // Sort options
@@ -77,7 +75,6 @@ const GameUI = () => {
   const [showScanProgress, setShowScanProgress] = useState(false);
   const [scanPercentage, setScanPercentage] = useState(0);
   const [steamGamesCount, setSteamGamesCount] = useState(0);
-  const [epicGamesCount, setEpicGamesCount] = useState(0);
   const [showFoundGames, setShowFoundGames] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -179,7 +176,6 @@ const GameUI = () => {
     setShowFoundGames(false);
     setScanPercentage(0);
     setSteamGamesCount(0);
-    setEpicGamesCount(0);
 
     // Simulate scanning progress
     const progressInterval = setInterval(() => {
@@ -196,14 +192,9 @@ const GameUI = () => {
       .then(async (result) => {
         const games = Object.values(result);
 
-        // Count games by platform
+        // Count games by platform (currently only Steam is supported)
         const steamGames = games.filter((game) => game.platform === "Steam");
-        const epicGames = games.filter(
-          (game) => game.platform === "Epic Games"
-        );
-
         setSteamGamesCount(steamGames.length);
-        setEpicGamesCount(epicGames.length);
 
         // Store found games without adding to database
         setFoundGames(games);
@@ -335,18 +326,7 @@ const GameUI = () => {
                     {t("gameUI.scanner.steamFound", { count: steamGamesCount })}
                   </span>
                 </div>
-                <div className="flex items-center space-x-3 text-green-500">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span className="text-sm">
-                    {t("gameUI.scanner.epicFound", { count: epicGamesCount })}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">
-                    {t("gameUI.scanner.scanningGog")}
-                  </span>
-                </div>
+                {/* Only Steam scanning is currently supported */}
               </div>
             </div>
           )}

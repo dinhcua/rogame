@@ -152,3 +152,17 @@ export const formatTimeAgo = (
     return t(`${translationKeyPrefix}.months`, { count: diffInMonths });
   }
 };
+
+/**
+ * Format cloud provider name for display
+ * @param provider - Cloud provider identifier
+ * @returns Formatted provider name
+ */
+export const formatCloudProvider = (provider: string): string => {
+  const providers: Record<string, string> = {
+    google_drive: "Google Drive",
+    dropbox: "Dropbox",
+    onedrive: "OneDrive"
+  };
+  return providers[provider] || provider;
+};

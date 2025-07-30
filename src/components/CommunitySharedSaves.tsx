@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Users, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import SharedSaveItem from "./SharedSaveItem";
 import { useToast } from "../hooks/useToast";
 import { invoke } from "@tauri-apps/api/core";
@@ -34,15 +34,13 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [downloadedSaveIds, setDownloadedSaveIds] = useState<Set<string>>(new Set());
   const itemsPerPage = 4;
 
   // Load downloaded saves from local database
   const loadDownloadedSaves = async () => {
     try {
       const localSaves = await invoke<any[]>("get_community_saves", { gameId });
-      const downloadedIds = new Set(localSaves.map(save => save.id));
-      setDownloadedSaveIds(downloadedIds);
+      // Downloaded IDs are tracked locally in the merged saves
       return localSaves;
     } catch (err) {
       console.error("Failed to load downloaded saves:", err);

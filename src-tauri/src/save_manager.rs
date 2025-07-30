@@ -1135,6 +1135,45 @@ pub async fn list_saves(game_id: String) -> Result<Vec<SaveFile>, SaveFileError>
 }
 
 #[tauri::command]
+pub async fn get_all_save_files() -> Result<Vec<SaveFile>, SaveFileError> {
+    db::execute_blocking(move |conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, game_id, file_name, created_at, modified_at, 
+                        size_bytes, file_path, cloud 
+                 FROM save_files 
+                 ORDER BY created_at DESC"
+            )
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+        
+        let saves = stmt
+            .query_map([], |row| {
+                Ok(SaveFile {
+                    id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    file_name: row.get(2)?,
+                    created_at: row.get(3)?,
+                    modified_at: row.get(4)?,
+                    size_bytes: row.get(5)?,
+                    tags: Vec::new(),
+                    file_path: row.get(6)?,
+                    origin_path: String::new(),
+                    cloud: row.get(7)?,
+                })
+            })
+            .map_err(|e| format!("Failed to query save files: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect save files: {}", e))?;
+        
+        Ok(saves)
+    })
+    .await
+    .map_err(|e| SaveFileError {
+        message: format!("Database error: {}", e),
+    })
+}
+
+#[tauri::command]
 pub async fn delete_save(game_id: String, save_id: String) -> Result<(), SaveFileError> {
     println!("Deleting save: {} for game: {}", save_id, game_id);
     

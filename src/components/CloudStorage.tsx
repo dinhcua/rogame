@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import DropdownSelect from "./DropdownSelect";
 import "../i18n/config";
 import PlatformIcon from "./PlatformIcon";
 import { useCloudStorage } from "../hooks/useCloudStorage";
@@ -24,19 +23,6 @@ const CloudStorage: React.FC = () => {
     refreshTokens();
   }, [refreshTokens]);
 
-  // Temporary sync settings state (should be managed in a proper store)
-  const [syncSettings, setSyncSettings] = React.useState({
-    enabled: false,
-    frequency: "daily",
-    keep_local_copy: true,
-  });
-
-  const syncFrequencyOptions = [
-    { value: "every_save", label: t("cloudStorage.frequency.everySave") },
-    { value: "hourly", label: t("cloudStorage.frequency.hourly") },
-    { value: "daily", label: t("cloudStorage.frequency.daily") },
-    { value: "manual", label: t("cloudStorage.frequency.manual") },
-  ];
 
   // Temporarily only show Google Drive
   const providers: CloudProvider[] = ["google_drive"]; // 'dropbox', 'onedrive'];
