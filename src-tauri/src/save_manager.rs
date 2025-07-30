@@ -1982,3 +1982,66 @@ pub async fn list_directory_files(path: String) -> Result<Vec<String>, SaveFileE
     
     Ok(files)
 }
+
+#[tauri::command]
+pub async fn restore_community_save(game_id: String, community_save_id: String) -> Result<(), SaveFileError> {
+    println!("Restoring community save: {} for game: {}", community_save_id, game_id);
+    
+    // Get the community save from database
+    let community_saves = get_community_saves(game_id.clone()).await?;
+    let community_save = community_saves
+        .into_iter()
+        .find(|s| s.id == community_save_id)
+        .ok_or_else(|| SaveFileError {
+            message: "Community save not found".to_string(),
+        })?;
+    
+    // Get the game to find save location
+    let game = get_game_by_id(game_id.clone()).await?;
+    
+    // Get the origin path from the game's save_location
+    let save_location = if !game.save_location.is_empty() {
+        game.save_location.clone()
+    } else {
+        get_save_location_from_config(&game_id)?
+    };
+    
+    let origin_path = safe_expand_tilde(&save_location)?;
+    
+    // Ensure origin directory exists
+    create_dir_all(&origin_path).map_err(|e| SaveFileError {
+        message: format!("Failed to create origin directory: {}", e),
+    })?;
+    
+    // List files in the extracted directory
+    let extracted_path = PathBuf::from(&community_save.local_path);
+    let entries = std::fs::read_dir(&extracted_path).map_err(|e| SaveFileError {
+        message: format!("Failed to read extracted directory: {}", e),
+    })?;
+    
+    // Copy all save files from extracted directory to origin
+    for entry in entries {
+        let entry = entry.map_err(|e| SaveFileError {
+            message: format!("Failed to read directory entry: {}", e),
+        })?;
+        
+        let file_type = entry.file_type().map_err(|e| SaveFileError {
+            message: format!("Failed to get file type: {}", e),
+        })?;
+        
+        if file_type.is_file() {
+            let file_name = entry.file_name();
+            let source_path = entry.path();
+            let dest_path = origin_path.join(&file_name);
+            
+            std::fs::copy(&source_path, &dest_path).map_err(|e| SaveFileError {
+                message: format!("Failed to copy save file {}: {}", file_name.to_string_lossy(), e),
+            })?;
+            
+            println!("Restored file: {} to {}", source_path.display(), dest_path.display());
+        }
+    }
+    
+    println!("Community save restored successfully");
+    Ok(())
+}

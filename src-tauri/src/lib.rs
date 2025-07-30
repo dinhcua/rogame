@@ -47,10 +47,10 @@ pub fn run() {
             save_manager::create_directory,
             save_manager::write_binary_file,
             save_manager::extract_zip,
-            save_manager::add_community_save,
             save_manager::save_community_download,
             save_manager::get_community_saves,
             save_manager::list_directory_files,
+            save_manager::restore_community_save,
             cloud_tokens::save_cloud_token,
             cloud_tokens::get_cloud_token,
             cloud_tokens::delete_cloud_token

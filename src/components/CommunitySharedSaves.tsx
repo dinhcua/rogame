@@ -167,15 +167,7 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
         extractTo: extractDir
       });
       
-      // Add to database and get the created save file
-      const createdSave = await invoke<any>("add_community_save", {
-        gameId: gameId,
-        saveName: `Community - ${sharedSave.file_name}`,
-        savePath: zipFilePath,
-        extractedPath: extractDir
-      });
-      
-      // Save to community_saves table
+      // Save to community_saves table only (not to save_files)
       await invoke("save_community_download", {
         id: sharedSave.id,
         gameId: gameId,
@@ -185,7 +177,7 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
         uploadedAt: sharedSave.uploaded_at,
         localPath: extractDir,
         zipPath: zipFilePath,
-        saveFileId: createdSave.id // Store the actual save file ID
+        saveFileId: null // No save file ID since we're not adding to save_files
       });
       
       // Update download count on server (don't wait for it)
@@ -214,18 +206,10 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
     try {
       setIsRestoring(sharedSave.id);
       
-      // Get the save file ID from local database
-      const localSaves = await invoke<any[]>("get_community_saves", { gameId });
-      const localSave = localSaves.find(s => s.id === sharedSave.id);
-      
-      if (!localSave || !localSave.save_file_id) {
-        throw new Error("Save file ID not found");
-      }
-      
-      // Use the standard restore_save command with the actual save file ID
-      await invoke("restore_save", {
+      // Use the new restore_community_save command
+      await invoke("restore_community_save", {
         gameId: gameId,
-        saveId: localSave.save_file_id
+        communitySaveId: sharedSave.id
       });
       
       success(t("gameDetail.success.saveRestored", { fileName: sharedSave.file_name }));
