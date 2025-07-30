@@ -94,6 +94,23 @@ pub fn initialize_database(conn: &Connection) -> SqlResult<()> {
         [],
     )?;
 
+    // Create community_saves table for downloaded community saves
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS community_saves (
+            id TEXT PRIMARY KEY,
+            game_id TEXT NOT NULL,
+            save_name TEXT NOT NULL,
+            description TEXT,
+            uploaded_by TEXT NOT NULL,
+            uploaded_at TEXT NOT NULL,
+            download_date TEXT NOT NULL,
+            local_path TEXT NOT NULL,
+            zip_path TEXT,
+            FOREIGN KEY (game_id) REFERENCES games(id)
+        )",
+        [],
+    )?;
+
     Ok(())
 }
 

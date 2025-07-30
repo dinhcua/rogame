@@ -1843,3 +1843,93 @@ pub async fn add_community_save(
     
     Ok(save_file)
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CommunitySave {
+    pub id: String,
+    pub game_id: String,
+    pub save_name: String,
+    pub description: Option<String>,
+    pub uploaded_by: String,
+    pub uploaded_at: String,
+    pub download_date: String,
+    pub local_path: String,
+    pub zip_path: Option<String>,
+}
+
+#[tauri::command]
+pub async fn save_community_download(
+    id: String,
+    game_id: String,
+    save_name: String,
+    description: Option<String>,
+    uploaded_by: String,
+    uploaded_at: String,
+    local_path: String,
+    zip_path: Option<String>,
+) -> Result<(), SaveFileError> {
+    use chrono::Utc;
+    
+    let download_date = Utc::now().to_rfc3339();
+    
+    db::execute_blocking(move |conn| {
+        conn.execute(
+            "INSERT OR REPLACE INTO community_saves (
+                id, game_id, save_name, description, uploaded_by, 
+                uploaded_at, download_date, local_path, zip_path
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![
+                id,
+                game_id,
+                save_name,
+                description,
+                uploaded_by,
+                uploaded_at,
+                download_date,
+                local_path,
+                zip_path,
+            ],
+        )
+        .map_err(|e| format!("Failed to save community download: {}", e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}
+
+#[tauri::command]
+pub async fn get_community_saves(game_id: String) -> Result<Vec<CommunitySave>, SaveFileError> {
+    db::execute_blocking(move |conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, game_id, save_name, description, uploaded_by, 
+                        uploaded_at, download_date, local_path, zip_path
+                 FROM community_saves 
+                 WHERE game_id = ?1 
+                 ORDER BY download_date DESC",
+            )
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+        let saves = stmt
+            .query_map(rusqlite::params![game_id], |row| {
+                Ok(CommunitySave {
+                    id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    save_name: row.get(2)?,
+                    description: row.get(3)?,
+                    uploaded_by: row.get(4)?,
+                    uploaded_at: row.get(5)?,
+                    download_date: row.get(6)?,
+                    local_path: row.get(7)?,
+                    zip_path: row.get(8)?,
+                })
+            })
+            .map_err(|e| format!("Failed to query community saves: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect community saves: {}", e))?;
+
+        Ok(saves)
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
+}

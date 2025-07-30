@@ -17,6 +17,8 @@ interface SharedSave {
   size_bytes: number;
   platform: string;
   download_url?: string;
+  isDownloaded?: boolean;
+  localPath?: string;
 }
 
 interface CommunitySharedSavesProps {
@@ -24,29 +26,93 @@ interface CommunitySharedSavesProps {
   gameTitle: string;
 }
 
-const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId }) => {
+const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gameTitle }) => {
   const { t } = useTranslation();
   const { error: showError, success } = useToast();
   const [sharedSaves, setSharedSaves] = useState<SharedSave[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [downloadedSaveIds, setDownloadedSaveIds] = useState<Set<string>>(new Set());
   const itemsPerPage = 5;
+
+  // Load downloaded saves from local database
+  const loadDownloadedSaves = async () => {
+    try {
+      const localSaves = await invoke<any[]>("get_community_saves", { gameId });
+      const downloadedIds = new Set(localSaves.map(save => save.id));
+      setDownloadedSaveIds(downloadedIds);
+      return localSaves;
+    } catch (err) {
+      console.error("Failed to load downloaded saves:", err);
+      return [];
+    }
+  };
 
   // Fetch shared saves from server
   const fetchSharedSaves = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch from server API
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/shared-saves/${gameId}`);
+      // First, load downloaded saves from local database
+      const localSaves = await loadDownloadedSaves();
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch shared saves: ${response.statusText}`);
+      try {
+        // Try to fetch from server API
+        const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/shared-saves/${gameId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch shared saves: ${response.statusText}`);
+        }
+        
+        const serverSaves = await response.json();
+        
+        // Merge server saves with download status
+        const mergedSaves = serverSaves.map((save: SharedSave) => ({
+          ...save,
+          isDownloaded: downloadedSaveIds.has(save.id),
+          localPath: localSaves.find(local => local.id === save.id)?.local_path
+        }));
+        
+        // Add any local saves that aren't in server response (offline saves)
+        const serverIds = new Set(serverSaves.map((s: SharedSave) => s.id));
+        const offlineSaves = localSaves
+          .filter(local => !serverIds.has(local.id))
+          .map(local => ({
+            id: local.id,
+            game_id: local.game_id,
+            game_title: gameTitle,
+            file_name: local.save_name,
+            description: local.description || "",
+            uploaded_by: local.uploaded_by,
+            uploaded_at: local.uploaded_at,
+            download_count: 0,
+            size_bytes: 0,
+            platform: "pc",
+            isDownloaded: true,
+            localPath: local.local_path
+          }));
+        
+        setSharedSaves([...mergedSaves, ...offlineSaves]);
+      } catch (err) {
+        // If server is offline, show only downloaded saves
+        console.error("Server offline, showing downloaded saves only:", err);
+        const offlineSaves = localSaves.map(local => ({
+          id: local.id,
+          game_id: local.game_id,
+          game_title: gameTitle,
+          file_name: local.save_name,
+          description: local.description || "",
+          uploaded_by: local.uploaded_by,
+          uploaded_at: local.uploaded_at,
+          download_count: 0,
+          size_bytes: 0,
+          platform: "pc",
+          isDownloaded: true,
+          localPath: local.local_path
+        }));
+        setSharedSaves(offlineSaves);
       }
-      
-      const data = await response.json();
-      setSharedSaves(data);
     } catch (err) {
       console.error("Failed to fetch shared saves:", err);
       showError(t("communitySharedSaves.errors.fetchFailed"));
@@ -108,14 +174,26 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId }) =
         extractedPath: extractDir
       });
       
-      // Update download count on server
-      await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/shared-saves/download/${sharedSave.id}/count`, {
-        method: 'POST'
+      // Save to community_saves table
+      await invoke("save_community_download", {
+        id: sharedSave.id,
+        gameId: gameId,
+        saveName: sharedSave.file_name,
+        description: sharedSave.description || null,
+        uploadedBy: sharedSave.uploaded_by,
+        uploadedAt: sharedSave.uploaded_at,
+        localPath: extractDir,
+        zipPath: zipFilePath
       });
+      
+      // Update download count on server (don't wait for it)
+      fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/shared-saves/download/${sharedSave.id}/count`, {
+        method: 'POST'
+      }).catch(err => console.error("Failed to update download count:", err));
       
       success(t("communitySharedSaves.success.downloaded", { fileName: sharedSave.file_name }));
       
-      // Refresh the list to update download count
+      // Refresh the list to update download status
       fetchSharedSaves();
     } catch (err) {
       console.error("Failed to download shared save:", err);

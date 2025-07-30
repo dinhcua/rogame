@@ -501,6 +501,7 @@
     "noSharedSaves": "Không có game saves cộng đồng cho trò chơi này",
     "download": "Tải xuống",
     "downloading": "Đang tải...",
+    "downloaded": "Đã tải xuống",
     "downloadCount": "{{count}} lượt tải",
     "success": {
       "downloaded": "Đã tải {{fileName}} thành công"

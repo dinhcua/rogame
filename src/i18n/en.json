@@ -461,6 +461,7 @@
     "noSharedSaves": "No community saves available for this game",
     "download": "Download",
     "downloading": "Downloading...",
+    "downloaded": "Downloaded",
     "downloadCount": "{{count}} downloads",
     "success": {
       "downloaded": "Downloaded {{fileName}} successfully"

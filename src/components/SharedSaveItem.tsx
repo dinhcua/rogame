@@ -16,6 +16,8 @@ interface SharedSave {
   size_bytes: number;
   platform: string;
   download_url?: string;
+  isDownloaded?: boolean;
+  localPath?: string;
 }
 
 interface SharedSaveItemProps {
@@ -72,13 +74,22 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
         {/* Download Button */}
         <button
           onClick={() => onDownload(sharedSave)}
-          disabled={isDownloading}
-          className="ml-4 bg-rog-blue px-4 py-2 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isDownloading || sharedSave.isDownloaded}
+          className={`ml-4 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+            sharedSave.isDownloaded 
+              ? "bg-green-600 cursor-default" 
+              : "bg-rog-blue hover:bg-epic-accent"
+          }`}
         >
           {isDownloading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               {t("communitySharedSaves.downloading")}
+            </>
+          ) : sharedSave.isDownloaded ? (
+            <>
+              <Download className="w-4 h-4" />
+              {t("communitySharedSaves.downloaded")}
             </>
           ) : (
             <>
