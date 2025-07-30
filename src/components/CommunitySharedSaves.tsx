@@ -35,7 +35,7 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
   const [isRestoring, setIsRestoring] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [downloadedSaveIds, setDownloadedSaveIds] = useState<Set<string>>(new Set());
-  const itemsPerPage = 5;
+  const itemsPerPage = 4;
 
   // Load downloaded saves from local database
   const loadDownloadedSaves = async () => {

@@ -534,17 +534,6 @@ const GameUI = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute top-2 right-2 flex items-center space-x-1 z-10">
-                    <span
-                      className={`${
-                        game.status === "synced"
-                          ? "bg-epic-success/90 backdrop-blur-sm"
-                          : "bg-epic-warning/90 backdrop-blur-sm"
-                      } text-white p-1.25 rounded text-xs font-medium shadow-lg`}
-                    >
-                      {game.status === "synced"
-                        ? t("gameUI.status.synced")
-                        : t("gameUI.status.syncing")}
-                    </span>
                     <button
                       onClick={(e) => {
                         e.preventDefault();

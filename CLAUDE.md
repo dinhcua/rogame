@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Rogame is a cross-platform game save file manager built with Tauri v2, React, and TypeScript. It scans for installed games across various platforms (Steam, Epic, GOG, Origin, etc.) and provides backup/restore functionality for game save files.
+Rogame is a cross-platform game save file manager built with Tauri v2, React, and TypeScript. It scans for installed games across various platforms (Steam, Epic, GOG, Origin, etc.) and provides backup/restore functionality for game save files. The app also features cloud integration (Google Drive, Dropbox, OneDrive) and community save file sharing capabilities.
 
 ## Development Commands
 
@@ -15,6 +15,9 @@ npm install
 # Run development server (frontend + Tauri)
 npm run dev
 
+# Run server for community saves
+cd server && npm run dev
+
 # Build the application
 npm run build
 
@@ -23,6 +26,9 @@ npm run preview
 
 # Run Tauri-specific commands
 npm run tauri [command]
+
+# Generate mock community saves
+./scripts/generate_server_saves.sh
 ```
 
 ## Architecture Overview
@@ -43,16 +49,29 @@ npm run tauri [command]
   - `db.rs`: SQLite database operations
   - `game_scanner.rs`: Platform-specific game scanning logic
   - `save_manager.rs`: Save file backup/restore functionality
+  - `cloud_tokens.rs`: OAuth token management for cloud providers
+  - `security.rs`: Path validation and security utilities
 - **Game Configuration**: `src-tauri/src/save_game_location.json` contains save locations for supported games
 - **Async Runtime**: Uses Tokio for async operations
+
+### Server (Node.js + Express)
+
+- **Community Saves API**: Express server for sharing save files
+- **File Structure**: `uploads/shared/{steam_id}/{save_id}/`
+- **Endpoints**:
+  - `GET /api/shared-saves/:gameId` - Get saves for a game
+  - `GET /api/shared-saves/download/:saveId` - Download a save
+  - `POST /api/shared-saves/reload` - Reload saves from filesystem
 
 ### Database Schema
 
 SQLite database stores:
 
-- Games metadata (name, platform, cover_image, last_played)
-- Backup history and locations
-- User preferences (favorites, categories)
+- **games**: Game metadata (id, title, platform, cover_image, last_played, save_location)
+- **save_files**: Backup history (id, game_id, file_name, created_at, size_bytes, cloud)
+- **cloud_tokens**: OAuth tokens for cloud providers
+- **community_saves**: Downloaded community saves (id, game_id, save_name, uploaded_by, local_path)
+- **settings**: User preferences and configuration
 
 ## Key Implementation Details
 
@@ -70,6 +89,9 @@ The scanner checks multiple platform directories:
 - Uses platform-specific save locations defined in `save_game_location.json`
 - Supports pattern matching for save files (e.g., `*.sav`, `*.sl2`)
 - Handles cross-platform paths with `~` expansion
+- Cloud upload integration with Google Drive, Dropbox, OneDrive
+- Community save sharing with download/restore functionality
+- Automatic save detection and backup scheduling
 
 ### Testing
 
@@ -92,6 +114,14 @@ Manual testing scripts available:
    - File patterns to match
    - Cover image URL
    - Game category
+   - Steam App ID for proper identification
+
+### Cloud Integration
+
+1. OAuth flow handled via deep links
+2. Tokens stored encrypted in SQLite
+3. Upload status tracked per save file
+4. Provider icons shown for uploaded saves
 
 ### Adding Platform Support
 
@@ -111,15 +141,19 @@ Manual testing scripts available:
 - **Cross-Platform Paths**: Use proper path handling for Windows/macOS/Linux compatibility
 - **Async Operations**: All file operations should be async to prevent UI blocking
 - **Error Handling**: Game scanning should gracefully handle missing directories and permission errors
+- **Security**: All paths are validated to prevent traversal attacks
+- **Cloud Security**: OAuth tokens are stored securely and never exposed to frontend
+- **Community Saves**: Downloaded saves are isolated and validated before restore
 
 ## Known Issues and Technical Debt
 
-### Critical Security Vulnerabilities
+### Security (Mostly Resolved)
 
-- **Path Traversal**: Multiple functions accept user-controlled paths without validation (CVSS 8.5)
-- **Arbitrary File Deletion**: `delete_game_saves` and `delete_save_file` lack path validation (CVSS 9.1)
-- **SQL Injection Risk**: Some queries use string concatenation instead of proper parameterization
-- **Insecure URL Handling**: External cover image URLs loaded without validation, CSP disabled
+- ✅ **Path Traversal**: Fixed with security module and path validation
+- ✅ **File Operations**: All file operations now validate paths
+- ✅ **SQL Injection**: Using parameterized queries throughout
+- ⚠️ **CSP**: Still needs to be enabled in production
+- ⚠️ **URL Validation**: Cover image URLs still need validation
 
 ### Performance Bottlenecks
 
@@ -141,6 +175,28 @@ Manual testing scripts available:
 - **No Service Layer**: Missing abstraction between UI and backend
 - **Global Singleton DB**: Uses `Lazy<Mutex<Connection>>` causing potential contention
 - **Hardcoded Configurations**: Game definitions in JSON file limit extensibility
+
+## Recent Features Added
+
+### Cloud Storage Integration
+- OAuth2 authentication for Google Drive, Dropbox, OneDrive
+- Automatic token refresh
+- Upload status indicators on save files
+- Deep link handling for OAuth callbacks
+
+### Community Save Sharing
+- Express server for hosting shared saves
+- Download and restore community saves
+- Offline access to downloaded saves
+- Pagination for large save lists
+- Separate storage from regular backups
+
+### UI Improvements
+- Vietnamese and English language support
+- Dark theme optimized UI
+- Pagination for backup lists
+- Loading states and error handling
+- Consistent button styling across sections
 
 ## Recommended Improvements
 

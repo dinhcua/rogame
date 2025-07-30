@@ -61,10 +61,10 @@ const GameDetail: React.FC = () => {
   const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
     typeof setInterval
   > | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 4;
 
   // Initialize language from localStorage
   useEffect(() => {
@@ -269,9 +269,11 @@ const GameDetail: React.FC = () => {
 
       // Refresh game details to get updated save count from database
       if (gameId) {
-        const updatedGame = await invoke<Game>("get_game_by_id", { id: gameId });
+        const updatedGame = await invoke<Game>("get_game_by_id", {
+          id: gameId,
+        });
         setGameDetails(updatedGame);
-        
+
         // Update the game in the store
         await useGameStore.getState().updateGame(updatedGame);
       }
@@ -392,7 +394,7 @@ const GameDetail: React.FC = () => {
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-game-dark via-game-dark/90 to-game-dark/50"></div>
-        
+
         <div className="absolute bottom-0 left-0 right-0 p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-end gap-8">
@@ -518,8 +520,11 @@ const GameDetail: React.FC = () => {
                     {(() => {
                       const startIndex = (currentPage - 1) * itemsPerPage;
                       const endIndex = startIndex + itemsPerPage;
-                      const currentSaveFiles = saveFiles.slice(startIndex, endIndex);
-                      
+                      const currentSaveFiles = saveFiles.slice(
+                        startIndex,
+                        endIndex
+                      );
+
                       return currentSaveFiles.map((saveFile) => (
                         <SaveFileItem
                           key={saveFile.id}
@@ -532,29 +537,38 @@ const GameDetail: React.FC = () => {
                         />
                       ));
                     })()}
-                    
+
                     {/* Pagination controls */}
                     {saveFiles.length > itemsPerPage && (
                       <div className="flex items-center justify-between pt-4 border-t border-epic-border/50">
                         <div className="text-sm text-gray-400">
                           {t("common.pagination.showing", {
                             start: (currentPage - 1) * itemsPerPage + 1,
-                            end: Math.min(currentPage * itemsPerPage, saveFiles.length),
-                            total: saveFiles.length
+                            end: Math.min(
+                              currentPage * itemsPerPage,
+                              saveFiles.length
+                            ),
+                            total: saveFiles.length,
                           })}
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            onClick={() =>
+                              setCurrentPage((prev) => Math.max(1, prev - 1))
+                            }
                             disabled={currentPage === 1}
                             className="p-2 rounded-lg bg-epic-hover/50 hover:bg-epic-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
-                          
+
                           <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.ceil(saveFiles.length / itemsPerPage) }).map((_, index) => {
+                            {Array.from({
+                              length: Math.ceil(
+                                saveFiles.length / itemsPerPage
+                              ),
+                            }).map((_, index) => {
                               const pageNumber = index + 1;
                               return (
                                 <button
@@ -571,10 +585,20 @@ const GameDetail: React.FC = () => {
                               );
                             })}
                           </div>
-                          
+
                           <button
-                            onClick={() => setCurrentPage(prev => Math.min(Math.ceil(saveFiles.length / itemsPerPage), prev + 1))}
-                            disabled={currentPage === Math.ceil(saveFiles.length / itemsPerPage)}
+                            onClick={() =>
+                              setCurrentPage((prev) =>
+                                Math.min(
+                                  Math.ceil(saveFiles.length / itemsPerPage),
+                                  prev + 1
+                                )
+                              )
+                            }
+                            disabled={
+                              currentPage ===
+                              Math.ceil(saveFiles.length / itemsPerPage)
+                            }
                             className="p-2 rounded-lg bg-epic-hover/50 hover:bg-epic-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                           >
                             <ChevronRight className="w-4 h-4" />
@@ -586,12 +610,12 @@ const GameDetail: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Community Shared Saves Section */}
             {gameDetails && (
-              <CommunitySharedSaves 
-                gameId={gameDetails.id} 
-                gameTitle={gameDetails.title} 
+              <CommunitySharedSaves
+                gameId={gameDetails.id}
+                gameTitle={gameDetails.title}
               />
             )}
           </div>

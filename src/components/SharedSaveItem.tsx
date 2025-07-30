@@ -101,7 +101,7 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
             <button
               onClick={() => onDownload(sharedSave)}
               disabled={isDownloading}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 ${
                 isDownloading
                 ? "bg-rog-blue opacity-75"
                 : "bg-rog-blue hover:bg-epic-accent"
