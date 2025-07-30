@@ -57,6 +57,8 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
       
       // First, load downloaded saves from local database
       const localSaves = await loadDownloadedSaves();
+      // Create a Set from local saves for quick lookup
+      const localSaveIds = new Set(localSaves.map(save => save.id));
       
       try {
         // Try to fetch from server API
@@ -71,7 +73,7 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
         // Merge server saves with download status
         const mergedSaves = serverSaves.map((save: SharedSave) => ({
           ...save,
-          isDownloaded: downloadedSaveIds.has(save.id),
+          isDownloaded: localSaveIds.has(save.id),
           localPath: localSaves.find(local => local.id === save.id)?.local_path
         }));
         
