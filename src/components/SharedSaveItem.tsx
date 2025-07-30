@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Download, User, HardDrive, Loader2 } from "lucide-react";
+import { Download, User, HardDrive, Loader2, RotateCcw } from "lucide-react";
 import PlatformIcon from "./PlatformIcon";
 import { formatFileSize } from "../utils/format";
 
@@ -23,13 +23,17 @@ interface SharedSave {
 interface SharedSaveItemProps {
   sharedSave: SharedSave;
   onDownload: (sharedSave: SharedSave) => void;
+  onRestore?: (sharedSave: SharedSave) => void;
   isDownloading: boolean;
+  isRestoring?: boolean;
 }
 
 const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
   sharedSave,
   onDownload,
+  onRestore,
   isDownloading,
+  isRestoring,
 }) => {
   const { t } = useTranslation();
 
@@ -71,33 +75,57 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
           </div>
         </div>
 
-        {/* Download Button */}
-        <button
-          onClick={() => onDownload(sharedSave)}
-          disabled={isDownloading || sharedSave.isDownloaded}
-          className={`ml-4 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-            sharedSave.isDownloaded 
-              ? "bg-green-600 cursor-default" 
-              : "bg-rog-blue hover:bg-epic-accent"
-          }`}
-        >
-          {isDownloading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {t("communitySharedSaves.downloading")}
-            </>
-          ) : sharedSave.isDownloaded ? (
-            <>
-              <Download className="w-4 h-4" />
-              {t("communitySharedSaves.downloaded")}
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4" />
-              {t("communitySharedSaves.download")}
-            </>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 ml-4">
+          {sharedSave.isDownloaded && onRestore && (
+            <button
+              onClick={() => onRestore(sharedSave)}
+              disabled={isRestoring}
+              className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRestoring ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t("saveFile.actions.restoring")}
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4" />
+                  {t("saveFile.actions.restore")}
+                </>
+              )}
+            </button>
           )}
-        </button>
+          
+          <button
+            onClick={() => onDownload(sharedSave)}
+            disabled={isDownloading || sharedSave.isDownloaded}
+            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 ${
+              sharedSave.isDownloaded 
+                ? "bg-green-600 opacity-50 cursor-not-allowed" 
+                : isDownloading
+                ? "bg-rog-blue opacity-75"
+                : "bg-rog-blue hover:bg-epic-accent"
+            }`}
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("communitySharedSaves.downloading")}
+              </>
+            ) : sharedSave.isDownloaded ? (
+              <>
+                <Download className="w-4 h-4" />
+                {t("communitySharedSaves.downloaded")}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                {t("communitySharedSaves.download")}
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

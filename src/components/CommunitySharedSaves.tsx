@@ -32,6 +32,7 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
   const [sharedSaves, setSharedSaves] = useState<SharedSave[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [isRestoring, setIsRestoring] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [downloadedSaveIds, setDownloadedSaveIds] = useState<Set<string>>(new Set());
   const itemsPerPage = 5;
@@ -166,8 +167,8 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
         extractTo: extractDir
       });
       
-      // Add to database
-      await invoke("add_community_save", {
+      // Add to database and get the created save file
+      const createdSave = await invoke<any>("add_community_save", {
         gameId: gameId,
         saveName: `Community - ${sharedSave.file_name}`,
         savePath: zipFilePath,
@@ -183,7 +184,8 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
         uploadedBy: sharedSave.uploaded_by,
         uploadedAt: sharedSave.uploaded_at,
         localPath: extractDir,
-        zipPath: zipFilePath
+        zipPath: zipFilePath,
+        saveFileId: createdSave.id // Store the actual save file ID
       });
       
       // Update download count on server (don't wait for it)
@@ -200,6 +202,38 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
       showError(t("communitySharedSaves.errors.downloadFailed"));
     } finally {
       setIsDownloading(null);
+    }
+  };
+
+  const handleRestore = async (sharedSave: SharedSave) => {
+    if (!sharedSave.localPath) {
+      showError(t("communitySharedSaves.errors.noLocalPath"));
+      return;
+    }
+    
+    try {
+      setIsRestoring(sharedSave.id);
+      
+      // Get the save file ID from local database
+      const localSaves = await invoke<any[]>("get_community_saves", { gameId });
+      const localSave = localSaves.find(s => s.id === sharedSave.id);
+      
+      if (!localSave || !localSave.save_file_id) {
+        throw new Error("Save file ID not found");
+      }
+      
+      // Use the standard restore_save command with the actual save file ID
+      await invoke("restore_save", {
+        gameId: gameId,
+        saveId: localSave.save_file_id
+      });
+      
+      success(t("gameDetail.success.saveRestored", { fileName: sharedSave.file_name }));
+    } catch (err) {
+      console.error("Failed to restore community save:", err);
+      showError(t("gameDetail.errors.restoreFailed", { error: String(err) }));
+    } finally {
+      setIsRestoring(null);
     }
   };
 
@@ -243,7 +277,9 @@ const CommunitySharedSaves: React.FC<CommunitySharedSavesProps> = ({ gameId, gam
                 key={sharedSave.id}
                 sharedSave={sharedSave}
                 onDownload={handleDownload}
+                onRestore={handleRestore}
                 isDownloading={isDownloading === sharedSave.id}
+                isRestoring={isRestoring === sharedSave.id}
               />
             ))}
             

@@ -106,10 +106,17 @@ pub fn initialize_database(conn: &Connection) -> SqlResult<()> {
             download_date TEXT NOT NULL,
             local_path TEXT NOT NULL,
             zip_path TEXT,
+            save_file_id TEXT,
             FOREIGN KEY (game_id) REFERENCES games(id)
         )",
         [],
     )?;
+    
+    // Add save_file_id column to existing community_saves table if it doesn't exist
+    let _ = conn.execute(
+        "ALTER TABLE community_saves ADD COLUMN save_file_id TEXT",
+        [],
+    ); // Ignore error if column already exists
 
     Ok(())
 }

@@ -311,6 +311,7 @@
   "saveFile": {
     "actions": {
       "restore": "Restore",
+      "restoring": "Restoring...",
       "delete": "Delete Save File",
       "openBackupLocation": "Open Backup Location",
       "uploadToServer": "Upload to Server",
@@ -468,7 +469,8 @@
     },
     "errors": {
       "fetchFailed": "Failed to fetch community saves",
-      "downloadFailed": "Failed to download save file"
+      "downloadFailed": "Failed to download save file",
+      "noLocalPath": "Downloaded save file not found"
     }
   },
   "navigation": {

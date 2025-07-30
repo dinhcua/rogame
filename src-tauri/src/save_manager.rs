@@ -1855,6 +1855,7 @@ pub struct CommunitySave {
     pub download_date: String,
     pub local_path: String,
     pub zip_path: Option<String>,
+    pub save_file_id: Option<String>,
 }
 
 #[tauri::command]
@@ -1867,6 +1868,7 @@ pub async fn save_community_download(
     uploaded_at: String,
     local_path: String,
     zip_path: Option<String>,
+    save_file_id: Option<String>,
 ) -> Result<(), SaveFileError> {
     use chrono::Utc;
     
@@ -1876,8 +1878,8 @@ pub async fn save_community_download(
         conn.execute(
             "INSERT OR REPLACE INTO community_saves (
                 id, game_id, save_name, description, uploaded_by, 
-                uploaded_at, download_date, local_path, zip_path
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                uploaded_at, download_date, local_path, zip_path, save_file_id
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             rusqlite::params![
                 id,
                 game_id,
@@ -1888,6 +1890,7 @@ pub async fn save_community_download(
                 download_date,
                 local_path,
                 zip_path,
+                save_file_id,
             ],
         )
         .map_err(|e| format!("Failed to save community download: {}", e))?;
@@ -1903,7 +1906,7 @@ pub async fn get_community_saves(game_id: String) -> Result<Vec<CommunitySave>, 
         let mut stmt = conn
             .prepare(
                 "SELECT id, game_id, save_name, description, uploaded_by, 
-                        uploaded_at, download_date, local_path, zip_path
+                        uploaded_at, download_date, local_path, zip_path, save_file_id
                  FROM community_saves 
                  WHERE game_id = ?1 
                  ORDER BY download_date DESC",
@@ -1922,6 +1925,7 @@ pub async fn get_community_saves(game_id: String) -> Result<Vec<CommunitySave>, 
                     download_date: row.get(6)?,
                     local_path: row.get(7)?,
                     zip_path: row.get(8)?,
+                    save_file_id: row.get(9)?,
                 })
             })
             .map_err(|e| format!("Failed to query community saves: {}", e))?
@@ -1932,4 +1936,49 @@ pub async fn get_community_saves(game_id: String) -> Result<Vec<CommunitySave>, 
     })
     .await
     .map_err(|e| SaveFileError { message: e })
+}
+
+#[tauri::command]
+pub async fn list_directory_files(path: String) -> Result<Vec<String>, SaveFileError> {
+    use std::fs;
+    
+    // Validate path
+    let path_buf = PathBuf::from(&path);
+    if path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(SaveFileError {
+            message: "Invalid path: contains parent directory references".to_string(),
+        });
+    }
+    
+    // Ensure path is within saves directory
+    let saves_dir = get_saves_directory()?;
+    if !path_buf.starts_with(&saves_dir) {
+        return Err(SaveFileError {
+            message: "Path must be within saves directory".to_string(),
+        });
+    }
+    
+    // List files
+    let entries = fs::read_dir(&path).map_err(|e| SaveFileError {
+        message: format!("Failed to read directory: {}", e),
+    })?;
+    
+    let mut files = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| SaveFileError {
+            message: format!("Failed to read entry: {}", e),
+        })?;
+        
+        let file_type = entry.file_type().map_err(|e| SaveFileError {
+            message: format!("Failed to get file type: {}", e),
+        })?;
+        
+        if file_type.is_file() {
+            if let Some(file_name) = entry.file_name().to_str() {
+                files.push(file_name.to_string());
+            }
+        }
+    }
+    
+    Ok(files)
 }

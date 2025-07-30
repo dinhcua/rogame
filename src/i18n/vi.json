@@ -351,6 +351,7 @@
   "saveFile": {
     "actions": {
       "restore": "Khôi phục",
+      "restoring": "Đang khôi phục...",
       "delete": "Xóa file save",
       "openBackupLocation": "Mở thư mục sao lưu",
       "openOriginalLocation": "Mở thư mục save gốc",
@@ -508,7 +509,8 @@
     },
     "errors": {
       "fetchFailed": "Không thể tải danh sách saves cộng đồng",
-      "downloadFailed": "Không thể tải file save"
+      "downloadFailed": "Không thể tải file save",
+      "noLocalPath": "Không tìm thấy file save đã tải xuống"
     }
   },
   "navigation": {
