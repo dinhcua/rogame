@@ -115,7 +115,7 @@ const CloudStorage: React.FC = () => {
         )}
 
         {/* Auto-sync Settings */}
-        <div className="border-t border-gray-700 pt-2 mt-2">
+        {/* <div className="border-t border-gray-700 pt-2 mt-2">
           <h3 className="text-base font-semibold mb-3">
             {t("cloudStorage.autoSync.title")}
           </h3>
@@ -177,7 +177,7 @@ const CloudStorage: React.FC = () => {
               </label>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

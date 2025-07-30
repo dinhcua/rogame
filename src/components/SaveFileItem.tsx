@@ -59,14 +59,17 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     "idle" | "uploading" | "success"
   >("idle");
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
-  const { 
-    isProviderConnected, 
+  const {
+    isProviderConnected,
     getProviderName,
     uploadGameSaves,
-    isLoading: isCloudUploading 
+    isLoading: isCloudUploading,
   } = useCloudStorage();
-  const [uploadingProvider, setUploadingProvider] = useState<CloudProvider | null>(null);
-  const [cloudStatus, setCloudStatus] = useState<string | null>(saveFile.cloud || null);
+  const [uploadingProvider, setUploadingProvider] =
+    useState<CloudProvider | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<string | null>(
+    saveFile.cloud || null
+  );
   const { success, error } = useToast();
 
   // Extract date from backup filename
@@ -86,7 +89,6 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
     }
     return null;
   };
-
 
   const handleOpenOriginalLocation = async () => {
     if (!saveFile.origin_path || saveFile.origin_path.trim() === "") return;
@@ -120,7 +122,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
   };
 
   return (
-    <div className="bg-game-card rounded-lg p-3 hover:bg-epic-hover transition-all duration-200 group relative">
+    <div className="bg-game-card rounded-lg p-3 hover:bg-epic-hover transition-all duration-200 group">
       {/* Main Content */}
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -145,7 +147,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
               <span className="text-gray-300">
                 {(() => {
                   const backupDate = getBackupDate(saveFile.file_name);
-                  return backupDate 
+                  return backupDate
                     ? formatDate(backupDate, t, i18n)
                     : formatDate(saveFile.created_at, t, i18n);
                 })()}
@@ -162,12 +164,17 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                 <>
                   <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
                   <span className="text-gray-300">
-                    {t("saveFile.uploadingTo", { provider: getProviderName(uploadingProvider) })}
+                    {t("saveFile.uploadingTo", {
+                      provider: getProviderName(uploadingProvider),
+                    })}
                   </span>
                 </>
               ) : cloudStatus ? (
                 <>
-                  <PlatformIcon platform={cloudStatus as CloudProvider} className="w-4 h-4" />
+                  <PlatformIcon
+                    platform={cloudStatus as CloudProvider}
+                    className="w-4 h-4"
+                  />
                   <span className="text-gray-300">
                     {getProviderName(cloudStatus as CloudProvider)}
                   </span>
@@ -175,7 +182,9 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
               ) : (
                 <>
                   <FileText className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-300">{t("saveFile.autoBackup")}</span>
+                  <span className="text-gray-300">
+                    {t("saveFile.autoBackup")}
+                  </span>
                 </>
               )}
             </div>
@@ -202,7 +211,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-game-card rounded-lg shadow-2xl border border-epic-border py-2 z-10">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-game-card rounded-lg shadow-2xl border border-epic-border py-2 z-50">
                 {onUpload && (
                   <button
                     onClick={async () => {
@@ -231,10 +240,10 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
 
                 {/* Cloud Provider Upload Buttons */}
                 {/* Temporarily only show Google Drive */}
-                {(['google_drive'] as CloudProvider[]).map((provider) => {
+                {(["google_drive"] as CloudProvider[]).map((provider) => {
                   const isConnected = isProviderConnected(provider);
                   if (!isConnected) return null;
-                  
+
                   return (
                     <button
                       key={provider}
@@ -243,62 +252,78 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                         setUploadingProvider(provider);
                         try {
                           // Read the backup file
-                          const fileData = await invoke<number[]>('read_file_as_bytes', {
-                            filePath: saveFile.file_path
-                          });
-                          
+                          const fileData = await invoke<number[]>(
+                            "read_file_as_bytes",
+                            {
+                              filePath: saveFile.file_path,
+                            }
+                          );
+
                           // Convert to File object
                           const uint8Array = new Uint8Array(fileData);
                           const blob = new Blob([uint8Array]);
-                          
+
                           // If the original backup was a directory, the server will have created a zip
                           // So we should change the filename to include .zip extension
                           let fileName = saveFile.file_name;
-                          if (!fileName.toLowerCase().endsWith('.zip')) {
+                          if (!fileName.toLowerCase().endsWith(".zip")) {
                             // Check if it was originally a directory by looking at the backup name pattern
                             // Directory backups are named like "backup_20250728_141201" without extension
                             if (fileName.match(/^backup_\d{8}_\d{6}$/)) {
                               fileName = `${fileName}.zip`;
                             }
                           }
-                          
-                          
+
                           // Get game info
-                          const gameInfo = await invoke<any>('get_game_by_id', { id: saveFile.game_id });
-                          
+                          const gameInfo = await invoke<any>("get_game_by_id", {
+                            id: saveFile.game_id,
+                          });
+
                           // Upload to rogame folder in cloud provider
                           const rogameFile = new File([blob], fileName, {
-                            lastModified: new Date(saveFile.modified_at).getTime(),
+                            lastModified: new Date(
+                              saveFile.modified_at
+                            ).getTime(),
                             // Add custom path to indicate it should go to rogame folder
-                            type: 'application/octet-stream'
+                            type: "application/octet-stream",
                           });
-                          
+
                           await uploadGameSaves(
                             provider,
                             saveFile.game_id,
                             `rogame/${gameInfo.title}`, // Upload to rogame/GameName folder
                             [rogameFile]
                           );
-                          
+
                           // Update cloud status in database
-                          await invoke('update_save_cloud_status', {
+                          await invoke("update_save_cloud_status", {
                             gameId: saveFile.game_id,
                             saveId: saveFile.id,
-                            cloudProvider: provider
+                            cloudProvider: provider,
                           });
-                          
+
                           // Update local state
                           setCloudStatus(provider);
-                          
-                          success(t("saveFile.uploadedToCloud", { provider: getProviderName(provider) }));
+
+                          success(
+                            t("saveFile.uploadedToCloud", {
+                              provider: getProviderName(provider),
+                            })
+                          );
                         } catch (err) {
-                          console.error('Failed to upload to cloud:', err);
-                          error(t("saveFile.uploadToCloudFailed", { provider: getProviderName(provider) }));
+                          console.error("Failed to upload to cloud:", err);
+                          error(
+                            t("saveFile.uploadToCloudFailed", {
+                              provider: getProviderName(provider),
+                            })
+                          );
                         } finally {
                           setUploadingProvider(null);
                         }
                       }}
-                      disabled={isCloudUploading && uploadingProvider === provider}
+                      disabled={
+                        isCloudUploading && uploadingProvider === provider
+                      }
                       className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
                     >
                       {isCloudUploading && uploadingProvider === provider ? (
@@ -309,7 +334,9 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                       <span className="text-gray-300">
                         {isCloudUploading && uploadingProvider === provider
                           ? t("saveFile.uploading")
-                          : t("saveFile.uploadToProvider", { provider: getProviderName(provider) })}
+                          : t("saveFile.uploadToProvider", {
+                              provider: getProviderName(provider),
+                            })}
                       </span>
                     </button>
                   );
@@ -368,7 +395,10 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
 
       {/* Click outside to close menu */}
       {showMenu && (
-        <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowMenu(false)}
+        />
       )}
 
       {/* Restore Confirmation Modal */}
@@ -395,7 +425,7 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
             {t("saveFile.restoreConfirm.created")}:{" "}
             {(() => {
               const backupDate = getBackupDate(saveFile.file_name);
-              return backupDate 
+              return backupDate
                 ? formatDate(backupDate, t, i18n)
                 : formatDate(saveFile.created_at, t, i18n);
             })()}

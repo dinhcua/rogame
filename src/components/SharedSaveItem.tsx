@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Download, User, HardDrive, Loader2, RotateCcw } from "lucide-react";
-import PlatformIcon from "./PlatformIcon";
+import { Download, User, HardDrive, Loader2, RotateCcw, Users } from "lucide-react";
 import { formatFileSize } from "../utils/format";
 
 interface SharedSave {
@@ -43,10 +42,7 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-10 h-10 bg-rog-blue/10 rounded-lg flex items-center justify-center">
-              <PlatformIcon
-                platform={sharedSave.platform}
-                className="w-5 h-5"
-              />
+              <Users className="w-5 h-5 text-rog-blue" />
             </div>
             <div className="flex-1">
               <h4 className="font-semibold text-base text-white">
