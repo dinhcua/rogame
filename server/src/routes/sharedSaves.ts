@@ -97,6 +97,8 @@ router.get('/shared-saves/:gameId', async (req: Request, res: Response) => {
     const { gameId } = req.params;
     const saves = sharedSaves.get(gameId) || [];
     
+    console.log(`Fetching saves for game ${gameId}, found ${saves.length} saves`);
+    
     // Sort by upload date (newest first)
     const sortedSaves = saves.sort((a, b) => 
       new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
@@ -175,7 +177,8 @@ router.get('/shared-saves/download/:saveId', async (req: Request, res: Response)
     // Check if file exists
     try {
       await fs.access(foundSave.file_path);
-    } catch {
+    } catch (err) {
+      console.error(`File not found at path: ${foundSave.file_path}`, err);
       res.status(404).json({ error: 'Save file not found on server' });
       return;
     }
@@ -251,6 +254,17 @@ router.delete('/shared-saves/:saveId', async (req: Request, res: Response): Prom
   } catch (error) {
     console.error('Error deleting shared save:', error);
     res.status(500).json({ error: 'Failed to delete shared save' });
+  }
+});
+
+// Reload saves from file system
+router.post('/shared-saves/reload', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    await loadSavesFromFileSystem();
+    res.json({ success: true, message: 'Saves reloaded successfully' });
+  } catch (error) {
+    console.error('Error reloading saves:', error);
+    res.status(500).json({ error: 'Failed to reload saves' });
   }
 });
 
