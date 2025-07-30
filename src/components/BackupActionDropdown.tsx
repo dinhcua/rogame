@@ -2,9 +2,9 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import DropdownPortal from "./DropdownPortal";
-import { MoreVertical, Upload, FolderOpen, FolderInput, Trash2 } from "lucide-react";
+import { MoreVertical, FolderOpen, FolderInput, Trash2 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
-import { useServerUpload } from "../hooks/useServerUpload";
+// import { useServerUpload } from "../hooks/useServerUpload"; // Currently disabled
 import { useCloudStorage } from "../hooks/useCloudStorage";
 import PlatformIcon from "./PlatformIcon";
 import { CloudProvider } from "../types/cloud";
@@ -41,7 +41,7 @@ export default function BackupActionDropdown({
   const { t } = useTranslation();
   const { error, success } = useToast();
   const dropdownButtonRef = useRef<HTMLButtonElement>(null);
-  const { uploadFile, isUploading } = useServerUpload();
+  // const { uploadFile } = useServerUpload(); // Currently disabled
   const {
     isProviderConnected,
     getProviderName,
@@ -49,15 +49,16 @@ export default function BackupActionDropdown({
     isLoading: isCloudUploading,
   } = useCloudStorage();
 
-  const handleUploadToServer = async () => {
-    onToggle();
-    try {
-      const result = await uploadFile(saveFilePath, saveFileName);
-      // Toast is already shown by useServerUpload hook
-    } catch (err) {
-      // Error toast is already shown by useServerUpload hook
-    }
-  };
+  // Upload to server function (currently disabled)
+  // const handleUploadToServer = async () => {
+  //   onToggle();
+  //   try {
+  //     await uploadFile(saveFilePath, saveFileName);
+  //     // Toast is already shown by useServerUpload hook
+  //   } catch (err) {
+  //     // Error toast is already shown by useServerUpload hook
+  //   }
+  // };
 
   const handleUploadToCloud = async (provider: CloudProvider) => {
     onToggle();

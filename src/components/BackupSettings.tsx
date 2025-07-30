@@ -9,6 +9,7 @@ interface BackupSettings {
   backup_interval: string;
   max_backups: number;
   compression_enabled: boolean;
+  backup_location: string;
 }
 
 const BackupSettings: React.FC = () => {
@@ -18,6 +19,7 @@ const BackupSettings: React.FC = () => {
     backup_interval: "30min",
     max_backups: 5,
     compression_enabled: true,
+    backup_location: "",
   });
 
   const intervalOptions = [

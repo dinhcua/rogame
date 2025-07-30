@@ -1,6 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Download, User, HardDrive, Loader2, RotateCcw, Users } from "lucide-react";
+import {
+  Download,
+  User,
+  HardDrive,
+  Loader2,
+  RotateCcw,
+  Users,
+} from "lucide-react";
 import { formatFileSize } from "../utils/format";
 
 interface SharedSave {
@@ -54,6 +61,53 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
                 </p>
               )}
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 ml-4">
+              {sharedSave.isDownloaded && onRestore ? (
+                // Show only Restore button with same style as backup list
+                <button
+                  onClick={() => onRestore(sharedSave)}
+                  disabled={isRestoring}
+                  className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRestoring ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t("saveFile.actions.restoring")}
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      {t("saveFile.actions.restore")}
+                    </>
+                  )}
+                </button>
+              ) : (
+                // Show Download button when not downloaded
+                <button
+                  onClick={() => onDownload(sharedSave)}
+                  disabled={isDownloading}
+                  className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 ${
+                    isDownloading
+                      ? "bg-rog-blue opacity-75"
+                      : "bg-rog-blue hover:bg-epic-accent"
+                  }`}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t("communitySharedSaves.downloading")}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      {t("communitySharedSaves.download")}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Metadata */}
@@ -69,53 +123,6 @@ const SharedSaveItem: React.FC<SharedSaveItemProps> = ({
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 ml-4">
-          {sharedSave.isDownloaded && onRestore ? (
-            // Show only Restore button with same style as backup list
-            <button
-              onClick={() => onRestore(sharedSave)}
-              disabled={isRestoring}
-              className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isRestoring ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t("saveFile.actions.restoring")}
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-4 h-4" />
-                  {t("saveFile.actions.restore")}
-                </>
-              )}
-            </button>
-          ) : (
-            // Show Download button when not downloaded
-            <button
-              onClick={() => onDownload(sharedSave)}
-              disabled={isDownloading}
-              className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-medium text-sm text-white flex items-center gap-2 ${
-                isDownloading
-                ? "bg-rog-blue opacity-75"
-                : "bg-rog-blue hover:bg-epic-accent"
-              }`}
-            >
-              {isDownloading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t("communitySharedSaves.downloading")}
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  {t("communitySharedSaves.download")}
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
     </div>

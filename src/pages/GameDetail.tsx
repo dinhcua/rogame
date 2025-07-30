@@ -2,20 +2,17 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import BackupActionDropdown from "../components/BackupActionDropdown";
 import BackupSettings from "../components/BackupSettings";
 import CloudStorage from "../components/CloudStorage";
 import CommunitySharedSaves from "../components/CommunitySharedSaves";
+import SaveFileItem from "../components/SaveFileItem";
 // import StorageInfo from "../components/StorageInfo";
 import RestoreModal from "../components/RestoreModal";
 import DeleteGameModal from "../components/DeleteGameModal";
-import { Settings, ChevronLeft, ChevronRight, Save, Clock, HardDrive, RefreshCw, CloudOff } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { Game } from "../types/game";
 import useGameStore from "../store/gameStore";
 import { useToast } from "../hooks/useToast";
-import PlatformIcon from "../components/PlatformIcon";
-import { CloudProvider } from "../types/cloud";
-import { formatFileSize, formatDate, getDisplayName, formatCloudProvider } from "../utils/format";
 import "../i18n/config";
 
 interface SaveFile {
@@ -59,8 +56,6 @@ const GameDetail: React.FC = () => {
   const [gameDetails, setGameDetails] = useState<Game | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [includeSaveFiles, setIncludeSaveFiles] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [autoBackupInterval, setAutoBackupInterval] = useState<ReturnType<
     typeof setInterval
   > | null>(null);
@@ -244,6 +239,40 @@ const GameDetail: React.FC = () => {
         error instanceof Error ? error.message : "Failed to delete game";
       setError(errorMessage);
       showError(t("gameDetail.errors.deleteFailed", { error: errorMessage }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSave = async (saveFile: SaveFile) => {
+    if (!gameId) return;
+
+    try {
+      setIsLoading(true);
+      await invoke("delete_save", {
+        gameId: saveFile.game_id,
+        saveId: saveFile.id,
+      });
+
+      // Remove the deleted save file from the list
+      setSaveFiles((prev) => prev.filter((sf) => sf.id !== saveFile.id));
+      
+      // Update game details save count
+      if (gameDetails) {
+        const updatedGame = {
+          ...gameDetails,
+          save_count: saveFiles.length - 1,
+        };
+        setGameDetails(updatedGame);
+        await useGameStore.getState().updateGame(updatedGame);
+      }
+
+      success(t("gameDetail.success.saveDeleted", { fileName: saveFile.file_name }));
+    } catch (error) {
+      console.error("Delete save error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete save file";
+      showError(t("gameDetail.errors.deleteSaveFailed", { error: errorMessage }));
     } finally {
       setIsLoading(false);
     }
@@ -451,7 +480,7 @@ const GameDetail: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Save files for current page */}
+                    {/* Save files for current page using SaveFileItem component */}
                     {(() => {
                       const startIndex = (currentPage - 1) * itemsPerPage;
                       const endIndex = startIndex + itemsPerPage;
@@ -461,117 +490,13 @@ const GameDetail: React.FC = () => {
                       );
 
                       return currentSaveFiles.map((saveFile) => (
-                        <div key={saveFile.id} className="bg-game-card rounded-lg p-3 hover:bg-epic-hover transition-all duration-200 group">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="w-10 h-10 bg-rog-blue/10 rounded-lg flex items-center justify-center">
-                                  <Save className="w-5 h-5 text-rog-blue" />
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-base text-white">
-                                    {saveFile.file_name}
-                                  </h4>
-                                  <p className="text-sm text-gray-400 mt-0.5">
-                                    {getDisplayName(saveFile.file_name, t, i18n)}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Metadata */}
-                              <div className="flex flex-wrap items-center gap-6 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4 text-gray-500" />
-                                  <span className="text-gray-300">
-                                    {formatDate(saveFile.created_at, t, i18n)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <HardDrive className="w-4 h-4 text-gray-500" />
-                                  <span className="text-gray-300">
-                                    {formatFileSize(saveFile.size_bytes)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {uploadingFiles.has(saveFile.id) ? (
-                                    <>
-                                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                      <span className="text-gray-300">
-                                        {t("saveFile.uploading")}
-                                      </span>
-                                    </>
-                                  ) : saveFile.cloud ? (
-                                    <>
-                                      <PlatformIcon
-                                        platform={saveFile.cloud as CloudProvider}
-                                        className="w-4 h-4 flex-shrink-0"
-                                      />
-                                      <span className="text-gray-300">
-                                        {formatCloudProvider(saveFile.cloud)}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CloudOff className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                                      <span className="text-gray-300">
-                                        {t("saveFile.autoBackup")}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleRestore(saveFile)}
-                                className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white flex items-center gap-2"
-                              >
-                                <RefreshCw className="w-4 h-4" />
-                                {t("saveFile.actions.restore")}
-                              </button>
-                              <BackupActionDropdown
-                                gameId={saveFile.game_id}
-                                gameTitle={gameDetails?.title || ""}
-                                saveId={saveFile.id}
-                                saveFileName={saveFile.file_name}
-                                saveFilePath={saveFile.file_path}
-                                saveModifiedAt={saveFile.modified_at}
-                                currentCloudProvider={saveFile.cloud}
-                                isOpen={openDropdownId === saveFile.id}
-                                onToggle={() => {
-                                  setOpenDropdownId(
-                                    openDropdownId === saveFile.id ? null : saveFile.id
-                                  );
-                                }}
-                                onAfterDelete={async () => {
-                                  // Reload save files
-                                  if (gameId) {
-                                    const files = await invoke<SaveFile[]>("list_saves", {
-                                      gameId: gameId,
-                                    });
-                                    setSaveFiles(files);
-                                  }
-                                }}
-                                onUploadStart={() => {
-                                  setUploadingFiles(prev => new Set(prev).add(saveFile.id));
-                                }}
-                                onUploadEnd={() => {
-                                  setUploadingFiles(prev => {
-                                    const newSet = new Set(prev);
-                                    newSet.delete(saveFile.id);
-                                    return newSet;
-                                  });
-                                  // Reload to get updated cloud status
-                                  if (gameId) {
-                                    invoke<SaveFile[]>("list_saves", { gameId }).then(setSaveFiles);
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                        <SaveFileItem
+                          key={saveFile.id}
+                          saveFile={saveFile}
+                          onRestore={handleRestore}
+                          onDelete={handleDeleteSave}
+                          isDeleting={isLoading}
+                        />
                       ));
                     })()}
 

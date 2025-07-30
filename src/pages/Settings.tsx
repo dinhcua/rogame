@@ -1,12 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import DropdownSelect from "../components/DropdownSelect";
-import { Globe, Loader2 } from "lucide-react";
+import { Globe, Loader2, FolderOpen } from "lucide-react";
 import { useCloudStorage } from "../hooks/useCloudStorage";
 import { CloudProvider } from "../types/cloud";
 import PlatformIcon from "../components/PlatformIcon";
+import { invoke } from "@tauri-apps/api/core";
 import "../i18n/config";
 
+interface BackupSettings {
+  auto_backup: boolean;
+  backup_interval: string;
+  max_backups: number;
+  compression_enabled: boolean;
+  backup_location: string;
+}
 
 interface ToggleProps {
   label: string;
@@ -46,6 +54,16 @@ export default function Settings() {
   // const [backupFrequency, setBackupFrequency] = useState("daily"); // Not used in current version
   // const [syncFrequency, setSyncFrequency] = useState("hourly"); // Not used currently
 
+  const [backupSettings, setBackupSettings] = useState<BackupSettings>({
+    auto_backup: true,
+    backup_interval: "30min",
+    max_backups: 5,
+    compression_enabled: true,
+    backup_location: "",
+  });
+
+  const [isLoadingBackupSettings, setIsLoadingBackupSettings] = useState(true);
+
   const {
     isLoading,
     tokensLoaded,
@@ -55,6 +73,22 @@ export default function Settings() {
     getProviderName,
     refreshTokens,
   } = useCloudStorage();
+
+  // Load backup settings when component mounts
+  useEffect(() => {
+    const loadBackupSettings = async () => {
+      try {
+        const settings = await invoke<BackupSettings>("load_backup_settings");
+        setBackupSettings(settings);
+      } catch (error) {
+        console.error("Failed to load backup settings:", error);
+      } finally {
+        setIsLoadingBackupSettings(false);
+      }
+    };
+
+    loadBackupSettings();
+  }, []);
 
   // Refresh tokens when component mounts
   React.useEffect(() => {
@@ -97,6 +131,24 @@ export default function Settings() {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
+  };
+
+  const handleSelectBackupFolder = async () => {
+    try {
+      const selectedFolder = await invoke<string | null>("select_backup_folder");
+      if (selectedFolder) {
+        const updatedSettings = {
+          ...backupSettings,
+          backup_location: selectedFolder,
+        };
+        setBackupSettings(updatedSettings);
+        
+        // Save settings to backend
+        await invoke("save_backup_settings", { settings: updatedSettings });
+      }
+    } catch (error) {
+      console.error("Failed to select backup folder:", error);
+    }
   };
 
   return (
@@ -159,12 +211,26 @@ export default function Settings() {
               <input
                 type="text"
                 className="flex-1 bg-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rog-blue"
-                value="C:/GameSaveManager/Backups"
+                value={isLoadingBackupSettings ? "Loading..." : backupSettings.backup_location}
+                placeholder={t("settings.backup.location.placeholder", { defaultValue: "Select backup folder..." })}
+                readOnly
               />
-              <button className="bg-white/10 px-4 rounded-lg hover:bg-white/20">
-                {t("settings.backup.location.browse")}
+              <button 
+                onClick={handleSelectBackupFolder}
+                disabled={isLoadingBackupSettings}
+                className="bg-white/10 px-4 py-3 rounded-lg hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-all duration-200"
+              >
+                <FolderOpen className="w-4 h-4" />
+                <span>{t("settings.backup.location.browse")}</span>
               </button>
             </div>
+            {backupSettings.backup_location && (
+              <p className="text-xs text-gray-500 mt-1">
+                {t("settings.backup.location.description", { 
+                  defaultValue: "Game saves will be backed up to this location" 
+                })}
+              </p>
+            )}
           </div>
 
           {/* Compression Settings */}

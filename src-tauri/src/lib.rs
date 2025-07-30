@@ -23,6 +23,7 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             game_scanner::scan_games,
             game_scanner::delete_game_saves,
@@ -52,6 +53,7 @@ pub fn run() {
             save_manager::get_community_saves,
             save_manager::list_directory_files,
             save_manager::restore_community_save,
+            save_manager::select_backup_folder,
             cloud_tokens::save_cloud_token,
             cloud_tokens::get_cloud_token,
             cloud_tokens::delete_cloud_token

@@ -19,7 +19,6 @@ import {
   ChevronDown,
   File,
   X,
-  Loader2,
   Download,
   Trash2,
 } from "lucide-react";

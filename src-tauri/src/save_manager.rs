@@ -145,15 +145,25 @@ pub struct BackupSettings {
     pub backup_interval: String,
     pub max_backups: i32,
     pub compression_enabled: bool,
+    pub backup_location: String,
 }
 
 impl Default for BackupSettings {
     fn default() -> Self {
+        // Get default backup location based on OS
+        let default_backup_location = dirs::document_dir()
+            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")))
+            .join("GameSaveManager")
+            .join("Backups")
+            .to_string_lossy()
+            .to_string();
+
         Self {
             auto_backup: true,
             backup_interval: "30min".to_string(),
             max_backups: 5,
             compression_enabled: true,
+            backup_location: default_backup_location,
         }
     }
 }
@@ -405,8 +415,8 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
     validate_path_component(&game_id)?;
     validate_path_component(&save_id)?;
 
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
+    let backup_base_dir = get_backup_directory().await?;
+    let game_saves_dir = safe_join_path(&backup_base_dir, &game_id)?;
     let save_path = safe_join_path(&game_saves_dir, &save_id)?;
 
     println!("Backup file path: {:?}", save_path);
@@ -735,12 +745,13 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
     // Load backup settings
     let settings = load_backup_settings().await?;
 
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
+    // Get backup directory (custom or default location)
+    let backup_base_dir = get_backup_directory().await?;
+    let game_saves_dir = backup_base_dir.join(&game_id);
 
     // Create game saves directory if it doesn't exist
     create_dir_all(&game_saves_dir).map_err(|e| SaveFileError {
-        message: format!("Failed to create saves directory: {}", e),
+        message: format!("Failed to create backup directory: {}", e),
     })?;
 
     // Get the game from database to get the actual save location
@@ -1015,8 +1026,8 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
 async fn sync_existing_backups_to_db(game_id: String) -> Result<i32, SaveFileError> {
     println!("Syncing existing backups for game: {}", game_id);
     
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = saves_dir.join(&game_id);
+    let backup_base_dir = get_backup_directory().await?;
+    let game_saves_dir = backup_base_dir.join(&game_id);
     
     if !game_saves_dir.exists() {
         return Ok(0);
@@ -1182,8 +1193,8 @@ pub async fn delete_save(game_id: String, save_id: String) -> Result<(), SaveFil
     validate_path_component(&save_id)?;
     
     // Get the backup file path
-    let saves_dir = get_saves_directory()?;
-    let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
+    let backup_base_dir = get_backup_directory().await?;
+    let game_saves_dir = safe_join_path(&backup_base_dir, &game_id)?;
     let save_path = safe_join_path(&game_saves_dir, &save_id)?;
     
     // Delete from file system
@@ -1211,49 +1222,85 @@ pub async fn delete_save(game_id: String, save_id: String) -> Result<(), SaveFil
 
 #[tauri::command]
 pub async fn save_backup_settings(settings: BackupSettings) -> Result<(), SaveFileError> {
-    let config_dir = dirs::config_local_dir()
-        .ok_or_else(|| SaveFileError {
-            message: "Failed to get config directory".to_string(),
-        })?
-        .join("rogame");
+    db::execute_blocking(move |conn| {
+        // Save each setting as a key-value pair in the settings table
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params!["backup_auto_backup", if settings.auto_backup { "true" } else { "false" }],
+        ).map_err(|e| format!("Failed to save auto_backup setting: {}", e))?;
 
-    fs::create_dir_all(&config_dir).map_err(|e| SaveFileError {
-        message: format!("Failed to create config directory: {}", e),
-    })?;
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params!["backup_interval", settings.backup_interval],
+        ).map_err(|e| format!("Failed to save backup_interval setting: {}", e))?;
 
-    let settings_path = config_dir.join("backup_settings.json");
-    let settings_json = serde_json::to_string_pretty(&settings).map_err(|e| SaveFileError {
-        message: format!("Failed to serialize settings: {}", e),
-    })?;
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params!["backup_max_backups", settings.max_backups.to_string()],
+        ).map_err(|e| format!("Failed to save max_backups setting: {}", e))?;
 
-    fs::write(&settings_path, settings_json).map_err(|e| SaveFileError {
-        message: format!("Failed to write settings file: {}", e),
-    })?;
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params!["backup_compression_enabled", if settings.compression_enabled { "true" } else { "false" }],
+        ).map_err(|e| format!("Failed to save compression_enabled setting: {}", e))?;
 
-    Ok(())
+        // Save the most important setting: backup_location
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+            params!["backup_location", settings.backup_location],
+        ).map_err(|e| format!("Failed to save backup_location setting: {}", e))?;
+
+        println!("Backup settings saved to database: backup_location = {}", settings.backup_location);
+        Ok(())
+    })
+    .await
+    .map_err(|e| SaveFileError { message: e })
 }
 
 #[tauri::command]
 pub async fn load_backup_settings() -> Result<BackupSettings, SaveFileError> {
-    let config_dir = dirs::config_local_dir()
-        .ok_or_else(|| SaveFileError {
-            message: "Failed to get config directory".to_string(),
-        })?
-        .join("rogame");
+    db::execute_blocking(move |conn| {
+        // Helper function to get a setting value
+        let get_setting = |key: &str, default: &str| -> Result<String, String> {
+            let mut stmt = conn.prepare("SELECT value FROM settings WHERE key = ?1").map_err(|e| format!("Failed to prepare statement: {}", e))?;
+            let mut rows = stmt.query_map([key], |row| {
+                Ok(row.get::<_, String>(0)?)
+            }).map_err(|e| format!("Failed to query settings: {}", e))?;
+            
+            if let Some(row) = rows.next() {
+                row.map_err(|e| format!("Failed to get row: {}", e))
+            } else {
+                Ok(default.to_string())
+            }
+        };
 
-    let settings_path = config_dir.join("backup_settings.json");
+        // Load each setting with defaults
+        let auto_backup = get_setting("backup_auto_backup", "true")? == "true";
+        let backup_interval = get_setting("backup_interval", "30min")?;
+        let max_backups = get_setting("backup_max_backups", "5")?.parse::<i32>()
+            .map_err(|e| format!("Failed to parse max_backups: {}", e))?;
+        let compression_enabled = get_setting("backup_compression_enabled", "true")? == "true";
+        let backup_location = get_setting("backup_location", "")?;
 
-    if !settings_path.exists() {
-        return Ok(BackupSettings::default());
-    }
+        // If backup_location is empty, use default
+        let final_backup_location = if backup_location.is_empty() {
+            BackupSettings::default().backup_location
+        } else {
+            backup_location
+        };
 
-    let settings_json = fs::read_to_string(&settings_path).map_err(|e| SaveFileError {
-        message: format!("Failed to read settings file: {}", e),
-    })?;
+        println!("Backup settings loaded from database: backup_location = {}", final_backup_location);
 
-    serde_json::from_str(&settings_json).map_err(|e| SaveFileError {
-        message: format!("Failed to deserialize settings: {}", e),
+        Ok(BackupSettings {
+            auto_backup,
+            backup_interval,
+            max_backups,
+            compression_enabled,
+            backup_location: final_backup_location,
+        })
     })
+    .await
+    .map_err(|e| SaveFileError { message: e })
 }
 
 fn get_saves_directory() -> Result<PathBuf, SaveFileError> {
@@ -1262,6 +1309,23 @@ fn get_saves_directory() -> Result<PathBuf, SaveFileError> {
     })?;
 
     Ok(app_data_dir.join("rogame").join("saves"))
+}
+
+// Get backup directory based on user settings (custom location vs default)
+async fn get_backup_directory() -> Result<PathBuf, SaveFileError> {
+    // Load backup settings to check for custom backup location
+    let settings = load_backup_settings().await?;
+    
+    if !settings.backup_location.is_empty() {
+        // User has set a custom backup location
+        println!("Using custom backup location: {}", settings.backup_location);
+        Ok(PathBuf::from(settings.backup_location))
+    } else {
+        // Use default backup location
+        let default_location = BackupSettings::default().backup_location;
+        println!("Using default backup location: {}", default_location);
+        Ok(PathBuf::from(default_location))
+    }
 }
 
 // Sync scanned game to database
@@ -1606,9 +1670,9 @@ pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), Sav
     validate_path_component(&game_id)?;
     
     if backup {
-        // Open backup location
-        let saves_dir = get_saves_directory()?;
-        let game_saves_dir = safe_join_path(&saves_dir, &game_id)?;
+        // Open backup location (custom or default)
+        let backup_base_dir = get_backup_directory().await?;
+        let game_saves_dir = safe_join_path(&backup_base_dir, &game_id)?;
         
         if !game_saves_dir.exists() {
             return Err(SaveFileError {
@@ -2083,4 +2147,19 @@ pub async fn restore_community_save(game_id: String, community_save_id: String) 
     
     println!("Community save restored successfully");
     Ok(())
+}
+
+#[tauri::command]
+pub async fn select_backup_folder(app_handle: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    
+    let folder_path = app_handle.dialog()
+        .file()
+        .set_title("Select Backup Folder")
+        .blocking_pick_folder();
+        
+    match folder_path {
+        Some(path) => Ok(Some(path.to_string())),
+        None => Ok(None), // User cancelled
+    }
 }

@@ -50,22 +50,23 @@ const BackupCard: React.FC<{
 }> = ({ backup, onRestore, isDropdownOpen, onDropdownToggle, isUploading, onUploadStart, onUploadEnd }) => {
   const { t, i18n } = useTranslation();
 
-  const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
-    switch (status) {
-      case "synced":
-        return "text-green-500";
-      case "syncing":
-        return "text-yellow-500";
-      case "not_synced":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
-    }
-  };
+  // Helper functions for sync status (currently unused but may be needed later)
+  // const getSyncStatusColor = (status: BackupHistoryItem["sync_status"]) => {
+  //   switch (status) {
+  //     case "synced":
+  //       return "text-green-500";
+  //     case "syncing":
+  //       return "text-yellow-500";
+  //     case "not_synced":
+  //       return "text-red-500";
+  //     default:
+  //       return "text-gray-500";
+  //   }
+  // };
 
-  const getSyncStatusText = (status: BackupHistoryItem["sync_status"]) => {
-    return t(`history.backup.status.${status}`);
-  };
+  // const getSyncStatusText = (status: BackupHistoryItem["sync_status"]) => {
+  //   return t(`history.backup.status.${status}`);
+  // };
 
   return (
     <div className="bg-game-card/50 backdrop-blur-sm rounded-xl p-5 border border-epic-border/50 hover:border-rog-blue/30 transition-all duration-200 group">

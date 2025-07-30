@@ -138,6 +138,214 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
                 {getDisplayName(saveFile.file_name, t, i18n)}
               </p>
             </div>
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {/* Always visible primary action */}
+              <button
+                onClick={() => setShowRestoreConfirm(true)}
+                className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white"
+              >
+                {t("saveFile.actions.restore")}
+              </button>
+
+              {/* More actions menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="opacity-100 p-2 rounded-lg hover:bg-epic-hover transition-all duration-200"
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-400" />
+                </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-game-card rounded-lg shadow-2xl border border-epic-border py-2">
+                    {onUpload && (
+                      <button
+                        onClick={async () => {
+                          setShowMenu(false);
+                          await handleUpload();
+                        }}
+                        disabled={uploadStatus === "uploading"}
+                        className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                      >
+                        {uploadStatus === "uploading" ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
+                        ) : uploadStatus === "success" ? (
+                          <CheckCircle className="w-4 h-4 text-epic-success" />
+                        ) : (
+                          <Upload className="w-4 h-4 text-gray-400" />
+                        )}
+                        <span className="text-gray-300">
+                          {uploadStatus === "uploading"
+                            ? t("saveFile.uploading")
+                            : uploadStatus === "success"
+                            ? t("saveFile.uploaded")
+                            : t("saveFile.actions.uploadToServer")}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Cloud Provider Upload Buttons */}
+                    {/* Temporarily only show Google Drive */}
+                    {(["google_drive"] as CloudProvider[]).map((provider) => {
+                      const isConnected = isProviderConnected(provider);
+                      if (!isConnected) return null;
+
+                      return (
+                        <button
+                          key={provider}
+                          onClick={async () => {
+                            setShowMenu(false);
+                            setUploadingProvider(provider);
+                            try {
+                              // Read the backup file
+                              const fileData = await invoke<number[]>(
+                                "read_file_as_bytes",
+                                {
+                                  filePath: saveFile.file_path,
+                                }
+                              );
+
+                              // Convert to File object
+                              const uint8Array = new Uint8Array(fileData);
+                              const blob = new Blob([uint8Array]);
+
+                              // If the original backup was a directory, the server will have created a zip
+                              // So we should change the filename to include .zip extension
+                              let fileName = saveFile.file_name;
+                              if (!fileName.toLowerCase().endsWith(".zip")) {
+                                // Check if it was originally a directory by looking at the backup name pattern
+                                // Directory backups are named like "backup_20250728_141201" without extension
+                                if (fileName.match(/^backup_\d{8}_\d{6}$/)) {
+                                  fileName = `${fileName}.zip`;
+                                }
+                              }
+
+                              // Get game info
+                              const gameInfo = await invoke<any>(
+                                "get_game_by_id",
+                                {
+                                  id: saveFile.game_id,
+                                }
+                              );
+
+                              // Upload to rogame folder in cloud provider
+                              const rogameFile = new File([blob], fileName, {
+                                lastModified: new Date(
+                                  saveFile.modified_at
+                                ).getTime(),
+                                // Add custom path to indicate it should go to rogame folder
+                                type: "application/octet-stream",
+                              });
+
+                              await uploadGameSaves(
+                                provider,
+                                saveFile.game_id,
+                                `rogame/${gameInfo.title}`, // Upload to rogame/GameName folder
+                                [rogameFile]
+                              );
+
+                              // Update cloud status in database
+                              await invoke("update_save_cloud_status", {
+                                gameId: saveFile.game_id,
+                                saveId: saveFile.id,
+                                cloudProvider: provider,
+                              });
+
+                              // Update local state
+                              setCloudStatus(provider);
+
+                              success(
+                                t("saveFile.uploadedToCloud", {
+                                  provider: getProviderName(provider),
+                                })
+                              );
+                            } catch (err) {
+                              console.error("Failed to upload to cloud:", err);
+                              error(
+                                t("saveFile.uploadToCloudFailed", {
+                                  provider: getProviderName(provider),
+                                })
+                              );
+                            } finally {
+                              setUploadingProvider(null);
+                            }
+                          }}
+                          disabled={
+                            isCloudUploading && uploadingProvider === provider
+                          }
+                          className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                        >
+                          {isCloudUploading &&
+                          uploadingProvider === provider ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
+                          ) : (
+                            <PlatformIcon
+                              platform={provider}
+                              className="w-4 h-4"
+                            />
+                          )}
+                          <span className="text-gray-300">
+                            {isCloudUploading && uploadingProvider === provider
+                              ? t("saveFile.uploading")
+                              : t("saveFile.uploadToProvider", {
+                                  provider: getProviderName(provider),
+                                })}
+                          </span>
+                        </button>
+                      );
+                    })}
+
+                    {saveFile.origin_path &&
+                      saveFile.origin_path.trim() !== "" && (
+                        <button
+                          onClick={() => {
+                            setShowMenu(false);
+                            handleOpenOriginalLocation();
+                          }}
+                          className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                        >
+                          <FolderInput className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-300">
+                            {t("saveFile.actions.openOriginalLocation")}
+                          </span>
+                        </button>
+                      )}
+
+                    {saveFile.file_path && saveFile.file_path.trim() !== "" && (
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          handleOpenLocation();
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
+                      >
+                        <FolderOpen className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-300">
+                          {t("saveFile.actions.openBackupLocation")}
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="border-t border-epic-border my-2"></div>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        onDelete(saveFile);
+                      }}
+                      disabled={isDeleting}
+                      className="w-full px-4 py-2.5 text-left hover:bg-epic-danger/10 transition-colors flex items-center gap-3 text-sm"
+                    >
+                      <Trash2 className="w-4 h-4 text-epic-danger" />
+                      <span className="text-epic-danger">
+                        {t("saveFile.actions.delete")}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Metadata */}
@@ -190,213 +398,12 @@ const SaveFileItem: React.FC<SaveFileItemProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          {/* Always visible primary action */}
-          <button
-            onClick={() => setShowRestoreConfirm(true)}
-            className="bg-rog-blue px-3 py-1.5 rounded-lg hover:bg-epic-accent transition-all duration-200 font-medium text-sm text-white"
-          >
-            {t("saveFile.actions.restore")}
-          </button>
-
-          {/* More actions menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="opacity-100 p-2 rounded-lg hover:bg-epic-hover transition-all duration-200"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-400" />
-            </button>
-
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-game-card rounded-lg shadow-2xl border border-epic-border py-2 z-50">
-                {onUpload && (
-                  <button
-                    onClick={async () => {
-                      setShowMenu(false);
-                      await handleUpload();
-                    }}
-                    disabled={uploadStatus === "uploading"}
-                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
-                  >
-                    {uploadStatus === "uploading" ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
-                    ) : uploadStatus === "success" ? (
-                      <CheckCircle className="w-4 h-4 text-epic-success" />
-                    ) : (
-                      <Upload className="w-4 h-4 text-gray-400" />
-                    )}
-                    <span className="text-gray-300">
-                      {uploadStatus === "uploading"
-                        ? t("saveFile.uploading")
-                        : uploadStatus === "success"
-                        ? t("saveFile.uploaded")
-                        : t("saveFile.actions.uploadToServer")}
-                    </span>
-                  </button>
-                )}
-
-                {/* Cloud Provider Upload Buttons */}
-                {/* Temporarily only show Google Drive */}
-                {(["google_drive"] as CloudProvider[]).map((provider) => {
-                  const isConnected = isProviderConnected(provider);
-                  if (!isConnected) return null;
-
-                  return (
-                    <button
-                      key={provider}
-                      onClick={async () => {
-                        setShowMenu(false);
-                        setUploadingProvider(provider);
-                        try {
-                          // Read the backup file
-                          const fileData = await invoke<number[]>(
-                            "read_file_as_bytes",
-                            {
-                              filePath: saveFile.file_path,
-                            }
-                          );
-
-                          // Convert to File object
-                          const uint8Array = new Uint8Array(fileData);
-                          const blob = new Blob([uint8Array]);
-
-                          // If the original backup was a directory, the server will have created a zip
-                          // So we should change the filename to include .zip extension
-                          let fileName = saveFile.file_name;
-                          if (!fileName.toLowerCase().endsWith(".zip")) {
-                            // Check if it was originally a directory by looking at the backup name pattern
-                            // Directory backups are named like "backup_20250728_141201" without extension
-                            if (fileName.match(/^backup_\d{8}_\d{6}$/)) {
-                              fileName = `${fileName}.zip`;
-                            }
-                          }
-
-                          // Get game info
-                          const gameInfo = await invoke<any>("get_game_by_id", {
-                            id: saveFile.game_id,
-                          });
-
-                          // Upload to rogame folder in cloud provider
-                          const rogameFile = new File([blob], fileName, {
-                            lastModified: new Date(
-                              saveFile.modified_at
-                            ).getTime(),
-                            // Add custom path to indicate it should go to rogame folder
-                            type: "application/octet-stream",
-                          });
-
-                          await uploadGameSaves(
-                            provider,
-                            saveFile.game_id,
-                            `rogame/${gameInfo.title}`, // Upload to rogame/GameName folder
-                            [rogameFile]
-                          );
-
-                          // Update cloud status in database
-                          await invoke("update_save_cloud_status", {
-                            gameId: saveFile.game_id,
-                            saveId: saveFile.id,
-                            cloudProvider: provider,
-                          });
-
-                          // Update local state
-                          setCloudStatus(provider);
-
-                          success(
-                            t("saveFile.uploadedToCloud", {
-                              provider: getProviderName(provider),
-                            })
-                          );
-                        } catch (err) {
-                          console.error("Failed to upload to cloud:", err);
-                          error(
-                            t("saveFile.uploadToCloudFailed", {
-                              provider: getProviderName(provider),
-                            })
-                          );
-                        } finally {
-                          setUploadingProvider(null);
-                        }
-                      }}
-                      disabled={
-                        isCloudUploading && uploadingProvider === provider
-                      }
-                      className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
-                    >
-                      {isCloudUploading && uploadingProvider === provider ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-rog-blue" />
-                      ) : (
-                        <PlatformIcon platform={provider} className="w-4 h-4" />
-                      )}
-                      <span className="text-gray-300">
-                        {isCloudUploading && uploadingProvider === provider
-                          ? t("saveFile.uploading")
-                          : t("saveFile.uploadToProvider", {
-                              provider: getProviderName(provider),
-                            })}
-                      </span>
-                    </button>
-                  );
-                })}
-
-                {saveFile.origin_path && saveFile.origin_path.trim() !== "" && (
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      handleOpenOriginalLocation();
-                    }}
-                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
-                  >
-                    <FolderInput className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-300">
-                      {t("saveFile.actions.openOriginalLocation")}
-                    </span>
-                  </button>
-                )}
-
-                {saveFile.file_path && saveFile.file_path.trim() !== "" && (
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      handleOpenLocation();
-                    }}
-                    className="w-full px-4 py-2.5 text-left hover:bg-epic-hover transition-colors flex items-center gap-3 text-sm"
-                  >
-                    <FolderOpen className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-300">
-                      {t("saveFile.actions.openBackupLocation")}
-                    </span>
-                  </button>
-                )}
-
-                <div className="border-t border-epic-border my-2"></div>
-
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onDelete(saveFile);
-                  }}
-                  disabled={isDeleting}
-                  className="w-full px-4 py-2.5 text-left hover:bg-epic-danger/10 transition-colors flex items-center gap-3 text-sm"
-                >
-                  <Trash2 className="w-4 h-4 text-epic-danger" />
-                  <span className="text-epic-danger">
-                    {t("saveFile.actions.delete")}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Click outside to close menu */}
       {showMenu && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0"
           onClick={() => setShowMenu(false)}
         />
       )}
