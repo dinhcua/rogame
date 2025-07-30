@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import DropdownSelect from "../components/DropdownSelect";
-import { Clock, Cloud, Globe } from "lucide-react";
+import { Globe, Loader2 } from "lucide-react";
+import { useCloudStorage } from "../hooks/useCloudStorage";
+import { CloudProvider } from "../types/cloud";
+import PlatformIcon from "../components/PlatformIcon";
 import "../i18n/config";
+
 
 interface ToggleProps {
   label: string;
@@ -34,53 +38,28 @@ const Toggle: React.FC<ToggleProps> = ({
   </div>
 );
 
-interface CloudProviderProps {
-  name: string;
-  icon: React.ReactNode;
-  email?: string;
-  connected?: boolean;
-}
-
-const CloudProvider: React.FC<CloudProviderProps> = ({
-  name,
-  icon,
-  email,
-  connected,
-}) => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="w-6 h-6">{icon}</div>
-        <div>
-          <p className="font-medium">{name}</p>
-          <p className="text-sm text-gray-400">
-            {connected
-              ? t("settings.cloud.connected", { email })
-              : t("settings.cloud.notConnected")}
-          </p>
-        </div>
-      </div>
-      <button
-        className={
-          connected
-            ? "text-red-500 hover:text-red-400"
-            : "text-rog-blue hover:text-blue-400"
-        }
-      >
-        {connected
-          ? t("settings.cloud.disconnect")
-          : t("settings.cloud.connect")}
-      </button>
-    </div>
-  );
-};
+// CloudProvider component removed - now using inline design matching CloudStorage component
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const [compression, setCompression] = useState("medium");
-  const [backupFrequency, setBackupFrequency] = useState("daily");
-  const [syncFrequency, setSyncFrequency] = useState("hourly");
+  // const [backupFrequency, setBackupFrequency] = useState("daily"); // Not used in current version
+  // const [syncFrequency, setSyncFrequency] = useState("hourly"); // Not used currently
+
+  const {
+    isLoading,
+    tokensLoaded,
+    authenticate,
+    disconnectProvider,
+    isProviderConnected,
+    getProviderName,
+    refreshTokens,
+  } = useCloudStorage();
+
+  // Refresh tokens when component mounts
+  React.useEffect(() => {
+    refreshTokens();
+  }, [refreshTokens]);
 
   const compressionOptions = [
     { value: "none", label: t("settings.backup.compression.none") },
@@ -89,26 +68,27 @@ export default function Settings() {
     { value: "high", label: t("settings.backup.compression.high") },
   ];
 
-  const backupFrequencyOptions = [
-    {
-      value: "every_save",
-      label: t("settings.backup.schedule.frequency.everySave"),
-    },
-    { value: "hourly", label: t("settings.backup.schedule.frequency.hourly") },
-    { value: "daily", label: t("settings.backup.schedule.frequency.daily") },
-    { value: "weekly", label: t("settings.backup.schedule.frequency.weekly") },
-    { value: "custom", label: t("settings.backup.schedule.frequency.custom") },
-  ];
+  // const backupFrequencyOptions = [ // Not used in current version
+  //   {
+  //     value: "every_save",
+  //     label: t("settings.backup.schedule.frequency.everySave"),
+  //   },
+  //   { value: "hourly", label: t("settings.backup.schedule.frequency.hourly") },
+  //   { value: "daily", label: t("settings.backup.schedule.frequency.daily") },
+  //   { value: "weekly", label: t("settings.backup.schedule.frequency.weekly") },
+  //   { value: "custom", label: t("settings.backup.schedule.frequency.custom") },
+  // ];
 
-  const syncFrequencyOptions = [
-    {
-      value: "every_save",
-      label: t("settings.cloud.autoSync.frequency.everySave"),
-    },
-    { value: "hourly", label: t("settings.cloud.autoSync.frequency.hourly") },
-    { value: "daily", label: t("settings.cloud.autoSync.frequency.daily") },
-    { value: "manual", label: t("settings.cloud.autoSync.frequency.manual") },
-  ];
+  // Auto-sync options - hidden in current version
+  // const syncFrequencyOptions = [
+  //   {
+  //     value: "every_save",
+  //     label: t("settings.cloud.autoSync.frequency.everySave"),
+  //   },
+  //   { value: "hourly", label: t("settings.cloud.autoSync.frequency.hourly") },
+  //   { value: "daily", label: t("settings.cloud.autoSync.frequency.daily") },
+  //   { value: "manual", label: t("settings.cloud.autoSync.frequency.manual") },
+  // ];
 
   const languageOptions = [
     { value: "en", label: t("settings.language.en") },
@@ -148,11 +128,12 @@ export default function Settings() {
           {t("settings.general.title")}
         </h2>
         <div className="space-y-6">
-          <Toggle
+          {/* Temporarily hidden - Dark mode feature will be added in future version */}
+          {/* <Toggle
             label={t("settings.general.darkMode.label")}
             description={t("settings.general.darkMode.description")}
             checked={true}
-          />
+          /> */}
           <Toggle
             label={t("settings.general.notifications.label")}
             description={t("settings.general.notifications.description")}
@@ -199,8 +180,8 @@ export default function Settings() {
             />
           </div>
 
-          {/* Backup Schedule */}
-          <div>
+          {/* Backup Schedule - Hidden in current version */}
+          {/* <div>
             <label className="block text-gray-400 mb-2">
               {t("settings.backup.schedule.label")}
             </label>
@@ -246,34 +227,121 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
       {/* Cloud Integration */}
       <div className="bg-game-card rounded-lg p-6">
         <h2 className="text-xl font-bold mb-6">{t("settings.cloud.title")}</h2>
-        <div className="space-y-6">
-          <CloudProvider
-            name="Google Drive"
-            icon={<Cloud className="w-6 h-6 text-[#4285F4]" />}
-            email="john@gmail.com"
-            connected={true}
-          />
+        <div className="space-y-4">
+          {!tokensLoaded ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-400">
+                Loading cloud providers...
+              </span>
+            </div>
+          ) : (
+            // Temporarily only show Google Drive, but prepared for future providers
+            ["google_drive" as CloudProvider].map((provider) => {
+              const isConnected = isProviderConnected(provider);
 
-          <CloudProvider
-            name="Dropbox"
-            icon={<Cloud className="w-6 h-6 text-[#0061FF]" />}
-            connected={false}
-          />
+              return (
+                <div
+                  key={provider}
+                  className="flex items-center justify-between p-3 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    <PlatformIcon platform={provider} />
+                    <div>
+                      <p className="font-medium text-sm">
+                        {getProviderName(provider)}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {isConnected
+                          ? t("cloudStorage.status.connected")
+                          : t("cloudStorage.status.notConnected")}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (isConnected) {
+                        disconnectProvider(provider);
+                      } else {
+                        authenticate(provider);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className={`${
+                      isConnected
+                        ? "text-epic-danger hover:text-red-400 hover:bg-epic-danger/10"
+                        : "text-rog-blue hover:text-epic-accent hover:bg-rog-blue/10"
+                    } text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 p-2 rounded-md`}
+                  >
+                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>
+                      {isConnected
+                        ? t("cloudStorage.actions.disconnect")
+                        : t("cloudStorage.actions.connect")}
+                    </span>
+                  </button>
+                </div>
+              );
+            })
+          )}
 
-          <CloudProvider
-            name="OneDrive"
-            icon={<Cloud className="w-6 h-6 text-[#0078D4]" />}
-            connected={false}
-          />
+          {/* Future providers - ready to be enabled */}
+          {/* {["dropbox", "onedrive"].map((provider) => {
+            const isConnected = isProviderConnected(provider as CloudProvider);
 
-          <div className="border-t border-white/10 pt-4 mt-4">
+            return (
+              <div
+                key={provider}
+                className="flex items-center justify-between p-3 rounded-lg bg-epic-hover hover:bg-epic-hover/80 transition-all duration-200"
+              >
+                <div className="flex items-center space-x-3">
+                  <PlatformIcon platform={provider as CloudProvider} />
+                  <div>
+                    <p className="font-medium text-sm">
+                      {getProviderName(provider as CloudProvider)}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isConnected
+                        ? t("cloudStorage.status.connected")
+                        : t("cloudStorage.status.notConnected")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isConnected) {
+                      disconnectProvider(provider as CloudProvider);
+                    } else {
+                      authenticate(provider as CloudProvider);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className={`${
+                    isConnected
+                      ? "text-epic-danger hover:text-red-400 hover:bg-epic-danger/10"
+                      : "text-rog-blue hover:text-epic-accent hover:bg-rog-blue/10"
+                  } text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 p-2 rounded-md`}
+                >
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>
+                    {isConnected
+                      ? t("cloudStorage.actions.disconnect")
+                      : t("cloudStorage.actions.connect")}
+                  </span>
+                </button>
+              </div>
+            );
+          })} */}
+
+          {/* Auto-sync settings will be available in future version */}
+          {/* <div className="border-t border-white/10 pt-4 mt-4">
             <h3 className="text-lg font-medium mb-4">
               {t("settings.cloud.autoSync.title")}
             </h3>
@@ -294,12 +362,12 @@ export default function Settings() {
                 />
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6">
+      {/* Danger Zone - Hidden for now, will be available in future version */}
+      {/* <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6">
         <h2 className="text-xl font-bold text-red-500 mb-6">
           {t("settings.danger.title")}
         </h2>
@@ -327,7 +395,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
       </div>
     </div>
   );
