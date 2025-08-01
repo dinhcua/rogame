@@ -77,6 +77,7 @@ pub struct GameInfo {
     category: String,
     is_favorite: bool,
     save_locations: Vec<SaveLocation>,
+    steam_library_path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -352,6 +353,7 @@ fn format_size(size: u64) -> String {
 fn scan_save_locations(
     steam_id: &str,
     game_config: &HashMap<String, GameEntry>,
+    steam_library_path: Option<&PathBuf>,
 ) -> Vec<SaveLocation> {
     let mut save_locations = Vec::new();
 
@@ -363,10 +365,23 @@ fn scan_save_locations(
         if !save_location.is_empty() {
             // Store the original pattern (before expansion) for proper wildcard handling
             let original_pattern = save_location.to_string();
-            let expanded_path = expand_tilde(save_location);
+            
+            // Replace @STEAM_LIBRARY@ placeholder if present
+            let resolved_location = if save_location.contains("@STEAM_LIBRARY@") {
+                if let Some(library_path) = steam_library_path {
+                    save_location.replace("@STEAM_LIBRARY@", &library_path.to_string_lossy())
+                } else {
+                    println!("Warning: Save location uses @STEAM_LIBRARY@ but no Steam library path provided");
+                    save_location.to_string()
+                }
+            } else {
+                save_location.to_string()
+            };
+            
+            let expanded_path = expand_tilde(&resolved_location);
 
             // Check if path contains wildcard *
-            if save_location.contains("*") {
+            if resolved_location.contains("*") {
                 // Use glob to find all matching paths
                 let glob_path = expanded_path.to_string_lossy().into_owned();
                 if let Ok(paths) = glob(&glob_path) {
@@ -537,7 +552,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                     game_entry
                                 {
                                     let locations =
-                                        scan_save_locations(&entry.steam_id, &game_config);
+                                        scan_save_locations(&entry.steam_id, &game_config, Some(&library.path));
                                     (entry.steam_id.clone(), locations, "Action".to_string())
                                 } else {
                                     // Game not in config, use empty save locations
@@ -575,6 +590,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                         category,
                                         is_favorite: false,
                                         save_locations,
+                                        steam_library_path: Some(library.path.to_string_lossy().into_owned()),
                                     },
                                 );
                             }
@@ -600,7 +616,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                         );
                         let size = get_directory_size(&game_path);
                         // Check if game exists in config with this steam_id
-                        let save_locations = scan_save_locations(app_id, &game_config);
+                        let save_locations = scan_save_locations(app_id, &game_config, Some(&library.path));
                         let save_count = save_locations.iter().map(|loc| loc.file_count).sum();
 
                         // Get game info from config if available
@@ -640,6 +656,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                 category,
                                 is_favorite: false,
                                 save_locations,
+                                steam_library_path: Some(library.path.to_string_lossy().into_owned()),
                             },
                         );
                     } else {
@@ -684,6 +701,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                                 let locations = scan_save_locations(
                                                     &entry.steam_id,
                                                     &game_config,
+                                                    None,
                                                 );
                                                 (
                                                     format!("epic_{}", entry.steam_id),
@@ -734,6 +752,7 @@ pub async fn scan_games() -> Result<HashMap<String, GameInfo>, String> {
                                                 category,
                                                 is_favorite: false,
                                                 save_locations,
+                                                steam_library_path: None,
                                             },
                                         );
                                     }

@@ -34,10 +34,10 @@
     "name": "Black Myth: Wukong",
     "save_locations": {
       "macos": "~/Library/Application Support/Steam/userdata/*/2358720/remote",
-      "windows": "~/AppData/Local/Black Myth Wukong/Saved/SaveGames",
+      "windows": "@STEAM_LIBRARY@/steamapps/common/BlackMythWukong/b1/Saved/SaveGames",
       "linux": "~/.local/share/Steam/userdata/*/2358720/remote"
     },
-    "save_pattern": ["*"]
+    "save_pattern": ["*.sav"]
   },
   "3017860": {
     "steam_id": "3017860",
@@ -64,7 +64,7 @@
     "name": "Cyberpunk 2077",
     "save_locations": {
       "macos": "~/Library/Application Support/Steam/userdata/*/1091500/remote",
-      "windows": "~/AppData/Local/CD Projekt Red/Cyberpunk 2077",
+      "windows": "~/Saved Games/CD Projekt Red/Cyberpunk 2077",
       "linux": "~/.local/share/Steam/userdata/*/1091500/remote"
     },
     "save_pattern": ["*"]

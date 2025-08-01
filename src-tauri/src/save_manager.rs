@@ -8,6 +8,9 @@ use std::path::PathBuf;
 use crate::db;
 use crate::security::{safe_join_path, safe_expand_tilde, validate_path_component};
 
+// Special placeholder for Steam library path
+const STEAM_LIBRARY_PLACEHOLDER: &str = "@STEAM_LIBRARY@";
+
 // Structs for the new JSON structure
 #[derive(Debug, Deserialize)]
 struct GameEntry {
@@ -40,6 +43,34 @@ fn get_platform_save_location(locations: &SaveLocations) -> &str {
 
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     return "";
+}
+
+// Helper function to resolve Steam library placeholder in save location
+async fn resolve_save_location(save_location: &str, game_id: &str) -> Result<String, SaveFileError> {
+    if save_location.contains(STEAM_LIBRARY_PLACEHOLDER) {
+        // Get the Steam library path from database
+        let game_id_clone = game_id.to_string();
+        let steam_library_path = db::query_blocking(move |conn| {
+            conn.query_row(
+                "SELECT steam_library_path FROM games WHERE id = ?1",
+                params![game_id_clone],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .map_err(|e| format!("Failed to get steam library path: {}", e))
+        })
+        .await
+        .map_err(|e| SaveFileError { message: e })?;
+
+        if let Some(library_path) = steam_library_path {
+            Ok(save_location.replace(STEAM_LIBRARY_PLACEHOLDER, &library_path))
+        } else {
+            Err(SaveFileError {
+                message: "Game has no Steam library path but save location uses @STEAM_LIBRARY@ placeholder".to_string(),
+            })
+        }
+    } else {
+        Ok(save_location.to_string())
+    }
 }
 
 // Helper function to get save game config path
@@ -449,7 +480,9 @@ pub async fn restore_save(game_id: String, save_id: String) -> Result<SaveFile, 
         }
     };
 
-    let origin_path = safe_expand_tilde(&save_location)?;
+    // Resolve Steam library placeholder if present
+    let resolved_location = resolve_save_location(&save_location, &game_id).await?;
+    let origin_path = safe_expand_tilde(&resolved_location)?;
 
     // Check if the backup is a directory (for pattern "*" backups)
     if save_path.is_dir() {
@@ -797,17 +830,21 @@ pub async fn backup_save(game_id: String) -> Result<BackupResponse, SaveFileErro
         }
     };
 
-    // Check if save_location contains wildcard
-    let (has_wildcard, pattern_info) = if save_location.contains("*") {
+    // Resolve Steam library placeholder if present
+    let resolved_location = resolve_save_location(&save_location, &game_id).await?;
+    
+    // Check if resolved_location contains wildcard
+    let (has_wildcard, pattern_info) = if resolved_location.contains("*") {
         // For wildcard patterns, we need special handling
-        println!("Save location contains wildcard pattern: {}", save_location);
-        (true, Some(save_location.clone()))
+        println!("Save location contains wildcard pattern: {}", resolved_location);
+        (true, Some(resolved_location.clone()))
     } else {
         (false, None)
     };
-
-    let origin_path = safe_expand_tilde(&save_location)?;
+    
+    let origin_path = safe_expand_tilde(&resolved_location)?;
     println!("Save location: {}", save_location);
+    println!("Resolved save location: {}", resolved_location);
     println!("Expanded save location: {:?}", origin_path);
 
     // Create a new backup with timestamp
@@ -1350,6 +1387,7 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
         .unwrap_or("Unknown")
         .to_string();
     let is_favorite = game_info["is_favorite"].as_bool().unwrap_or(false);
+    let steam_library_path = game_info["steam_library_path"].as_str().map(|s| s.to_string());
 
     // Get save location - handle both array format (from scanner) and string format (from manual add)
     let save_location = if let Some(location_str) = game_info["save_location"].as_str() {
@@ -1388,7 +1426,7 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                 "UPDATE games SET 
                     title = ?2, cover_image = ?3, platform = ?4, last_played = ?5,
                     save_count = ?6, size = ?7, status = ?8, category = ?9,
-                    is_favorite = ?10, save_location = ?11
+                    is_favorite = ?10, save_location = ?11, steam_library_path = ?12
                 WHERE id = ?1",
                 params![
                     game_id,
@@ -1401,7 +1439,8 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                     status,
                     category,
                     is_favorite,
-                    save_location
+                    save_location,
+                    steam_library_path
                 ],
             )
             .map_err(|e| format!("Failed to update game: {}", e))?;
@@ -1411,8 +1450,8 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                 "INSERT INTO games (
                     id, title, cover_image, platform, last_played, save_count,
                     size, status, category, is_favorite, save_location,
-                    backup_location, last_backup_time
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, NULL)",
+                    backup_location, last_backup_time, steam_library_path
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, NULL, ?12)",
                 params![
                     game_id,
                     title,
@@ -1424,7 +1463,8 @@ pub async fn add_game_to_library(game_info: serde_json::Value) -> Result<(), Sav
                     status,
                     category,
                     is_favorite,
-                    save_location
+                    save_location,
+                    steam_library_path
                 ],
             )
             .map_err(|e| format!("Failed to insert game: {}", e))?;
@@ -1711,8 +1751,10 @@ pub async fn open_save_location(game_id: String, backup: bool) -> Result<(), Sav
         }
     } else {
         // Open original save location
-        let game = get_game_by_id(game_id).await?;
-        let save_location = safe_expand_tilde(&game.save_location)?;
+        let game = get_game_by_id(game_id.clone()).await?;
+        // Resolve Steam library placeholder if present
+        let resolved_location = resolve_save_location(&game.save_location, &game_id).await?;
+        let save_location = safe_expand_tilde(&resolved_location)?;
         
         if !save_location.exists() {
             return Err(SaveFileError {
@@ -2109,7 +2151,9 @@ pub async fn restore_community_save(game_id: String, community_save_id: String) 
         get_save_location_from_config(&game_id)?
     };
     
-    let origin_path = safe_expand_tilde(&save_location)?;
+    // Resolve Steam library placeholder if present
+    let resolved_location = resolve_save_location(&save_location, &game_id).await?;
+    let origin_path = safe_expand_tilde(&resolved_location)?;
     
     // Ensure origin directory exists
     create_dir_all(&origin_path).map_err(|e| SaveFileError {

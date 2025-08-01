@@ -13,6 +13,7 @@ export interface Game {
   save_location: string;
   backup_location: string | null;
   save_locations?: SaveLocation[];
+  steam_library_path?: string;
 }
 
 export interface SaveLocation {

@@ -44,7 +44,8 @@ pub fn initialize_database(conn: &Connection) -> SqlResult<()> {
             is_favorite BOOLEAN NOT NULL,
             save_location TEXT NOT NULL,
             backup_location TEXT,
-            last_backup_time INTEGER
+            last_backup_time INTEGER,
+            steam_library_path TEXT DEFAULT NULL
         )",
         [],
     )?;
